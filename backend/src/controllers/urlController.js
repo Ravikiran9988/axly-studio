@@ -47,6 +47,25 @@ export const createUrl = async (req, res) => {
       });
     }
 
+    // Guest restrictions: custom aliases and expiration require an Axly Studio account
+    if (!userId) {
+      if (customAlias) {
+        return res.status(403).json({
+          success: false,
+          code: 'AUTH_REQUIRED_FOR_CUSTOM_ALIAS',
+          message: 'Custom vanity aliases require an Axly Studio account. Please register or sign in to create branded links.'
+        });
+      }
+
+      if (expiresAt) {
+        return res.status(403).json({
+          success: false,
+          code: 'AUTH_REQUIRED_FOR_EXPIRATION',
+          message: 'Link expiration schedules require an Axly Studio account. Please register or sign in to set link timers.'
+        });
+      }
+    }
+
     // Expiration date validation
     let expiresAtValue = null;
     if (expiresAt) {
@@ -127,12 +146,18 @@ export const createUrl = async (req, res) => {
 
       const savedUrl = result.rows[0];
       const shortUrl = `${config.SHORT_DOMAIN}/${savedUrl.short_code}`;
+      const isGuest = !userId;
 
       res.status(201).json({
         success: true,
+        message: isGuest ? 'Short URL created successfully!' : 'Short URL created and saved to your account!',
         data: {
           ...savedUrl,
           short_url: shortUrl,
+          is_guest: isGuest,
+          unlock_prompt: isGuest 
+            ? 'Create an Axly Studio account to view real-time click analytics, manage links, and create branded vanity URLs.' 
+            : null,
         }
       });
     } catch (insertErr) {

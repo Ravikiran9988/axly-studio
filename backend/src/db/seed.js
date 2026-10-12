@@ -13,16 +13,25 @@ export const runSeed = async () => {
   try {
     await client.query('BEGIN');
 
-    // Create demo user
-    const passwordHash = await bcrypt.hash('demo1234', 12);
-    const userResult = await client.query(`
-      INSERT INTO users (name, email, password_hash, plan)
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name
+    // Create demo admin user
+    const adminPasswordHash = await bcrypt.hash('demo1234', 12);
+    const adminResult = await client.query(`
+      INSERT INTO users (name, email, password_hash, plan, role)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name, role = EXCLUDED.role
       RETURNING id
-    `, ['Demo User', 'demo@axly.in', passwordHash, 'pro']);
+    `, ['Axly Admin', 'demo@axly.in', adminPasswordHash, 'pro', 'admin']);
 
-    const userId = userResult.rows[0].id;
+    const userId = adminResult.rows[0].id;
+
+    // Create standard member user
+    const userPasswordHash = await bcrypt.hash('user1234', 12);
+    await client.query(`
+      INSERT INTO users (name, email, password_hash, plan, role)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name, role = EXCLUDED.role
+      RETURNING id
+    `, ['Standard User', 'user@axly.in', userPasswordHash, 'free', 'user']);
 
     // Create sample URLs
     const sampleUrls = [
@@ -41,7 +50,8 @@ export const runSeed = async () => {
 
     await client.query('COMMIT');
     console.log('✅ Seed demo data created successfully.');
-    console.log('📧 Demo login: demo@axly.in / demo1234');
+    console.log('👑 Admin login: demo@axly.in / demo1234');
+    console.log('👤 Member login: user@axly.in / user1234');
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('❌ Seed failed:', err.message);

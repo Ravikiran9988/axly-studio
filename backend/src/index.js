@@ -8,6 +8,7 @@ import { config, validateEnv } from './config/env.js';
 import { closePool, query } from './db/pool.js';
 import authRoutes from './routes/auth.js';
 import urlRoutes from './routes/urls.js';
+import adminRoutes from './routes/admin.js';
 import { redirect } from './controllers/redirectController.js';
 
 // Validate environment variables on startup
@@ -95,6 +96,7 @@ app.get('/api/health', async (req, res) => {
 // Mount API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/urls', urlRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Short URL redirection route (public, handles /:shortCode)
 app.get('/:shortCode', redirect);

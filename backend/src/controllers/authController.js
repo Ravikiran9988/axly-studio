@@ -7,7 +7,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const generateToken = (user) => {
   return jwt.sign(
-    { id: user.id, email: user.email, name: user.name },
+    { id: user.id, email: user.email, name: user.name, role: user.role || 'user' },
     config.jwt.secret,
     { expiresIn: config.jwt.expiresIn }
   );
@@ -77,10 +77,10 @@ export const register = async (req, res) => {
 
     try {
       const result = await query(
-        `INSERT INTO users (name, email, password_hash) 
-         VALUES ($1, $2, $3) 
-         RETURNING id, name, email, plan, created_at`,
-        [name.trim(), normalizedEmail, passwordHash]
+        `INSERT INTO users (name, email, password_hash, role) 
+         VALUES ($1, $2, $3, $4) 
+         RETURNING id, name, email, plan, role, created_at`,
+        [name.trim(), normalizedEmail, passwordHash, 'user']
       );
 
       const user = result.rows[0];
@@ -90,7 +90,7 @@ export const register = async (req, res) => {
         success: true,
         message: 'Account created successfully!',
         token,
-        user: { id: user.id, name: user.name, email: user.email, plan: user.plan }
+        user: { id: user.id, name: user.name, email: user.email, plan: user.plan, role: user.role || 'user' }
       });
     } catch (insertErr) {
       // Handle PostgreSQL unique constraint violation race condition
@@ -117,7 +117,7 @@ export const login = async (req, res) => {
     const normalizedEmail = email.trim().toLowerCase();
 
     const result = await query(
-      'SELECT id, name, email, password_hash, plan, is_active FROM users WHERE email = $1',
+      'SELECT id, name, email, password_hash, plan, role, is_active FROM users WHERE email = $1',
       [normalizedEmail]
     );
 
@@ -142,7 +142,7 @@ export const login = async (req, res) => {
       success: true,
       message: 'Login successful!',
       token,
-      user: { id: user.id, name: user.name, email: user.email, plan: user.plan }
+      user: { id: user.id, name: user.name, email: user.email, plan: user.plan, role: user.role || 'user' }
     });
   } catch (err) {
     console.error('Login error:', err);
@@ -154,7 +154,7 @@ export const login = async (req, res) => {
 export const getMe = async (req, res) => {
   try {
     const result = await query(
-      'SELECT id, name, email, plan, avatar_url, created_at FROM users WHERE id = $1',
+      'SELECT id, name, email, plan, role, avatar_url, created_at FROM users WHERE id = $1',
       [req.user.id]
     );
 

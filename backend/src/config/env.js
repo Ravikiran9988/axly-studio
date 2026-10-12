@@ -83,6 +83,8 @@ export const config = {
     generalMax: parseInt(process.env.RATE_LIMIT_MAX || '100', 10),
     createWindowMs: parseInt(process.env.CREATE_RATE_LIMIT_WINDOW_MS || '3600000', 10), // 1 hour
     createMax: parseInt(process.env.CREATE_RATE_LIMIT_MAX || '50', 10),
+    guestCreateWindowMs: parseInt(process.env.GUEST_CREATE_RATE_LIMIT_WINDOW_MS || '3600000', 10), // 1 hour
+    guestCreateMax: parseInt(process.env.GUEST_CREATE_RATE_LIMIT_MAX || '10', 10), // 10 links/hr for guests
     authWindowMs: parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 mins
     authMax: parseInt(process.env.AUTH_RATE_LIMIT_MAX || '10', 10),
   },

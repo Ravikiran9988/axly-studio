@@ -17,8 +17,8 @@ export const authenticate = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, config.jwt.secret);
     
-    // Check if user is still active in database
-    const userCheck = await query('SELECT id, is_active FROM users WHERE id = $1', [decoded.id]);
+    // Check if user is still active in database and fetch role
+    const userCheck = await query('SELECT id, is_active, role FROM users WHERE id = $1', [decoded.id]);
     if (userCheck.rows.length === 0) {
       return res.status(401).json({ 
         success: false, 
@@ -33,7 +33,10 @@ export const authenticate = async (req, res, next) => {
       });
     }
 
-    req.user = decoded;
+    req.user = {
+      ...decoded,
+      role: userCheck.rows[0].role || decoded.role || 'user',
+    };
     next();
   } catch (err) {
     return res.status(401).json({ 
@@ -42,6 +45,33 @@ export const authenticate = async (req, res, next) => {
     });
   }
 };
+
+/**
+ * Role-Based Access Control (RBAC) middleware
+ * Ensures req.user has one of the allowed roles
+ */
+export const requireRole = (...allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Authentication required.' 
+      });
+    }
+
+    const userRole = req.user.role || 'user';
+    if (!allowedRoles.includes(userRole)) {
+      return res.status(403).json({ 
+        success: false, 
+        message: `Forbidden: role '${userRole}' does not have sufficient permissions.` 
+      });
+    }
+
+    next();
+  };
+};
+
+export const requireAdmin = requireRole('admin');
 
 export const optionalAuth = (req, res, next) => {
   const authHeader = req.headers.authorization;

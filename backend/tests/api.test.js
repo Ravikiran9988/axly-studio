@@ -137,8 +137,8 @@ describe('Axly URL Shortener API Tests', () => {
       // Mock pool.query to simulate existing link
       const originalQuery = pool.query;
       pool.query = async (text) => {
-        if (text.includes('SELECT id, is_active FROM users')) {
-          return { rows: [{ id: testUserId, is_active: true }] };
+        if (text.includes('FROM users')) {
+          return { rows: [{ id: testUserId, is_active: true, role: 'user' }] };
         }
         if (text.includes('SELECT id, expires_at')) {
           return { rows: [{ id: 'url-1', expires_at: new Date('2030-01-01'), status: 'active', title: 'Old' }] };
@@ -168,8 +168,8 @@ describe('Axly URL Shortener API Tests', () => {
       const initialExpiry = new Date('2030-01-01T00:00:00.000Z');
 
       pool.query = async (text, params) => {
-        if (text.includes('SELECT id, is_active FROM users')) {
-          return { rows: [{ id: testUserId, is_active: true }] };
+        if (text.includes('FROM users')) {
+          return { rows: [{ id: testUserId, is_active: true, role: 'user' }] };
         }
         if (text.includes('SELECT id, expires_at, status, title FROM urls')) {
           return { rows: [{ id: 'url-1', expires_at: initialExpiry, status: 'active', title: 'Original' }] };
@@ -214,8 +214,8 @@ describe('Axly URL Shortener API Tests', () => {
       let executedQuery = '';
 
       pool.query = async (text) => {
-        if (text.includes('SELECT id, is_active FROM users')) {
-          return { rows: [{ id: testUserId, is_active: true }] };
+        if (text.includes('FROM users')) {
+          return { rows: [{ id: testUserId, is_active: true, role: 'user' }] };
         }
         if (text.includes('SELECT id, expires_at, status, title FROM urls')) {
           return { rows: [{ id: 'url-1', expires_at: new Date(), status: 'active', title: 'Original' }] };
@@ -301,6 +301,101 @@ describe('Axly URL Shortener API Tests', () => {
         const res = await request(app).get('/valid_code');
         assert.equal(res.status, 302);
         assert.equal(res.header.location, 'https://target-destination.com/page');
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+  });
+
+  describe('Role-Based Access Control (RBAC)', () => {
+    const normalUserToken = jwt.sign(
+      { id: '22222222-2222-2222-2222-222222222222', email: 'member@axly.in', role: 'user' },
+      config.jwt.secret,
+      { expiresIn: '1h' }
+    );
+
+    const adminToken = jwt.sign(
+      { id: '33333333-3333-3333-3333-333333333333', email: 'admin@axly.in', role: 'admin' },
+      config.jwt.secret,
+      { expiresIn: '1h' }
+    );
+
+    test('GET /api/admin/stats rejects non-admin users with 403 Forbidden', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('SELECT id, is_active, role FROM users')) {
+          return { rows: [{ id: '22222222-2222-2222-2222-222222222222', is_active: true, role: 'user' }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .get('/api/admin/stats')
+          .set('Authorization', `Bearer ${normalUserToken}`);
+
+        assert.equal(res.status, 403);
+        assert.match(res.body.message, /Forbidden/i);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('GET /api/admin/stats grants access to admin users', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('SELECT id, is_active, role FROM users')) {
+          return { rows: [{ id: '33333333-3333-3333-3333-333333333333', is_active: true, role: 'admin' }] };
+        }
+        if (text.includes('SELECT COUNT(*)::int as count FROM users')) {
+          return { rows: [{ count: 12 }] };
+        }
+        if (text.includes('SELECT COUNT(*)::int as count FROM urls')) {
+          return { rows: [{ count: 48 }] };
+        }
+        if (text.includes('COALESCE(SUM(click_count)')) {
+          return { rows: [{ total_clicks: 1200, unique_clicks: 800 }] };
+        }
+        if (text.includes('SELECT role, COUNT(*)')) {
+          return { rows: [{ role: 'admin', count: 2 }, { role: 'user', count: 10 }] };
+        }
+        if (text.includes('FROM urls u')) {
+          return { rows: [] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .get('/api/admin/stats')
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        assert.equal(res.status, 200);
+        assert.equal(res.body.success, true);
+        assert.equal(res.body.data.totalUsers, 12);
+        assert.equal(res.body.data.totalUrls, 48);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('PATCH /api/admin/users/:id/role rejects invalid role names', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('SELECT id, is_active, role FROM users')) {
+          return { rows: [{ id: '33333333-3333-3333-3333-333333333333', is_active: true, role: 'admin' }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .patch('/api/admin/users/user-123/role')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ role: 'super_owner' });
+
+        assert.equal(res.status, 400);
+        assert.match(res.body.message, /Invalid role/i);
       } finally {
         pool.query = originalQuery;
       }

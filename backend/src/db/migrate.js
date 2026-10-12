@@ -15,6 +15,7 @@ export const runMigrations = async () => {
         password_hash VARCHAR(255) NOT NULL,
         avatar_url TEXT,
         plan VARCHAR(50) DEFAULT 'free',
+        role VARCHAR(50) DEFAULT 'user',
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -70,7 +71,7 @@ export const runMigrations = async () => {
       );
     `);
 
-    // Backward-compatible column addition if table already existed
+    // Backward-compatible column additions if tables already existed
     await client.query(`
       DO $$
       BEGIN
@@ -79,6 +80,13 @@ export const runMigrations = async () => {
           WHERE table_name = 'click_events' AND column_name = 'visitor_hash'
         ) THEN
           ALTER TABLE click_events ADD COLUMN visitor_hash VARCHAR(64);
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'role'
+        ) THEN
+          ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'user';
         END IF;
       END $$;
     `);
