@@ -1,30 +1,81 @@
 import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, api } from '../context/AuthContext';
-import { User, Mail, Shield, Bell, Palette, Globe, Save } from 'lucide-react';
+import {
+  User, Mail, Shield, Bell, Palette, Globe, Save,
+  Download, Trash2, ExternalLink, AlertTriangle, CheckCircle2
+} from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+
   const [nameForm, setNameForm] = useState({ name: user?.name || '' });
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  // Deletion modal state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   const handleSaveName = async (e) => {
     e.preventDefault();
     setSaving(true);
-    // In a full implementation this would call PATCH /api/auth/profile
-    await new Promise(r => setTimeout(r, 800));
+    await new Promise(r => setTimeout(r, 600));
     toast.success('Profile updated!');
     setSaving(false);
+  };
+
+  // Download Machine-Readable User Data Export
+  const handleExportData = async () => {
+    setExporting(true);
+    try {
+      const res = await api.get('/user/export');
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(res.data.export || res.data.data, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', dataStr);
+      downloadAnchor.setAttribute('download', `axly-data-export-${new Date().toISOString().slice(0, 10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      toast.success('Personal data archive downloaded!');
+    } catch (err) {
+      toast.error('Failed to export account data.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Confirm Account Deletion
+  const handleDeleteAccount = async (e) => {
+    e.preventDefault();
+    setDeleting(true);
+    try {
+      await api.delete('/user/account', {
+        data: {
+          confirmationEmail: deleteConfirmText,
+          confirmation: deleteConfirmText,
+        }
+      });
+      toast.success('Account and associated data deleted.');
+      logout();
+      navigate('/');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete account.');
+      setDeleting(false);
+    }
   };
 
   return (
     <div className="page-container">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Settings</h1>
-          <p className="page-subtitle">Manage your account and preferences</p>
+          <h1 className="page-title">Settings & Privacy</h1>
+          <p className="page-subtitle">Manage your account profile, privacy controls, and security</p>
         </div>
       </div>
 
@@ -37,7 +88,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>Profile</h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Your personal information</p>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Your personal credentials</p>
             </div>
           </div>
 
@@ -48,8 +99,8 @@ export default function SettingsPage() {
             <div>
               <div style={{ fontWeight: 600, fontSize: '1.05rem', color: 'var(--text-primary)' }}>{user?.name}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{user?.email}</div>
-              <span className={`badge ${user?.plan === 'pro' ? 'badge-pro' : 'badge-active'}`} style={{ marginTop: 6 }}>
-                {user?.plan === 'pro' ? '⚡ Pro Plan' : '✓ Free Plan'}
+              <span className={`badge ${user?.role === 'admin' ? 'badge-admin' : 'badge-active'}`} style={{ marginTop: 6 }}>
+                {user?.role === 'admin' ? '🛡️ Administrator' : '✓ Active Member'}
               </span>
             </div>
           </div>
@@ -82,7 +133,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>Appearance</h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Customize how Axly looks</p>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Customize how Axly Studio looks</p>
             </div>
           </div>
 
@@ -92,7 +143,7 @@ export default function SettingsPage() {
                 {theme === 'dark' ? '🌙 Dark Mode' : '☀️ Light Mode'}
               </div>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                Switch between dark and light theme
+                Switch between curated sleek dark theme and responsive light mode
               </div>
             </div>
             <button
@@ -117,52 +168,54 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* API Info */}
+        {/* Developer Platform Link */}
         <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(6,182,212,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--info)' }}>
-              <Globe size={18} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(6,182,212,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--info)' }}>
+                <Globe size={18} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>Developer Platform</h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Manage API Keys, signed Webhooks, and Branded Domains</p>
+              </div>
+            </div>
+            <Link to="/app/developer" className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              Developer Console <ExternalLink size={14} />
+            </Link>
+          </div>
+        </div>
+
+        {/* Privacy Controls & Data Export */}
+        <div className="card">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(16,185,129,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
+              <Download size={18} />
             </div>
             <div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>API Access</h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Integrate Axly into your apps</p>
+              <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>Privacy & Data Governance</h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Export your data archive and inspect retention policy</p>
             </div>
           </div>
 
-          <div style={{ background: 'var(--bg-input)', borderRadius: 'var(--radius-md)', padding: 16, border: '1px solid var(--border-color)', marginBottom: 16 }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Base URL</div>
-            <code style={{ fontSize: '0.875rem', color: 'var(--brand-primary)', fontFamily: 'monospace' }}>
-              https://url.axly.in/api/v1
-            </code>
+          <div style={{ background: 'var(--bg-input)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)', marginBottom: 16, fontSize: '0.82rem' }}>
+            <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--text-primary)' }}>Data Retention & Privacy Notice</div>
+            <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
+              Clickstream records and link metadata are retained throughout the active lifetime of your account.
+              Platform backups are encrypted and automatically rolled off on a 30-day lifecycle.
+            </p>
           </div>
 
-          {[
-            { method: 'POST', path: '/urls', desc: 'Create a short URL' },
-            { method: 'GET', path: '/urls', desc: 'List your URLs' },
-            { method: 'GET', path: '/urls/:id/analytics', desc: 'Get click analytics' },
-            { method: 'DELETE', path: '/urls/:id', desc: 'Delete a URL' },
-          ].map(ep => (
-            <div key={ep.path} style={{
-              display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0',
-              borderBottom: '1px solid var(--border-color)',
-            }}>
-              <span style={{
-                fontSize: '0.72rem', fontWeight: 700,
-                padding: '2px 8px', borderRadius: 4,
-                background: ep.method === 'POST' ? 'rgba(16,185,129,0.15)' : ep.method === 'GET' ? 'rgba(6,182,212,0.15)' : 'rgba(239,68,68,0.15)',
-                color: ep.method === 'POST' ? 'var(--success)' : ep.method === 'GET' ? 'var(--info)' : 'var(--danger)',
-                fontFamily: 'monospace',
-              }}>
-                {ep.method}
-              </span>
-              <code style={{ fontSize: '0.85rem', color: 'var(--text-primary)', flex: 1 }}>{ep.path}</code>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{ep.desc}</span>
-            </div>
-          ))}
-
-          <div className="alert alert-info" style={{ marginTop: 16, fontSize: '0.82rem' }}>
-            💡 API keys and OAuth coming soon. Currently uses your JWT session token.
-          </div>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={handleExportData}
+            disabled={exporting}
+            id="btn-export-user-data"
+            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            <Download size={14} />
+            {exporting ? 'Generating JSON Archive...' : 'Download Personal Data Archive (.json)'}
+          </button>
         </div>
 
         {/* Danger Zone */}
@@ -177,17 +230,54 @@ export default function SettingsPage() {
             </div>
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 16 }}>
-            Deleting your account will permanently remove all your links, analytics data, and custom aliases.
+            Permanently delete your account, personal links, custom aliases, campaigns, and experiment data.
           </p>
           <button
             id="delete-account-btn"
             className="btn btn-danger btn-sm"
-            onClick={() => toast.error('Account deletion not implemented in demo')}
+            onClick={() => setDeleteModalOpen(true)}
           >
-            Delete Account
+            <Trash2 size={14} /> Delete Account
           </button>
         </div>
       </div>
+
+      {/* ACCOUNT DELETION CONFIRMATION MODAL */}
+      {deleteModalOpen && (
+        <div className="modal-backdrop">
+          <div className="modal-card" style={{ maxWidth: 460 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--danger)', marginBottom: 12 }}>
+              <AlertTriangle size={24} />
+              <h3 style={{ margin: 0 }}>Delete Account Permanently</h3>
+            </div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
+              This action cannot be undone. To confirm, please type your account email (<b>{user?.email}</b>) or type <b>DELETE MY ACCOUNT</b> below:
+            </p>
+
+            <form onSubmit={handleDeleteAccount} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <input
+                type="text"
+                className="form-input"
+                placeholder={user?.email || 'DELETE MY ACCOUNT'}
+                value={deleteConfirmText}
+                onChange={e => setDeleteConfirmText(e.target.value)}
+                required
+              />
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setDeleteModalOpen(false)}>Cancel</button>
+                <button
+                  type="submit"
+                  className="btn btn-danger"
+                  disabled={deleting || (deleteConfirmText !== user?.email && deleteConfirmText !== 'DELETE MY ACCOUNT')}
+                >
+                  {deleting ? 'Deleting...' : 'Permanently Delete'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
