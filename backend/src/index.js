@@ -117,8 +117,9 @@ app.use((err, req, res, next) => {
 
 let server;
 
-// Start server only when run directly (not when required/imported by test runners)
-if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
+// Start server only when run directly (not when imported by tests)
+const isDirectEntry = process.argv[1]?.replace(/\\/g, '/').endsWith('src/index.js');
+if (process.env.NODE_ENV !== 'test' && isDirectEntry) {
   server = app.listen(PORT, () => {
     console.log(`
 ╔══════════════════════════════════════════════════╗

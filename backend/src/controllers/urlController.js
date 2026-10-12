@@ -47,6 +47,19 @@ export const createUrl = async (req, res) => {
       });
     }
 
+    // Expiration date validation
+    let expiresAtValue = null;
+    if (expiresAt) {
+      const parsedDate = new Date(expiresAt);
+      if (isNaN(parsedDate.getTime())) {
+        return res.status(400).json({ success: false, message: 'Invalid expiration date format.' });
+      }
+      if (parsedDate <= new Date()) {
+        return res.status(400).json({ success: false, message: 'Expiration date must be in the future.' });
+      }
+      expiresAtValue = parsedDate;
+    }
+
     let shortCode;
     let cleanAlias = null;
 
@@ -100,19 +113,6 @@ export const createUrl = async (req, res) => {
       if (!foundUnique) {
         shortCode = nanoid(8);
       }
-    }
-
-    // Expiration date validation
-    let expiresAtValue = null;
-    if (expiresAt) {
-      const parsedDate = new Date(expiresAt);
-      if (isNaN(parsedDate.getTime())) {
-        return res.status(400).json({ success: false, message: 'Invalid expiration date format.' });
-      }
-      if (parsedDate <= new Date()) {
-        return res.status(400).json({ success: false, message: 'Expiration date must be in the future.' });
-      }
-      expiresAtValue = parsedDate;
     }
 
     const cleanTitle = title && typeof title === 'string' ? title.trim().slice(0, 500) : null;
