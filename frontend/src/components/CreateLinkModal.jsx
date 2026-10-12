@@ -80,7 +80,7 @@ export default function CreateLinkModal({ onClose, onCreated }) {
             }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 8 }}>Your short URL</div>
               <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--brand-primary)', marginBottom: 16 }}>
-                {result.short_url.replace('http://localhost:5000/', 's.axly.in/')}
+                {result.short_url.replace(/^https?:\/\//, '')}
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
                 <button className={`copy-btn ${copied ? 'copied' : ''}`} onClick={handleCopy} style={{ padding: '8px 20px', fontSize: '0.875rem' }}>
