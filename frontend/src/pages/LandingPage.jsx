@@ -3,10 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   Link2, ArrowRight, Moon, Sun, Copy, Check, ExternalLink, 
   ShieldCheck, Zap, BarChart2, Globe, Sparkles, QrCode, Lock,
-  CheckCircle2, XCircle
+  CheckCircle2, XCircle, ShieldAlert
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth, api } from '../context/AuthContext';
+import ReportModal from '../components/ReportModal';
 import toast from 'react-hot-toast';
 
 const COMPARISON_FEATURES = [
@@ -29,6 +30,8 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [reportShortCode, setReportShortCode] = useState('');
 
   const handleShorten = async (e) => {
     e.preventDefault();
@@ -199,6 +202,17 @@ export default function LandingPage() {
                   >
                     <ExternalLink size={15} /> Open
                   </a>
+                  <button
+                    className="btn btn-ghost"
+                    style={{ border: '1px solid var(--border-color)', color: '#dc2626' }}
+                    onClick={() => {
+                      setReportShortCode(result.short_code);
+                      setReportModalOpen(true);
+                    }}
+                    title="Report phishing, malware or abuse"
+                  >
+                    <ShieldAlert size={15} /> Report Abuse
+                  </button>
                 </div>
 
                 {/* Guest Contextual Upgrade Prompt */}
@@ -394,10 +408,17 @@ export default function LandingPage() {
             <span>Axly Studio</span>
           </div>
 
-          <div style={{ display: 'flex', gap: 24, fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+          <div style={{ display: 'flex', gap: 24, fontSize: '0.88rem', color: 'var(--text-secondary)', alignItems: 'center' }}>
             <a href="#features" className="nav-link">Features</a>
             <a href="#comparison" className="nav-link">Capabilities</a>
             <a href="#security" className="nav-link">Security</a>
+            <button 
+              className="nav-link" 
+              onClick={() => { setReportShortCode(''); setReportModalOpen(true); }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: '#dc2626' }}
+            >
+              <ShieldAlert size={14} /> Report Abuse
+            </button>
             <Link to="/login" className="nav-link">Sign In</Link>
           </div>
 
@@ -406,6 +427,12 @@ export default function LandingPage() {
           </p>
         </div>
       </footer>
+
+      <ReportModal
+        isOpen={reportModalOpen}
+        onClose={() => setReportModalOpen(false)}
+        shortCode={reportShortCode}
+      />
     </div>
   );
 }

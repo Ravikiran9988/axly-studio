@@ -4,7 +4,7 @@ import {
   ArrowLeft, Link2, Copy, Check, ExternalLink, QrCode,
   Calendar, Lock, ShieldCheck, Tag, Save, Plus, Trash2,
   Sliders, GitCompare, BarChart3, AlertTriangle, Smartphone,
-  Clock, CheckCircle, RefreshCw, Eye,
+  Clock, CheckCircle, RefreshCw, Eye, HeartPulse,
 } from 'lucide-react';
 import { api } from '../context/AuthContext';
 import QRModal from '../components/QRModal';
@@ -322,6 +322,15 @@ export default function LinkDetailPage() {
               {url.is_preview_enabled && (
                 <span className="badge" style={{ background: 'rgba(16,185,129,0.1)', color: '#059669', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <ShieldCheck size={11} /> Preview Interstitial
+                </span>
+              )}
+              {url.health_status && url.health_status !== 'unknown' && (
+                <span className="badge" style={{
+                  background: url.health_status === 'healthy' ? '#ecfdf5' : '#fef2f2',
+                  color: url.health_status === 'healthy' ? '#059669' : '#dc2626',
+                  display: 'inline-flex', alignItems: 'center', gap: 4
+                }}>
+                  <HeartPulse size={11} /> {url.health_status.toUpperCase()}
                 </span>
               )}
             </div>
