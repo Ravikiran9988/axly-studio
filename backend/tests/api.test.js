@@ -716,6 +716,327 @@ describe('Axly URL Shortener API Tests', () => {
     });
   });
 
+  describe('Phase 3: Admin Control Center, Moderation & Operations', () => {
+    const adminUserId = '33333333-3333-3333-3333-333333333333';
+    const normalUserId = '22222222-2222-2222-2222-222222222222';
+    const targetUserId = '44444444-4444-4444-4444-444444444444';
+
+    const adminToken = jwt.sign(
+      { id: adminUserId, email: 'admin@axly.in', role: 'admin', token_version: 1 },
+      config.jwt.secret,
+      { expiresIn: '1h' }
+    );
+
+    const normalUserToken = jwt.sign(
+      { id: normalUserId, email: 'user@axly.in', role: 'user', token_version: 1 },
+      config.jwt.secret,
+      { expiresIn: '1h' }
+    );
+
+    test('Non-admin users are blocked with 403 from all admin endpoints', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+          return { rows: [{ id: normalUserId, is_active: true, role: 'user', token_version: 1 }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const endpoints = [
+          '/api/admin/users',
+          '/api/admin/urls',
+          '/api/admin/moderation/reports',
+          '/api/admin/health',
+          '/api/admin/settings',
+          '/api/admin/audit',
+        ];
+
+        for (const ep of endpoints) {
+          const res = await request(app)
+            .get(ep)
+            .set('Authorization', `Bearer ${normalUserToken}`);
+          assert.equal(res.status, 403, `Expected 403 on ${ep}`);
+          assert.match(res.body.message, /Forbidden/i);
+        }
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('Session revocation rejects requests with older token_version', async () => {
+      const originalQuery = pool.query;
+      // Database has token_version = 2, but client JWT has token_version = 1
+      pool.query = async (text) => {
+        if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+          return { rows: [{ id: normalUserId, is_active: true, role: 'user', token_version: 2 }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .get('/api/urls')
+          .set('Authorization', `Bearer ${normalUserToken}`);
+
+        assert.equal(res.status, 401);
+        assert.match(res.body.message, /Session invalidated/i);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('Suspended user account is rejected by authentication middleware', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+          return { rows: [{ id: normalUserId, is_active: false, role: 'user', token_version: 1 }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .get('/api/urls')
+          .set('Authorization', `Bearer ${normalUserToken}`);
+
+        assert.equal(res.status, 403);
+        assert.match(res.body.message, /Account is disabled/i);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('Self-demotion is strictly prevented for administrators', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+          return { rows: [{ id: adminUserId, is_active: true, role: 'admin', token_version: 1 }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .patch(`/api/admin/users/${adminUserId}/role`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ role: 'user' });
+
+        assert.equal(res.status, 400);
+        assert.match(res.body.message, /demote your own administrative role/i);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('Demoting the last active administrator is strictly blocked', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+          return { rows: [{ id: adminUserId, is_active: true, role: 'admin', token_version: 1 }] };
+        }
+        // Count active admins is 1
+        if (text.includes('COUNT(*)::int as count FROM users WHERE role')) {
+          return { rows: [{ count: 1 }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .patch(`/api/admin/users/${targetUserId}/role`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ role: 'user' });
+
+        assert.equal(res.status, 400);
+        assert.match(res.body.message, /last active administrator/i);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('Suspending the last active administrator is strictly blocked', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+          return { rows: [{ id: adminUserId, is_active: true, role: 'admin', token_version: 1 }] };
+        }
+        if (text.includes('SELECT role, is_active FROM users WHERE id = $1')) {
+          return { rows: [{ role: 'admin', is_active: true }] };
+        }
+        if (text.includes('COUNT(*)::int as count FROM users WHERE role')) {
+          return { rows: [{ count: 1 }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .patch(`/api/admin/users/${targetUserId}/status`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ isActive: false, reason: 'Test lock' });
+
+        assert.equal(res.status, 400);
+        assert.match(res.body.message, /suspend the last active administrator/i);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('Admin can revoke user sessions and audit the action', async () => {
+      let auditLogged = false;
+      let tokenVersionIncremented = false;
+      const originalQuery = pool.query;
+      pool.query = async (text, params) => {
+        if (text.includes('token_version FROM users WHERE id = $1')) {
+          return { rows: [{ id: adminUserId, is_active: true, role: 'admin', token_version: 1 }] };
+        }
+        if (text.includes('UPDATE users SET token_version = token_version + 1')) {
+          tokenVersionIncremented = true;
+          return { rows: [{ id: targetUserId, email: 'target@axly.in', token_version: 2 }] };
+        }
+        if (text.includes('INSERT INTO audit_logs')) {
+          auditLogged = true;
+          return { rows: [{ id: 'audit-1' }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .post(`/api/admin/users/${targetUserId}/revoke-sessions`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ reason: 'Security check' });
+
+        assert.equal(res.status, 200);
+        assert.equal(res.body.success, true);
+        assert.equal(tokenVersionIncremented, true);
+        assert.equal(auditLogged, true);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('Public visitor can submit abuse report for a valid short code', async () => {
+      const originalQuery = pool.query;
+      let insertedReport = false;
+      pool.query = async (text, params) => {
+        if (text.includes('SELECT id, short_code, original_url FROM urls WHERE short_code = $1')) {
+          return { rows: [{ id: 'url-rep-1', short_code: 'rep123', original_url: 'https://example.com/bad' }] };
+        }
+        if (text.includes('INSERT INTO link_reports')) {
+          insertedReport = true;
+          return { rows: [{ id: 'rep-id-1', short_code: 'rep123', status: 'pending', created_at: new Date() }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .post('/api/reports')
+          .send({
+            shortCode: 'rep123',
+            reason: 'phishing',
+            details: 'This link impersonates a banking login page.',
+          });
+
+        assert.equal(res.status, 201);
+        assert.equal(res.body.success, true);
+        assert.equal(insertedReport, true);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('Public report rejects non-existent short codes', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('SELECT id, short_code, original_url FROM urls')) {
+          return { rows: [] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .post('/api/reports')
+          .send({
+            shortCode: 'ghost-code',
+            reason: 'malware',
+            details: 'Dangerous download.',
+          });
+
+        assert.equal(res.status, 404);
+        assert.equal(res.body.success, false);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('Platform settings endpoint validates limits and audits configuration updates', async () => {
+      let auditLogged = false;
+      const originalQuery = pool.query;
+      pool.query = async (text, params) => {
+        if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+          return { rows: [{ id: adminUserId, is_active: true, role: 'admin', token_version: 1 }] };
+        }
+        if (text.includes('INSERT INTO platform_settings')) {
+          return { rows: [] };
+        }
+        if (text.includes('INSERT INTO audit_logs')) {
+          auditLogged = true;
+          return { rows: [{ id: 'audit-settings' }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .put('/api/admin/settings')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({
+            settings: {
+              guest_creation_limit_daily: 25,
+              authenticated_max_links_total: 1000,
+              max_url_length: 4096,
+            }
+          });
+
+        assert.equal(res.status, 200);
+        assert.equal(res.body.success, true);
+        assert.equal(auditLogged, true);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('Platform settings endpoint rejects invalid setting values', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+          return { rows: [{ id: adminUserId, is_active: true, role: 'admin', token_version: 1 }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .put('/api/admin/settings')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({
+            settings: {
+              max_url_length: -50,
+            }
+          });
+
+        assert.equal(res.status, 400);
+        assert.match(res.body.message, /positive integer/i);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+  });
+
   after(async () => {
     await closePool();
     setTimeout(() => process.exit(0), 100);
