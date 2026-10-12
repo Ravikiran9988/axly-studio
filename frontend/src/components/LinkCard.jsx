@@ -20,7 +20,7 @@ export default function LinkCard({ url, onUpdated, onDelete, onToggleStatus, sho
 
   const handleAnalytics = (e) => {
     e.stopPropagation();
-    navigate(`/analytics/${url.id}`);
+    navigate(`/app/analytics/${url.id}`);
   };
 
   const isExpired = url.expires_at && new Date(url.expires_at) < new Date();
@@ -37,7 +37,7 @@ export default function LinkCard({ url, onUpdated, onDelete, onToggleStatus, sho
       <div
         className="card"
         style={{ padding: '16px 20px', cursor: 'pointer' }}
-        onClick={() => navigate(`/analytics/${url.id}`)}
+        onClick={() => navigate(`/app/analytics/${url.id}`)}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           {/* Favicon */}

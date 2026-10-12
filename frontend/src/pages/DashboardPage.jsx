@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Link2, MousePointerClick, TrendingUp, Activity, Plus } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth, api } from '../context/AuthContext';
@@ -131,11 +132,11 @@ export default function DashboardPage() {
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="clickGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
+                <stop offset="5%" stopColor="#2563eb" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.6} />
             <XAxis dataKey="date" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
             <Tooltip
@@ -146,7 +147,7 @@ export default function DashboardPage() {
                 fontSize: '0.85rem'
               }}
             />
-            <Area type="monotone" dataKey="clicks" stroke="#7c3aed" strokeWidth={2} fill="url(#clickGrad)" />
+            <Area type="monotone" dataKey="clicks" stroke="#2563eb" strokeWidth={2} fill="url(#clickGrad)" />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -155,9 +156,9 @@ export default function DashboardPage() {
       <div style={{ marginTop: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <h2 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Recent Links</h2>
-          <a href="/links" style={{ fontSize: '0.875rem', color: 'var(--brand-primary)', fontWeight: 500 }}>
+          <Link to="/app/links" style={{ fontSize: '0.875rem', color: 'var(--brand-primary)', fontWeight: 500 }}>
             View all →
-          </a>
+          </Link>
         </div>
 
         {loading ? (

@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Zap } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Zap, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { user, login } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -14,6 +14,17 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // If already authenticated, redirect immediately based on role
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/app/dashboard', { replace: true });
+      }
+    }
+  }, [user, navigate]);
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -26,11 +37,17 @@ export default function LoginPage() {
     setError('');
 
     try {
-      await login(form.email, form.password);
-      toast.success('Welcome back! 🎉');
-      navigate('/dashboard');
+      const res = await login(form.email, form.password);
+      toast.success(`Welcome back, ${res.user?.name || 'user'}! 👋`);
+      
+      // Role-based routing: Verified by backend JWT and DB
+      if (res.user?.role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/app/dashboard', { replace: true });
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -44,81 +61,86 @@ export default function LoginPage() {
       position: 'relative',
       overflow: 'hidden',
     }}>
-      {/* Bg orbs */}
+      {/* Subtle Background Accents */}
       <div style={{
         position: 'absolute', width: 500, height: 500,
-        background: 'radial-gradient(circle, rgba(124,58,237,0.15), transparent)',
-        borderRadius: '50%', top: -200, right: -100, filter: 'blur(60px)',
-        pointerEvents: 'none',
-      }} />
-      <div style={{
-        position: 'absolute', width: 300, height: 300,
-        background: 'radial-gradient(circle, rgba(6,182,212,0.12), transparent)',
-        borderRadius: '50%', bottom: -100, left: 200, filter: 'blur(60px)',
+        background: 'radial-gradient(circle, rgba(37,99,235,0.06), transparent 70%)',
+        borderRadius: '50%', top: -200, right: -100, filter: 'blur(50px)',
         pointerEvents: 'none',
       }} />
 
-      {/* Left Panel - Branding */}
+      {/* Left Panel - Axly Studio Branding */}
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
         justifyContent: 'center', padding: '60px',
-        background: 'linear-gradient(135deg, rgba(124,58,237,0.08) 0%, rgba(6,182,212,0.05) 100%)',
+        background: 'var(--bg-card)',
         borderRight: '1px solid var(--border-color)',
         position: 'relative', zIndex: 1,
       }} className="hide-mobile">
-        <div style={{ maxWidth: 440 }}>
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 48 }}>
-            <div className="logo-icon" style={{ width: 48, height: 48, fontSize: '1.2rem' }}>A</div>
-            <span className="gradient-text" style={{ fontSize: '1.8rem', fontWeight: 700, fontFamily: 'var(--font-display)' }}>Axly</span>
+        <div style={{ maxWidth: 460 }}>
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 44, textDecoration: 'none' }}>
+            <div className="logo-icon" style={{ width: 44, height: 44, fontSize: '1.2rem', background: '#111827', color: '#fff', borderRadius: 10 }}>A</div>
+            <div>
+              <span style={{ fontSize: '1.6rem', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                Axly Studio
+              </span>
+              <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 600 }}>
+                Enterprise Link Operations
+              </span>
+            </div>
           </Link>
 
-          <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: 16, lineHeight: 1.2 }}>
-            Powerful link management<br />
-            <span className="gradient-text">for everyone</span>
+          <h2 style={{ fontSize: '2.1rem', fontWeight: 800, marginBottom: 16, lineHeight: 1.25, letterSpacing: '-0.02em' }}>
+            Sign in to manage and scale your links with confidence.
           </h2>
 
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.7, marginBottom: 40 }}>
-            Create, manage and track your short links with beautiful analytics dashboards.
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1.02rem', lineHeight: 1.65, marginBottom: 36 }}>
+            Unified access portal for link operations, automated analytics, and system governance.
           </p>
 
-          {[
-            { icon: '⚡', text: 'Lightning fast redirects' },
-            { icon: '📊', text: 'Real-time click analytics' },
-            { icon: '🎨', text: 'Custom branded aliases' },
-            { icon: '📱', text: 'QR code generation' },
-          ].map((item) => (
-            <div key={item.text} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              marginBottom: 16, color: 'var(--text-secondary)', fontSize: '0.95rem',
-            }}>
-              <span style={{ fontSize: '1.2rem' }}>{item.icon}</span>
-              {item.text}
-            </div>
-          ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {[
+              { icon: '⚡', title: 'Lakebase Postgres Engine', desc: 'Real-time click streams with pooled high-throughput latency' },
+              { icon: '🛡️', title: 'Role-Based Access Control', desc: 'Isolated personal workspaces and comprehensive administrator oversight' },
+              { icon: '🔒', title: 'Zero Public Admin Vector', desc: 'Secure backend credential verification with no public entrypoints' },
+            ].map((item) => (
+              <div key={item.title} style={{
+                display: 'flex', alignItems: 'flex-start', gap: 14,
+                padding: '12px 14px', borderRadius: 'var(--radius-md)',
+                background: 'var(--bg-secondary)', border: '1px solid var(--border-color)',
+              }}>
+                <span style={{ fontSize: '1.2rem', marginTop: 2 }}>{item.icon}</span>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.92rem', color: 'var(--text-primary)' }}>{item.title}</div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 2 }}>{item.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Right Panel - Form */}
+      {/* Right Panel - Shared Sign-In Form */}
       <div style={{
         width: '100%', maxWidth: 520,
         display: 'flex', flexDirection: 'column',
-        justifyContent: 'center', padding: '40px',
+        justifyContent: 'center', padding: '48px 40px',
         position: 'relative', zIndex: 1,
       }}>
-        {/* Mobile Logo */}
+        {/* Mobile Header */}
         <div style={{ marginBottom: 32, display: 'none' }} className="show-mobile">
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div className="logo-icon">A</div>
-            <span className="gradient-text" style={{ fontSize: '1.3rem', fontWeight: 700 }}>Axly</span>
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+            <div className="logo-icon" style={{ width: 36, height: 36 }}>A</div>
+            <span style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)' }}>Axly Studio</span>
           </Link>
         </div>
 
-        <div style={{ marginBottom: 36 }}>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: 8 }}>
-            Welcome back
+        <div style={{ marginBottom: 32 }}>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: 8, letterSpacing: '-0.02em' }}>
+            Sign In
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-            Sign in to your Axly account to continue
+            Enter your credentials to access your dashboard.
           </p>
         </div>
 
@@ -130,7 +152,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div className="form-group">
-            <label className="form-label" htmlFor="login-email">Email address</label>
+            <label className="form-label" htmlFor="login-email">Email Address</label>
             <div style={{ position: 'relative' }}>
               <Mail size={16} style={{
                 position: 'absolute', left: 14, top: '50%',
@@ -142,7 +164,7 @@ export default function LoginPage() {
                 type="email"
                 className="form-input"
                 style={{ paddingLeft: 42 }}
-                placeholder="you@example.com"
+                placeholder="operator@company.com"
                 value={form.email}
                 onChange={handleChange}
                 required
@@ -164,7 +186,7 @@ export default function LoginPage() {
                 type={showPw ? 'text' : 'password'}
                 className="form-input"
                 style={{ paddingLeft: 42, paddingRight: 42 }}
-                placeholder="Your password"
+                placeholder="Enter account password"
                 value={form.password}
                 onChange={handleChange}
                 required
@@ -178,6 +200,7 @@ export default function LoginPage() {
                   transform: 'translateY(-50%)', color: 'var(--text-muted)',
                   background: 'none', border: 'none', cursor: 'pointer',
                 }}
+                aria-label={showPw ? 'Hide password' : 'Show password'}
               >
                 {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -189,44 +212,49 @@ export default function LoginPage() {
             type="submit"
             className="btn btn-primary"
             disabled={loading}
-            style={{ width: '100%', justifyContent: 'center', padding: '14px' }}
+            style={{ width: '100%', justifyContent: 'center', padding: '13px', marginTop: 4 }}
           >
             {loading ? (
               <><div className="spinner" style={{ width: 18, height: 18 }} /> Signing in...</>
             ) : (
-              <>Sign In <ArrowRight size={16} /></>
+              <>Sign In to Studio <ArrowRight size={16} /></>
             )}
           </button>
         </form>
 
         <div style={{
-          textAlign: 'center', marginTop: 28,
+          textAlign: 'center', marginTop: 26,
           color: 'var(--text-secondary)', fontSize: '0.9rem',
         }}>
-          Don't have an account?{' '}
+          New to Axly Studio?{' '}
           <Link to="/register" style={{ color: 'var(--brand-primary)', fontWeight: 600 }}>
-            Create one free →
+            Create an account →
           </Link>
         </div>
 
-        {/* Demo credentials hint */}
+        {/* Demo Credentials Box */}
         <div style={{
-          marginTop: 24,
-          padding: '14px 18px',
-          background: 'rgba(124, 58, 237, 0.06)',
-          border: '1px solid rgba(124, 58, 237, 0.15)',
+          marginTop: 28,
+          padding: '16px 18px',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)',
           borderRadius: 'var(--radius-md)',
           fontSize: '0.82rem',
           color: 'var(--text-secondary)',
           display: 'flex',
-          alignItems: 'center',
-          gap: 10,
+          flexDirection: 'column',
+          gap: 6,
         }}>
-          <Zap size={14} style={{ color: 'var(--brand-primary)', flexShrink: 0 }} />
-          <span>
-            <strong style={{ color: 'var(--text-primary)' }}>Demo account:</strong>{' '}
-            demo@axly.in / demo1234
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, color: 'var(--text-primary)' }}>
+            <Zap size={15} style={{ color: 'var(--brand-primary)', flexShrink: 0 }} />
+            <span>Pre-Seeded Demo Credentials</span>
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            • <strong style={{ color: 'var(--text-primary)' }}>Admin:</strong> demo@axly.in / demo1234 (Routes to <code>/admin</code>)
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            • <strong style={{ color: 'var(--text-primary)' }}>Standard Member:</strong> user@axly.in / user1234 (Routes to <code>/app/dashboard</code>)
+          </div>
         </div>
       </div>
     </div>
