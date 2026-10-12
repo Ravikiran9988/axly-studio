@@ -8,9 +8,6 @@ import { config } from '../src/config/env.js';
 import { validateSafeDestinationUrl } from '../src/utils/ssrf.js';
 
 describe('Phase 2 — Axly Studio User Features & Intelligence Tests', () => {
-  after(async () => {
-    await closePool();
-  });
 
   const memberId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
   const memberToken = jwt.sign(
