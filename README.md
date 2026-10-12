@@ -1,187 +1,279 @@
 # Axly URL Shortener 🔗
 
-> **The smart link shortener** — Create, manage and track short URLs with analytics, custom aliases, QR codes, and more.
+> **Production-Ready URL Shortener & Analytics Platform** — Shorten long URLs, manage custom vanity aliases, generate downloadable QR codes, and track visitor engagement with privacy-first analytics. Built with React (Vite), Node.js (Express), and PostgreSQL / Supabase Cloud.
 
-[![Tech Stack](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-blue)](./frontend)
-[![Tech Stack](https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-green)](./backend)
-[![Database](https://img.shields.io/badge/Database-PostgreSQL-blue)](./backend/src/db)
-[![Docker](https://img.shields.io/badge/Docker-Compose-blue)](./docker-compose.yml)
-
----
-
-## 🌐 Planned production URLs
-
-These are configuration examples; deploy and configure DNS before using them.
-
-| Service | URL |
-|---------|-----|
-| Dashboard / frontend | https://url.axly.in |
-| Short links | https://s.axly.in/aB72x |
-| API health check | https://url.axly.in/api/health |
+[![CI Pipeline](https://github.com/Ravikiran9988/axly-url-shortener/actions/workflows/ci.yml/badge.svg)](https://github.com/Ravikiran9988/axly-url-shortener/actions/workflows/ci.yml)
+[![Frontend](https://img.shields.io/badge/Frontend-React%2018%20%2B%20Vite-61dafb)](./frontend)
+[![Backend](https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-339933)](./backend)
+[![Database](https://img.shields.io/badge/Database-PostgreSQL%20%2F%20Supabase-3ecf8e)](./backend/src/db)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ed)](./docker-compose.yml)
 
 ---
 
-## 🚀 Quick Start (local development)
+## 📑 Table of Contents
+
+- [Architecture Overview](#-architecture-overview)
+- [Target Production Domains](#-target-production-domains)
+- [Quick Start (Local Development)](#-quick-start-local-development)
+- [Database Configuration: Supabase vs Local](#-database-configuration-supabase-vs-local)
+- [Docker & Docker Compose](#-docker--docker-compose)
+- [API Reference](#-api-reference)
+- [Security & Privacy Features](#-security--privacy-features)
+- [Automated Testing & CI](#-automated-testing--ci)
+- [Deployment & DNS Setup](#-deployment--dns-setup)
+
+---
+
+## 🏛️ Architecture Overview
+
+```
+                                  ┌───────────────────────────────┐
+                                  │      Client Web Browser       │
+                                  └───────────────┬───────────────┘
+                                                  │
+                   ┌──────────────────────────────┴──────────────────────────────┐
+                   │                                                             │
+                   ▼ (url.axly.in)                                               ▼ (s.axly.in/:code)
+     ┌───────────────────────────────┐                             ┌───────────────────────────────┐
+     │      Nginx / Frontend SPA     │                             │      Node.js Express API      │
+     │      (React 18 + Vite)        │───────────/api/────────────▶│    (Auth, URLs, Redirects)    │
+     └───────────────────────────────┘                             └───────────────┬───────────────┘
+                                                                                   │
+                                                          ┌────────────────────────┴────────────────────────┐
+                                                          ▼ (Local Dev / Docker)                            ▼ (Production)
+                                            ┌───────────────────────────────┐                 ┌───────────────────────────────┐
+                                            │       Local PostgreSQL        │                 │        Supabase Cloud         │
+                                            │      (Port 5432 - ACID)       │                 │     (PostgreSQL + SSL/TLS)    │
+                                            └───────────────────────────────┘                 └───────────────────────────────┘
+```
+
+- **Frontend**: Single-page application built with React 18, Vite, Lucide Icons, and Recharts. The design system features glassmorphic styling, full dark/light theme switching, and responsive layouts.
+- **Backend**: Express REST API with input validation, rate limiting, Helmet security headers, CORS, JWT authentication, and bcrypt password hashing.
+- **Database**: PostgreSQL accessed via the `pg` pool driver. Supports both local PostgreSQL instances and managed Supabase Cloud databases using `DATABASE_URL` with strict TLS certificate verification.
+
+---
+
+## 🌐 Target Production Domains
+
+The application is structured to support clean separation between the product dashboard and short links:
+
+| Domain | Purpose | Routing Target |
+|--------|---------|----------------|
+| `https://url.axly.in` | Main Web App & Dashboard | Serves React SPA & proxies `/api/` |
+| `https://s.axly.in/<shortCode>` | Short Link Redirections | Direct 302 redirect via Node.js API |
+| `https://url.axly.in/api` | REST API Endpoints | Node.js Backend API |
+
+*Note: These domains are production targets. They require valid DNS records (CNAME/A) and TLS certificates in your hosting environment before activation.*
+
+---
+
+## 🚀 Quick Start (Local Development)
 
 ### Prerequisites
-- Node.js 18+
+- Node.js 20+
 - PostgreSQL 14+ (or Docker)
 - npm
 
-### 1. Clone and setup
+### 1. Clone Repository
 ```bash
 git clone https://github.com/Ravikiran9988/axly-url-shortener.git
 cd axly-url-shortener
 ```
 
-### 2. Backend setup
+### 2. Configure & Start Backend
 ```bash
 cd backend
 cp .env.example .env
-# Edit .env with your local PostgreSQL credentials
+# Edit .env with your local PostgreSQL credentials (or Supabase connection string)
 npm install
 npm run migrate
-npm run seed # Optional demo data; do not run against production data
+npm run seed     # Optional: inserts demo user (demo@axly.in / demo1234)
 npm run dev
 ```
 
-### 3. Frontend setup
-Open a second terminal:
+### 3. Configure & Start Frontend
+In a new terminal window:
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Open the frontend at http://localhost:5173. The backend health endpoint is http://localhost:5000/api/health.
+The frontend will run at `http://localhost:5173`. Vite automatically proxies `/api` requests to `http://localhost:5000`.
 
 ---
 
-## ☁️ Supabase PostgreSQL (production database)
+## ☁️ Database Configuration: Supabase vs Local
 
-Axly uses the standard PostgreSQL driver (`pg`), so it can connect to Supabase PostgreSQL without replacing the database layer. The backend supports either a hosted `DATABASE_URL` or the individual `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD` variables for local development.
+The connection pool in [`backend/src/db/pool.js`](./backend/src/db/pool.js) automatically selects the appropriate connection mode:
 
-1. Create a project in [Supabase](https://supabase.com/).
-2. In the Supabase dashboard, open **Connect** and copy a PostgreSQL connection string. Use the Session Pooler connection string if your application host cannot connect to the direct endpoint (for example, if it does not support IPv6).
-3. Set these environment variables in the backend hosting provider's secret/environment settings:
+### Option A: Supabase Cloud PostgreSQL (Production)
+1. Create a project in [Supabase](https://supabase.com).
+2. Go to **Project Settings** → **Database** → **Connection String**.
+3. Select **URI** (Session mode on port 5432 or Transaction Pooler on port 6543).
+4. Set the following in `backend/.env`:
    ```env
    NODE_ENV=production
-   DATABASE_URL=postgresql://...your-Supabase-connection-string...
-   DB_SSL_REJECT_UNAUTHORIZED=true
-   JWT_SECRET=your-long-random-production-secret
-   JWT_EXPIRES_IN=7d
-   PORT=5000
-   APP_URL=https://url.axly.in
-   FRONTEND_URL=https://url.axly.in
-   SHORT_DOMAIN=https://s.axly.in
+   DATABASE_URL=postgresql://postgres.[YOUR-REF]:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?sslmode=require
+   DB_SSL=true
+   JWT_SECRET=generate_a_secure_random_32_character_string_here
    ```
-   Replace the example values with the actual URLs and connection string. Never commit the real connection string or JWT secret.
-4. Run the existing schema migration once against the intended Supabase database from the backend environment:
+5. Run migrations against your Supabase database:
    ```bash
-   npm install
    npm run migrate
    ```
-5. Deploy the frontend and backend, configure DNS/TLS and reverse-proxy or hosting routes for the dashboard, API and short-link hostname, then test registration, login, URL creation and redirects.
 
-**Important:** Supabase provides the PostgreSQL database; it does not automatically host this Express API or React frontend. Those still need to be deployed separately. The hostnames above are planned examples, not proof that DNS or deployment is already configured.
+*Security Note: TLS certificate verification is enforced when connecting to Supabase (`rejectUnauthorized: true`). Never disable certificate verification.*
 
-### Database configuration notes
-- If `DATABASE_URL` is set, it takes precedence over the local `DB_*` variables.
-- TLS certificate verification is enabled by default for `DATABASE_URL` connections. Do not disable verification to work around a connection error; check the connection string and provider's TLS guidance.
-- Use the database password from Supabase, URL-encoded if it contains special characters.
-- Keep `backend/.env` out of Git and use your hosting provider's secret manager for production values.
-- Do not run the seed script on a production database unless you intentionally want demo records.
+### Option B: Local PostgreSQL (Development)
+When `DATABASE_URL` is omitted, the pool reads discrete variables:
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=axly_db
+DB_USER=postgres
+DB_PASSWORD=your_password
+DB_SSL=false
+```
 
 ---
 
-## 🐳 Docker (local PostgreSQL)
+## 🐳 Docker & Docker Compose
+
+A complete containerized stack is available in [`docker-compose.yml`](./docker-compose.yml):
+
 ```bash
-docker compose up --build
-```
-The current Compose stack includes a local PostgreSQL container for development. It is separate from Supabase; configure the backend hosting environment with `DATABASE_URL` to use Supabase in a deployed environment.
+# 1. Copy Docker environment variables
+cp .env.example .env
 
----
+# 2. Build and start services (Postgres, Backend, Frontend with Nginx)
+docker compose up --build -d
 
-## 📁 Project structure
+# 3. Run database migrations inside the backend container
+docker compose exec backend npm run migrate
 
-```
-axly-url-shortener/
-├── frontend/                   # React + Vite frontend
-├── backend/                    # Node.js + Express API
-│   └── src/
-│       ├── controllers/
-│       ├── middleware/
-│       ├── routes/
-│       └── db/
-│           ├── pool.js         # Local or hosted PostgreSQL connection
-│           ├── migrate.js      # Create database tables
-│           └── seed.js          # Optional demo data
-└── docker-compose.yml          # Local full-stack development
+# 4. View logs
+docker compose logs -f
+
+# 5. Stop containers (preserves database volume)
+docker compose down
 ```
 
----
-
-## 🛠️ Tech stack
-
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React + Vite |
-| Backend | Node.js + Express |
-| Database | PostgreSQL (local or Supabase-hosted) |
-| Auth | JWT + bcrypt |
-| Short codes | nanoid |
-| Container | Docker + Docker Compose |
+### Services Started:
+- **`axly_frontend`**: Nginx web server on `http://localhost:80` (handles SPA routing and proxies `/api`).
+- **`axly_backend`**: Node.js container on `http://localhost:5000`.
+- **`axly_postgres`**: PostgreSQL 16 container bound strictly to `127.0.0.1:5432` with health checks.
 
 ---
 
-## 📡 API reference
+## 📡 API Reference
 
-### Auth
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/auth/register` | Create account |
-| `POST` | `/api/auth/login` | Sign in |
-| `GET` | `/api/auth/me` | Get profile |
+### Health Check
+- `GET /api/health` — Verifies API status and database connectivity latency.
 
-### URLs
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| `POST` | `/api/urls` | Optional | Create short URL |
-| `GET` | `/api/urls` | Required | List user URLs |
-| `GET` | `/api/urls/stats` | Required | Dashboard stats |
-| `GET` | `/api/urls/:id` | Required | Get URL details |
-| `PATCH` | `/api/urls/:id` | Required | Update URL |
-| `DELETE` | `/api/urls/:id` | Required | Delete URL |
-| `GET` | `/api/urls/:id/qr` | Required | Get QR code |
-| `GET` | `/api/urls/:id/analytics` | Required | Click analytics |
+### Authentication
+- `POST /api/auth/register` — Register a new user account.
+  ```json
+  // Request
+  { "name": "Jane Doe", "email": "jane@example.com", "password": "securePassword123" }
+  // Response (201 Created)
+  { "success": true, "token": "jwt_token...", "user": { "id": "...", "name": "Jane Doe", "email": "jane@example.com" } }
+  ```
+- `POST /api/auth/login` — Sign in with email and password.
+- `GET /api/auth/me` — Retrieve current authenticated user profile (`Authorization: Bearer <token>`).
 
-### Redirect
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/:shortCode` | Redirect to original URL |
+### URL Management
+- `POST /api/urls` (Optional Auth) — Create short URL.
+  ```json
+  // Request
+  {
+    "url": "https://example.com/long-product-link",
+    "customAlias": "summer-sale",   // Optional: 3-30 chars
+    "title": "Summer Promotion",     // Optional
+    "expiresAt": "2026-12-31T23:59:59Z" // Optional: Future ISO timestamp
+  }
+  ```
+- `GET /api/urls` (Auth Required) — List authenticated user's URLs with pagination (`page`, `limit`) and search (`search`).
+- `GET /api/urls/stats` (Auth Required) — Overall dashboard metrics (total links, clicks, active links, 7-day activity).
+- `GET /api/urls/:id` (Auth Required) — Details for a specific URL.
+- `PATCH /api/urls/:id` (Auth Required) — Partial update URL (`title`, `status`, `expiresAt`).
+  - **Partial Update Behavior**: Omitting `expiresAt` preserves the existing expiration timestamp. Passing explicit `null` clears expiration.
+- `DELETE /api/urls/:id` (Auth Required) — Delete short URL and its click events.
+- `GET /api/urls/:id/qr` (Auth Required) — Generate QR code PNG data URL.
+- `GET /api/urls/:id/analytics` (Auth Required) — Detailed analytics (browsers, devices, referrers, timeline).
+
+### Public Redirection
+- `GET /:shortCode` — Redirects (302) to original target URL.
+  - Returns `404` if link does not exist.
+  - Returns `410` if link is disabled or expired.
 
 ---
 
-## 🗄️ Database schema
+## 🛡️ Security & Privacy Features
 
-The migration script creates the `users`, `urls`, and `click_events` tables in the configured PostgreSQL database. Run `npm run migrate` against the database you intend to use.
+1. **Privacy-Preserving Visitor Deduplication**:
+   - Unique visitor counts (`unique_clicks`) are calculated using a salted HMAC-SHA256 hash of the visitor's IP and User-Agent.
+   - Raw personal browsing profiles are not permanently retained.
+2. **Open Redirect & Protocol Prevention**:
+   - Destination URLs must use `http:` or `https:`. Dangerous protocols (`javascript:`, `data:`, `file:`) are strictly rejected.
+   - Redirect destinations are read solely from authenticated database records.
+3. **Collision & Custom Alias Protection**:
+   - Reserved keywords (`api`, `auth`, `login`, `admin`, `settings`, etc.) are prohibited as custom aliases.
+   - Concurrent insert conflicts (PostgreSQL code `23505`) are caught and handled gracefully with 409 Conflict responses.
+4. **Rate Limiting**:
+   - Authentication limiter: 10 attempts per 15-minute window.
+   - URL creation limiter: 50 creations per hour.
+   - Global API limiter: 100 requests per 15-minute window.
+5. **Production Secrets Startup Enforcement**:
+   - The server validates environment variables at boot. In production mode, startup immediately halts with a clean error if `JWT_SECRET` is missing, shorter than 32 characters, or using a well-known development fallback.
+   - Generate a strong secret with:
+     ```bash
+     node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+     ```
 
 ---
 
-## ✨ Features
+## 🧪 Automated Testing & CI
 
-- URL shortening (anonymous + authenticated)
-- Short URL redirects with click tracking
-- Device, browser and OS detection
-- JWT user authentication
-- Dashboard and link management
-- Custom aliases and link expiration
-- QR code generation
-- Dark/light mode
-- Search and pagination
+The backend includes a comprehensive automated test suite utilizing Node.js's native test runner (`node:test`) and `supertest`:
+
+```bash
+cd backend
+npm test
+```
+
+### Covered Test Suites:
+- ✅ Production environment validation & insecure secret rejection
+- ✅ Email format normalization & password complexity validation
+- ✅ Registration race-condition conflict handling
+- ✅ Authentication token verification & expired/invalid token handling
+- ✅ Account-disabled access restriction
+- ✅ URL creation, protocol validation, and reserved alias rejection
+- ✅ **Expiration bug regression test**: Partial updates omitting `expiresAt` preserve existing expiration dates
+- ✅ Explicit `null` expiration clearing
+- ✅ Redirection HTTP status codes (302, 404, 410) & XSS-safe error rendering
+
+GitHub Actions automatically runs backend tests and frontend production builds on every push to `master`.
+
+---
+
+## 🌐 Deployment & DNS Setup
+
+To configure custom domains:
+
+1. **DNS Records**:
+   - Point `url.axly.in` (CNAME or A record) to your web server / load balancer.
+   - Point `s.axly.in` (CNAME or A record) to your web server / load balancer.
+2. **Reverse Proxy / Nginx**:
+   - The provided [`frontend/nginx.conf`](./frontend/nginx.conf) routes `url.axly.in` to the React SPA and proxies `s.axly.in` directly to the backend redirection service.
+3. **Environment Configuration**:
+   - Set `APP_URL=https://url.axly.in`
+   - Set `FRONTEND_URL=https://url.axly.in`
+   - Set `SHORT_DOMAIN=https://s.axly.in`
+   - Set `TRUST_PROXY=1` (or `true`)
 
 ---
 
 ## 📜 License
 
-MIT © Axly 2026
+MIT © 2026 Axly
