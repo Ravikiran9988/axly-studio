@@ -7,10 +7,20 @@ import {
   getUrl,
   updateUrl,
   deleteUrl,
+  bulkUrlsAction,
+  bulkImportCsv,
+  exportUrlsCsv,
   getQrCode,
   getAnalytics,
   getDashboardStats
 } from '../controllers/urlController.js';
+import {
+  getRulesForUrl,
+  createRule,
+  updateRule,
+  deleteRule,
+  reorderRules
+} from '../controllers/smartRulesController.js';
 import { config } from '../config/env.js';
 
 const router = express.Router();
@@ -49,9 +59,24 @@ const dynamicCreateLimiter = (req, res, next) => {
   return guestCreateLimiter(req, res, next);
 };
 
+// Public/Guest creation with optionalAuth
 router.post('/', optionalAuth, dynamicCreateLimiter, createUrl);
-router.get('/', authenticate, getUserUrls);
+
+// Explicit endpoints before /:id parameter
+router.get('/export/csv', authenticate, exportUrlsCsv);
+router.post('/bulk', authenticate, bulkUrlsAction);
+router.post('/bulk-import', authenticate, bulkImportCsv);
 router.get('/stats', authenticate, getDashboardStats);
+router.get('/', authenticate, getUserUrls);
+
+// Smart redirect rules subroutes
+router.get('/:urlId/rules', authenticate, getRulesForUrl);
+router.post('/:urlId/rules', authenticate, createRule);
+router.patch('/:urlId/rules/:ruleId', authenticate, updateRule);
+router.delete('/:urlId/rules/:ruleId', authenticate, deleteRule);
+router.put('/:urlId/rules/reorder', authenticate, reorderRules);
+
+// Individual URL operations
 router.get('/:id', authenticate, getUrl);
 router.patch('/:id', authenticate, updateUrl);
 router.delete('/:id', authenticate, deleteUrl);

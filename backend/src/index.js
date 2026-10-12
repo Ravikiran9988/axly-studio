@@ -9,7 +9,10 @@ import { closePool, query } from './db/pool.js';
 import authRoutes from './routes/auth.js';
 import urlRoutes from './routes/urls.js';
 import adminRoutes from './routes/admin.js';
-import { redirect } from './controllers/redirectController.js';
+import campaignRoutes from './routes/campaigns.js';
+import experimentRoutes from './routes/experiments.js';
+import analyticsRoutes from './routes/analytics.js';
+import { redirect, unlockPasswordProtectedLink } from './controllers/redirectController.js';
 
 // Validate environment variables on startup
 validateEnv();
@@ -97,8 +100,12 @@ app.get('/api/health', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/urls', urlRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/campaigns', campaignRoutes);
+app.use('/api/experiments', experimentRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
-// Short URL redirection route (public, handles /:shortCode)
+// Short URL redirection & password unlock route
+app.post('/:shortCode/unlock', unlockPasswordProtectedLink);
 app.get('/:shortCode', redirect);
 
 // 404 handler for unmatched routes
