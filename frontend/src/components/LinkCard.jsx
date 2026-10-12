@@ -65,7 +65,7 @@ export default function LinkCard({ url, onUpdated, onDelete, onToggleStatus, sho
                 onClick={e => e.stopPropagation()}
                 id={`short-url-${url.id}`}
               >
-                {url.short_url.replace('http://localhost:5000/', 's.axly.in/')}
+                {url.short_url.replace(/^https?:\/\//, '')}
               </a>
               <span className={`badge ${statusBadgeClass}`}>{statusLabel}</span>
               {url.custom_alias && (
