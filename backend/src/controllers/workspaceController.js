@@ -256,16 +256,20 @@ export const inviteMember = async (req, res) => {
       ip: req.ip,
     });
 
+    const invitationData = {
+      email: cleanEmail,
+      role,
+      expiresAt,
+      inviteToken: rawToken,
+      inviteLink: `/invite/accept?token=${rawToken}`,
+      shareableLink: `/invite/accept?token=${rawToken}`,
+    };
+
     res.status(201).json({
       success: true,
       message: 'Workspace invitation generated.',
-      data: {
-        email: cleanEmail,
-        role,
-        expiresAt,
-        inviteToken: rawToken, // Token provided for testing & shareable link
-        shareableLink: `/invite/accept?token=${rawToken}`,
-      },
+      data: invitationData,
+      invitation: invitationData,
     });
   } catch (err) {
     console.error('inviteMember error:', err);
