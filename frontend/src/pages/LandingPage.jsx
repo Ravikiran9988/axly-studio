@@ -9,46 +9,46 @@ const FEATURES = [
   {
     icon: '⚡',
     color: 'rgba(245, 158, 11, 0.15)',
-    title: 'Lightning Fast',
-    desc: 'Sub-millisecond redirects powered by optimized caching. Your links load instantly, every time.'
+    title: 'Fast Redirects',
+    desc: 'Lightweight, optimized HTTP redirects with minimal overhead to route your visitors instantly.'
   },
   {
     icon: '📊',
     color: 'rgba(124, 58, 237, 0.15)',
-    title: 'Deep Analytics',
-    desc: 'Track clicks, countries, devices, browsers, and referrers. Understand your audience like never before.'
+    title: 'Click Analytics',
+    desc: 'Track total clicks, unique visitors, devices, operating systems, browsers, and top referrers.'
   },
   {
     icon: '🔒',
     color: 'rgba(16, 185, 129, 0.15)',
-    title: 'Secure & Reliable',
-    desc: 'All links are scanned for malicious content. 99.9% uptime guarantee with enterprise-grade security.'
+    title: 'Privacy-First Tracking',
+    desc: 'Cryptographic visitor hashing ensures deduplication without indefinitely persisting invasive PII.'
   },
   {
     icon: '🎨',
     color: 'rgba(236, 72, 153, 0.15)',
     title: 'Custom Aliases',
-    desc: 'Create memorable short links like s.axly.in/my-resume instead of random characters.'
+    desc: 'Create memorable, customized vanity links like s.axly.in/launch for branding and campaigns.'
   },
   {
     icon: '📱',
     color: 'rgba(6, 182, 212, 0.15)',
     title: 'QR Code Generator',
-    desc: 'Instantly generate beautiful QR codes for any of your short links. Perfect for print media.'
+    desc: 'Generate downloadable high-resolution QR codes for any short link, perfect for print and presentations.'
   },
   {
     icon: '⏰',
     color: 'rgba(79, 70, 229, 0.15)',
-    title: 'Link Expiration',
-    desc: 'Set expiration dates for time-sensitive campaigns. Links auto-disable when they expire.'
+    title: 'Link Expiration & Toggling',
+    desc: 'Set automatic expiration timestamps or temporarily disable links anytime with one-click toggles.'
   },
 ];
 
-const STATS = [
-  { value: '10M+', label: 'Links Created' },
-  { value: '500M+', label: 'Clicks Tracked' },
-  { value: '99.9%', label: 'Uptime' },
-  { value: '150+', label: 'Countries' },
+const ARCHITECTURE_HIGHLIGHTS = [
+  { value: 'PostgreSQL', label: 'Reliable ACID Storage' },
+  { value: 'Supabase', label: 'Cloud DB Ready' },
+  { value: 'Docker', label: 'Production Compose' },
+  { value: 'JWT + bcrypt', label: 'Secure Auth' },
 ];
 
 export default function LandingPage() {
@@ -89,7 +89,7 @@ export default function LandingPage() {
 
   return (
     <div className="landing-hero">
-      {/* Background */}
+      {/* Background Orbs */}
       <div className="hero-bg">
         <div className="hero-orb hero-orb-1" />
         <div className="hero-orb hero-orb-2" />
@@ -98,192 +98,148 @@ export default function LandingPage() {
       </div>
 
       {/* Navbar */}
-      <nav className="navbar">
-        <div className="navbar-logo">
-          <div className="logo-icon">A</div>
-          <span className="gradient-text">Axly</span>
+      <nav className="landing-nav">
+        <div className="nav-logo">
+          <div className="logo-icon"><Link2 size={18} /></div>
+          <span>Axly</span>
         </div>
-        <div className="navbar-actions">
-          <button className="theme-toggle" onClick={toggleTheme} title="Toggle theme">
+
+        <div className="nav-actions">
+          <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
+
           {user ? (
-            <button className="btn btn-primary btn-sm" onClick={() => navigate('/dashboard')}>
-              Dashboard <ArrowRight size={15} />
+            <button className="btn btn-primary" onClick={() => navigate('/dashboard')}>
+              Go to Dashboard <ArrowRight size={15} />
             </button>
           ) : (
             <>
-              <Link to="/login" className="btn btn-ghost btn-sm">Sign In</Link>
-              <Link to="/register" className="btn btn-primary btn-sm">
-                Get Started <ArrowRight size={15} />
-              </Link>
+              <Link to="/login" className="btn btn-ghost">Log in</Link>
+              <Link to="/register" className="btn btn-primary">Get Started</Link>
             </>
           )}
         </div>
       </nav>
 
-      {/* Hero Content */}
+      {/* Hero Section */}
       <div className="hero-content">
         <div className="hero-badge">
-          <Zap size={14} />
-          <span>Now with Advanced Analytics</span>
+          <span className="badge-dot" />
+          <span>Modern Link Shortener & Analytics</span>
         </div>
 
         <h1 className="hero-title">
-          Shorten, Share &<br />
-          <span className="gradient-text">Track Every Click</span>
+          Shorten links.<br />
+          <span className="gradient-text">Understand every click.</span>
         </h1>
 
         <p className="hero-subtitle">
-          Transform long URLs into powerful short links with real-time analytics,
-          custom aliases, QR codes, and enterprise-grade security.
+          Axly helps you build clean short links, generate QR codes, protect campaigns with expiration dates, and monitor visitor traffic with deep privacy-first analytics.
         </p>
 
-        {/* Shorten Box */}
+        {/* Shortener Form */}
         <div className="shorten-box">
-          <form onSubmit={handleShorten}>
-            <div className="shorten-input-wrap">
-              <input
-                id="url-input"
-                type="url"
-                className="shorten-input"
-                placeholder="Paste your long URL here..."
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                required
-              />
-              <button type="submit" className="shorten-btn" disabled={loading}>
-                {loading ? (
-                  <><div className="spinner" style={{ width: 16, height: 16 }} /> Shortening...</>
-                ) : (
-                  <><Link2 size={16} /> Shorten URL</>
-                )}
-              </button>
-            </div>
+          <form onSubmit={handleShorten} className="shorten-form">
+            <input
+              id="landing-url-input"
+              type="url"
+              className="shorten-input"
+              placeholder="Paste a long URL here (e.g. https://example.com/very/long/url)..."
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              required
+            />
+            <button
+              id="shorten-submit-btn"
+              type="submit"
+              className="btn btn-primary shorten-btn"
+              disabled={loading}
+            >
+              {loading ? (
+                <div className="spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
+              ) : (
+                <>Shorten <ArrowRight size={16} /></>
+              )}
+            </button>
           </form>
 
+          {/* Result Card */}
           {result && (
-            <div className="result-box">
-              <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Your short link:</div>
+            <div className="shorten-result">
+              <div className="result-left">
+                <span className="result-label">Your shortened link:</span>
                 <a
                   href={result.short_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="result-short-url"
+                  className="result-short"
+                  id="result-short-link"
                 >
                   {result.short_url}
                 </a>
               </div>
-              <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                <button className={`copy-btn ${copied ? 'copied' : ''}`} onClick={handleCopy}>
-                  {copied ? <><Check size={13} /> Copied!</> : <><Copy size={13} /> Copy</>}
+              <div className="result-actions">
+                <button
+                  id="copy-short-btn"
+                  className={`copy-btn ${copied ? 'copied' : ''}`}
+                  onClick={handleCopy}
+                >
+                  {copied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
                 </button>
-                <a href={result.short_url} target="_blank" rel="noopener noreferrer" className="copy-btn">
-                  <ExternalLink size={13} /> Open
+                <a
+                  href={result.short_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="copy-btn"
+                >
+                  <ExternalLink size={14} /> Open
                 </a>
               </div>
             </div>
           )}
-
-          <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            Free to use · No account required for basic shortening ·{' '}
-            <Link to="/register" style={{ color: 'var(--brand-primary)', fontWeight: 600 }}>
-              Sign up for analytics →
-            </Link>
-          </p>
         </div>
-      </div>
 
-      {/* Stats Bar */}
-      <div style={{
-        position: 'relative', zIndex: 1,
-        borderTop: '1px solid var(--border-color)',
-        borderBottom: '1px solid var(--border-color)',
-        background: 'rgba(0,0,0,0.2)',
-        backdropFilter: 'blur(10px)',
-        padding: '24px',
-      }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '24px',
-          maxWidth: '900px',
-          margin: '0 auto',
-          textAlign: 'center',
-        }}>
-          {STATS.map((s) => (
-            <div key={s.label}>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, fontFamily: 'var(--font-display)' }}
-                className="gradient-text">{s.value}</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>{s.label}</div>
+        {/* Architecture & Tech Badges */}
+        <div className="stats-row">
+          {ARCHITECTURE_HIGHLIGHTS.map(item => (
+            <div className="stat-item" key={item.label}>
+              <div className="stat-number">{item.value}</div>
+              <div className="stat-desc">{item.label}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Features */}
-      <div className="features-section">
-        <div style={{ textAlign: 'center', marginBottom: '52px' }}>
-          <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', marginBottom: '16px' }}>
-            Everything you need to{' '}
-            <span className="gradient-text">manage your links</span>
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', maxWidth: '540px', margin: '0 auto' }}>
-            From simple URL shortening to enterprise-grade link management — Axly has you covered.
-          </p>
+      {/* Features Grid */}
+      <section className="features-section">
+        <div className="section-header">
+          <h2 className="section-title">Everything you need to manage your links</h2>
+          <p className="section-subtitle">Powerful tools built for creators, marketers, and developers.</p>
         </div>
 
         <div className="features-grid">
-          {FEATURES.map((f) => (
+          {FEATURES.map(f => (
             <div className="feature-card" key={f.title}>
-              <div className="feature-icon" style={{ background: f.color, fontSize: '1.5rem' }}>
+              <div className="feature-icon" style={{ background: f.color }}>
                 {f.icon}
               </div>
-              <div className="feature-title">{f.title}</div>
-              <div className="feature-desc">{f.desc}</div>
+              <h3 className="feature-title">{f.title}</h3>
+              <p className="feature-desc">{f.desc}</p>
             </div>
           ))}
         </div>
-      </div>
-
-      {/* CTA Section */}
-      <div style={{
-        padding: '80px 24px',
-        textAlign: 'center',
-        position: 'relative',
-        borderTop: '1px solid var(--border-color)',
-        background: 'rgba(124, 58, 237, 0.03)',
-      }}>
-        <h2 style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', marginBottom: '16px' }}>
-          Ready to supercharge your links?
-        </h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '36px', fontSize: '1.05rem' }}>
-          Join thousands of creators, marketers, and developers using Axly.
-        </p>
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link to="/register" className="btn btn-primary btn-lg">
-            Start for Free <ArrowRight size={18} />
-          </Link>
-          <Link to="/login" className="btn btn-secondary btn-lg">
-            Sign In
-          </Link>
-        </div>
-      </div>
+      </section>
 
       {/* Footer */}
-      <footer style={{
-        padding: '24px',
-        textAlign: 'center',
-        borderTop: '1px solid var(--border-color)',
-        color: 'var(--text-muted)',
-        fontSize: '0.85rem',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
-          <div className="logo-icon" style={{ width: 28, height: 28, fontSize: '0.8rem' }}>A</div>
-          <span className="gradient-text" style={{ fontWeight: 700, fontFamily: 'var(--font-display)' }}>Axly</span>
+      <footer className="landing-footer">
+        <div className="footer-content">
+          <div className="footer-brand">
+            <div className="logo-icon"><Link2 size={16} /></div>
+            <span>Axly URL Shortener</span>
+          </div>
+          <p className="footer-copy">© 2026 Axly. Built for performance, security, and privacy.</p>
         </div>
-        <p>© 2026 Axly · url.axly.in · Built with ❤️</p>
       </footer>
     </div>
   );

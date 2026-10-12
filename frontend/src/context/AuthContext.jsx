@@ -1,13 +1,20 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// In dev, Vite proxies /api -> http://localhost:5000. In production/Docker, Nginx proxies /api -> backend.
+// Can be overridden with VITE_API_URL if hosted on a separate API subdomain (e.g., https://api.axly.in/api).
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
-const api = axios.create({ baseURL: API_BASE });
+const api = axios.create({ 
+  baseURL: API_BASE,
+  timeout: 10000,
+});
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('axly_token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   return config;
 });
 
@@ -17,22 +24,46 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const logout = useCallback(() => {
+    localStorage.removeItem('axly_token');
+    localStorage.removeItem('axly_user');
+    setUser(null);
+  }, []);
+
+  // Intercept 401 Unauthorized responses to automatically clear stale session
+  useEffect(() => {
+    const interceptor = api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          logout();
+        }
+        return Promise.reject(error);
+      }
+    );
+    return () => api.interceptors.response.eject(interceptor);
+  }, [logout]);
+
   const loadUser = useCallback(async () => {
     const token = localStorage.getItem('axly_token');
-    if (!token) { setLoading(false); return; }
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     
     try {
       const res = await api.get('/auth/me');
       setUser(res.data.user);
     } catch {
-      localStorage.removeItem('axly_token');
-      localStorage.removeItem('axly_user');
+      logout();
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [logout]);
 
-  useEffect(() => { loadUser(); }, [loadUser]);
+  useEffect(() => {
+    loadUser();
+  }, [loadUser]);
 
   const login = async (email, password) => {
     const res = await api.post('/auth/login', { email, password });
@@ -46,11 +77,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('axly_token', res.data.token);
     setUser(res.data.user);
     return res.data;
-  };
-
-  const logout = () => {
-    localStorage.removeItem('axly_token');
-    setUser(null);
   };
 
   return (

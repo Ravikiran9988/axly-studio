@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Link2, MousePointerClick, TrendingUp, Activity, Plus, ArrowUpRight } from 'lucide-react';
+import { Link2, MousePointerClick, TrendingUp, Activity, Plus } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth, api } from '../context/AuthContext';
 import CreateLinkModal from '../components/CreateLinkModal';
 import LinkCard from '../components/LinkCard';
 
-const mockChartData = Array.from({ length: 7 }, (_, i) => {
-  const d = new Date();
-  d.setDate(d.getDate() - (6 - i));
-  return {
-    date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    clicks: Math.floor(Math.random() * 500) + 50,
-  };
-});
+// Generate true zero-click series for the past 7 days when no events exist
+const getZeroDaySeries = () => {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return {
+      date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      clicks: 0,
+    };
+  });
+};
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -36,14 +39,16 @@ export default function DashboardPage() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { 
+    fetchData(); 
+  }, []);
 
   const chartData = stats?.recentClicks?.length > 0
     ? stats.recentClicks.map(d => ({
         date: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        clicks: parseInt(d.clicks),
+        clicks: parseInt(d.clicks, 10) || 0,
       }))
-    : mockChartData;
+    : getZeroDaySeries();
 
   const STAT_CARDS = [
     {
@@ -98,33 +103,31 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="stats-grid">
-        {STAT_CARDS.map((card) => (
+        {STAT_CARDS.map(card => (
           <div className="stat-card" key={card.label}>
-            <div className="stat-icon" style={{ background: card.bg, color: card.color }}>
-              {card.icon}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div className="stat-icon" style={{ background: card.bg, color: card.color }}>
+                {card.icon}
+              </div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                {card.change}
+              </span>
             </div>
-            {loading ? (
-              <>
-                <div className="skeleton" style={{ height: 36, width: 80, marginBottom: 6 }} />
-                <div className="skeleton" style={{ height: 16, width: 60 }} />
-              </>
-            ) : (
-              <>
-                <div className="stat-value">{card.value}</div>
-                <div className="stat-label">{card.label}</div>
-                <div className="stat-change positive" style={{ marginTop: 6 }}>{card.change}</div>
-              </>
-            )}
+            <div className="stat-value">{card.value}</div>
+            <div className="stat-label">{card.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Chart */}
-      <div className="chart-card" style={{ marginBottom: 28 }}>
-        <div className="chart-title">
-          <TrendingUp size={16} /> Clicks Over Last 7 Days
+      {/* Chart Section */}
+      <div className="chart-card">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div className="chart-title">
+            <TrendingUp size={16} /> Click Activity (Past 7 Days)
+          </div>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Daily clicks</span>
         </div>
-        <ResponsiveContainer width="100%" height={220}>
+        <ResponsiveContainer width="100%" height={240}>
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="clickGrad" x1="0" y1="0" x2="0" y2="1">
@@ -134,55 +137,60 @@ export default function DashboardPage() {
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
             <XAxis dataKey="date" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
             <Tooltip
               contentStyle={{
-                background: 'var(--bg-card)', border: '1px solid var(--border-color)',
-                borderRadius: 8, fontSize: '0.85rem',
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 8,
+                fontSize: '0.85rem'
               }}
-              labelStyle={{ color: 'var(--text-primary)' }}
-              itemStyle={{ color: '#7c3aed' }}
             />
             <Area type="monotone" dataKey="clicks" stroke="#7c3aed" strokeWidth={2} fill="url(#clickGrad)" />
           </AreaChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Recent Links */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h2 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Recent Links</h2>
-        <Link to="/links" style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--brand-primary)', fontSize: '0.875rem', fontWeight: 500 }}>
-          View all <ArrowUpRight size={14} />
-        </Link>
-      </div>
+      {/* Recent Links Section */}
+      <div style={{ marginTop: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Recent Links</h2>
+          <a href="/links" style={{ fontSize: '0.875rem', color: 'var(--brand-primary)', fontWeight: 500 }}>
+            View all →
+          </a>
+        </div>
 
-      {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {[1,2,3].map(i => (
-            <div key={i} className="skeleton" style={{ height: 80, borderRadius: 12 }} />
-          ))}
-        </div>
-      ) : urls.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">🔗</div>
-          <div className="empty-title">No links yet</div>
-          <div className="empty-desc">Create your first short link to get started</div>
-          <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
-            <Plus size={16} /> Create your first link
-          </button>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {urls.map(url => (
-            <LinkCard key={url.id} url={url} onUpdated={fetchData} />
-          ))}
-        </div>
-      )}
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} className="skeleton" style={{ height: 80, borderRadius: 12 }} />
+            ))}
+          </div>
+        ) : urls.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">🔗</div>
+            <div className="empty-title">No links yet</div>
+            <div className="empty-desc">Create your first short link to start tracking clicks.</div>
+            <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
+              <Plus size={16} /> Create Link
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {urls.map(url => (
+              <LinkCard key={url.id} url={url} onUpdated={fetchData} />
+            ))}
+          </div>
+        )}
+      </div>
 
       {showCreate && (
         <CreateLinkModal
           onClose={() => setShowCreate(false)}
-          onCreated={() => { setShowCreate(false); fetchData(); }}
+          onCreated={() => {
+            setShowCreate(false);
+            fetchData();
+          }}
         />
       )}
     </div>
