@@ -12,6 +12,7 @@ import adminRoutes from './routes/admin.js';
 import campaignRoutes from './routes/campaigns.js';
 import experimentRoutes from './routes/experiments.js';
 import analyticsRoutes from './routes/analytics.js';
+import reportRoutes from './routes/reports.js';
 import { redirect, unlockPasswordProtectedLink } from './controllers/redirectController.js';
 
 // Validate environment variables on startup
@@ -103,6 +104,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/experiments', experimentRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Short URL redirection & password unlock route
 app.post('/:shortCode/unlock', unlockPasswordProtectedLink);

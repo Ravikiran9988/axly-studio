@@ -415,8 +415,8 @@ describe('Axly URL Shortener API Tests', () => {
     test('GET /api/admin/stats rejects non-admin users with 403 Forbidden', async () => {
       const originalQuery = pool.query;
       pool.query = async (text) => {
-        if (text.includes('SELECT id, is_active, role FROM users')) {
-          return { rows: [{ id: '22222222-2222-2222-2222-222222222222', is_active: true, role: 'user' }] };
+        if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+          return { rows: [{ id: '22222222-2222-2222-2222-222222222222', is_active: true, role: 'user', token_version: 1 }] };
         }
         return { rows: [] };
       };
@@ -436,20 +436,26 @@ describe('Axly URL Shortener API Tests', () => {
     test('GET /api/admin/stats grants access to admin users', async () => {
       const originalQuery = pool.query;
       pool.query = async (text) => {
-        if (text.includes('SELECT id, is_active, role FROM users')) {
-          return { rows: [{ id: '33333333-3333-3333-3333-333333333333', is_active: true, role: 'admin' }] };
+        if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+          return { rows: [{ id: '33333333-3333-3333-3333-333333333333', is_active: true, role: 'admin', token_version: 1 }] };
         }
-        if (text.includes('SELECT COUNT(*)::int as count FROM users')) {
-          return { rows: [{ count: 12 }] };
+        if (text.includes('total_users')) {
+          return { rows: [{ total_users: 12, active_users: 10, suspended_users: 2, admin_users: 2 }] };
         }
-        if (text.includes('SELECT COUNT(*)::int as count FROM urls')) {
-          return { rows: [{ count: 48 }] };
+        if (text.includes('total_urls')) {
+          return { rows: [{ total_urls: 48, active_urls: 40, disabled_urls: 8, expired_urls: 0, guest_urls: 5 }] };
         }
         if (text.includes('COALESCE(SUM(click_count)')) {
           return { rows: [{ total_clicks: 1200, unique_clicks: 800 }] };
         }
-        if (text.includes('SELECT role, COUNT(*)')) {
-          return { rows: [{ role: 'admin', count: 2 }, { role: 'user', count: 10 }] };
+        if (text.includes('click_events')) {
+          return { rows: [{ count: 150 }] };
+        }
+        if (text.includes('link_reports')) {
+          return { rows: [{ pending_reports: 1, reviewing_reports: 0, resolved_reports: 4 }] };
+        }
+        if (text.includes('health_status')) {
+          return { rows: [{ healthy_links: 45, degraded_links: 2, unreachable_links: 1 }] };
         }
         if (text.includes('FROM urls u')) {
           return { rows: [] };
@@ -474,8 +480,8 @@ describe('Axly URL Shortener API Tests', () => {
     test('PATCH /api/admin/users/:id/role rejects invalid role names', async () => {
       const originalQuery = pool.query;
       pool.query = async (text) => {
-        if (text.includes('SELECT id, is_active, role FROM users')) {
-          return { rows: [{ id: '33333333-3333-3333-3333-333333333333', is_active: true, role: 'admin' }] };
+        if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+          return { rows: [{ id: '33333333-3333-3333-3333-333333333333', is_active: true, role: 'admin', token_version: 1 }] };
         }
         return { rows: [] };
       };
