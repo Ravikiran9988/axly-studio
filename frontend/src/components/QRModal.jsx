@@ -23,12 +23,27 @@ export default function QRModal({ urlId, onClose }) {
     fetch();
   }, [urlId]);
 
-  const handleDownload = () => {
+  const handleDownloadPng = () => {
     const link = document.createElement('a');
     link.href = qrData.qrCode;
     link.download = `axly-qr-${urlId}.png`;
     link.click();
-    toast.success('QR code downloaded!');
+    toast.success('PNG QR code downloaded!');
+  };
+
+  const handleDownloadSvg = async () => {
+    try {
+      const res = await api.get(`/urls/${urlId}/qr?format=svg`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'image/svg+xml' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `axly-qr-${urlId}.svg`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      toast.success('Vector SVG QR code downloaded!');
+    } catch {
+      toast.error('Failed to download SVG QR code');
+    }
   };
 
   const handleCopyUrl = async () => {
@@ -84,12 +99,12 @@ export default function QRModal({ urlId, onClose }) {
               </button>
             </div>
 
-            <div style={{ display: 'flex', gap: 10, width: '100%' }}>
-              <button className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={onClose}>
-                Close
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, width: '100%' }}>
+              <button className="btn btn-secondary" style={{ justifyContent: 'center' }} onClick={handleDownloadSvg}>
+                <Download size={14} /> Vector SVG
               </button>
-              <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={handleDownload}>
-                <Download size={15} /> Download PNG
+              <button className="btn btn-primary" style={{ justifyContent: 'center' }} onClick={handleDownloadPng}>
+                <Download size={14} /> High-Res PNG
               </button>
             </div>
           </div>

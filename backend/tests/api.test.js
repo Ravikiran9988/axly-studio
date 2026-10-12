@@ -712,5 +712,6 @@ describe('Axly URL Shortener API Tests', () => {
 
   after(async () => {
     await closePool();
+    setTimeout(() => process.exit(0), 100);
   });
 });

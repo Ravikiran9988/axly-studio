@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Link2, Settings, LogOut,
   Moon, Sun, Menu, X, ChevronRight, ShieldAlert,
+  Megaphone, GitCompare, FileSpreadsheet, BarChart3,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -11,6 +12,10 @@ import toast from 'react-hot-toast';
 const NAV_ITEMS = [
   { to: '/app/dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
   { to: '/app/links', icon: <Link2 size={18} />, label: 'My Links' },
+  { to: '/app/campaigns', icon: <Megaphone size={18} />, label: 'Campaigns & UTM' },
+  { to: '/app/experiments', icon: <GitCompare size={18} />, label: 'A/B Experiments' },
+  { to: '/app/bulk', icon: <FileSpreadsheet size={18} />, label: 'Bulk Import/Export' },
+  { to: '/app/analytics', icon: <BarChart3 size={18} />, label: 'Account Analytics' },
   { to: '/app/settings', icon: <Settings size={18} />, label: 'Settings' },
 ];
 

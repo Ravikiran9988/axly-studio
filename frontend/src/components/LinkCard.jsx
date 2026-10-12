@@ -1,11 +1,22 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Copy, Check, BarChart3, Trash2, ToggleLeft, ToggleRight, ExternalLink, QrCode, Calendar } from 'lucide-react';
-import { api } from '../context/AuthContext';
+import {
+  Copy, Check, BarChart3, Trash2, ToggleLeft, ToggleRight,
+  ExternalLink, QrCode, Calendar, Tag, Lock, ShieldCheck,
+  Sliders, AlertTriangle,
+} from 'lucide-react';
 import QRModal from './QRModal';
 import toast from 'react-hot-toast';
 
-export default function LinkCard({ url, onUpdated, onDelete, onToggleStatus, showActions = false }) {
+export default function LinkCard({
+  url,
+  isSelected = false,
+  onToggleSelect,
+  onTagClick,
+  onDelete,
+  onToggleStatus,
+  showActions = false,
+}) {
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
   const [showQr, setShowQr] = useState(false);
@@ -18,12 +29,8 @@ export default function LinkCard({ url, onUpdated, onDelete, onToggleStatus, sho
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleAnalytics = (e) => {
-    e.stopPropagation();
-    navigate(`/app/analytics/${url.id}`);
-  };
-
   const isExpired = url.expires_at && new Date(url.expires_at) < new Date();
+  const isExpiringSoon = url.expires_at && !isExpired && (new Date(url.expires_at) - new Date() < 3 * 24 * 3600 * 1000);
   const statusBadgeClass = isExpired ? 'badge-expired' : url.status === 'active' ? 'badge-active' : 'badge-inactive';
   const statusLabel = isExpired ? 'Expired' : url.status === 'active' ? 'Active' : 'Disabled';
 
@@ -32,14 +39,40 @@ export default function LinkCard({ url, onUpdated, onDelete, onToggleStatus, sho
     catch { return url.original_url; }
   })();
 
+  const tags = Array.isArray(url.tags) ? url.tags : [];
+
   return (
     <>
       <div
-        className="card"
-        style={{ padding: '16px 20px', cursor: 'pointer' }}
-        onClick={() => navigate(`/app/analytics/${url.id}`)}
+        className={`card ${isSelected ? 'selected' : ''}`}
+        style={{
+          padding: '16px 20px',
+          cursor: 'pointer',
+          borderColor: isSelected ? 'var(--brand-primary)' : undefined,
+          background: isSelected ? 'rgba(37, 99, 235, 0.02)' : undefined,
+          transition: 'all 0.2s ease',
+        }}
+        onClick={() => navigate(`/app/links/${url.id}`)}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          {/* Checkbox for Bulk Selection */}
+          {onToggleSelect && (
+            <div onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center' }}>
+              <input
+                type="checkbox"
+                checked={isSelected}
+                onChange={onToggleSelect}
+                aria-label={`Select link ${url.short_code}`}
+                style={{
+                  width: 18,
+                  height: 18,
+                  accentColor: 'var(--brand-primary)',
+                  cursor: 'pointer',
+                }}
+              />
+            </div>
+          )}
+
           {/* Favicon */}
           <div style={{
             width: 40, height: 40, borderRadius: 10, overflow: 'hidden',
@@ -49,14 +82,14 @@ export default function LinkCard({ url, onUpdated, onDelete, onToggleStatus, sho
             <img
               src={`https://www.google.com/s2/favicons?sz=64&domain=${domain}`}
               alt=""
-              style={{ width: 24, height: 24 }}
+              style={{ width: 22, height: 22 }}
               onError={(e) => { e.target.style.display = 'none'; }}
             />
           </div>
 
           {/* URL Info */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
               <a
                 href={url.short_url}
                 target="_blank"
@@ -64,52 +97,100 @@ export default function LinkCard({ url, onUpdated, onDelete, onToggleStatus, sho
                 className="url-short"
                 onClick={e => e.stopPropagation()}
                 id={`short-url-${url.id}`}
+                style={{ fontSize: '0.98rem' }}
               >
-                {url.short_url.replace(/^https?:\/\//, '')}
+                {url.short_url?.replace(/^https?:\/\//, '')}
               </a>
               <span className={`badge ${statusBadgeClass}`}>{statusLabel}</span>
+
               {url.custom_alias && (
-                <span className="badge" style={{ background: 'rgba(124,58,237,0.1)', color: 'var(--brand-primary)' }}>
+                <span className="badge" style={{ background: 'rgba(37,99,235,0.08)', color: 'var(--brand-primary)' }}>
                   Custom
                 </span>
               )}
+
+              {url.has_password && (
+                <span className="badge" style={{ background: 'rgba(234,88,12,0.1)', color: '#ea580c', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                  <Lock size={10} /> Protected
+                </span>
+              )}
+
+              {url.is_preview_enabled && (
+                <span className="badge" style={{ background: 'rgba(16,185,129,0.1)', color: '#059669', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                  <ShieldCheck size={10} /> Preview
+                </span>
+              )}
+
+              {url.campaign_name && (
+                <span className="badge" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                  📢 {url.campaign_name}
+                </span>
+              )}
             </div>
+
             <div className="url-original" style={{ maxWidth: '100%' }}>
-              {url.title && <span style={{ fontWeight: 500, color: 'var(--text-secondary)', marginRight: 8 }}>{url.title} ·</span>}
+              {url.title && <span style={{ fontWeight: 600, color: 'var(--text-secondary)', marginRight: 8 }}>{url.title} ·</span>}
               {url.original_url}
             </div>
-            {url.expires_at && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4, fontSize: '0.75rem', color: isExpired ? 'var(--danger)' : 'var(--text-muted)' }}>
-                <Calendar size={11} />
-                {isExpired ? 'Expired' : 'Expires'} {new Date(url.expires_at).toLocaleDateString()}
-              </div>
-            )}
+
+            {/* Tags and Warning Row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+              {tags.map(tag => (
+                <span
+                  key={tag}
+                  className="tag-badge clickable"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onTagClick) onTagClick(tag);
+                  }}
+                >
+                  <Tag size={10} /> {tag}
+                </span>
+              ))}
+
+              {url.expires_at && (
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  fontSize: '0.74rem',
+                  color: isExpired ? 'var(--danger)' : isExpiringSoon ? '#d97706' : 'var(--text-muted)',
+                  fontWeight: isExpiringSoon ? 600 : 400,
+                }}>
+                  {isExpiringSoon ? <AlertTriangle size={12} color="#d97706" /> : <Calendar size={11} />}
+                  {isExpired ? 'Expired' : isExpiringSoon ? 'Expiring soon' : 'Expires'} {new Date(url.expires_at).toLocaleDateString()}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Clicks */}
+          {/* Clicks Counter */}
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
-            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
+            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
               {parseInt(url.click_count || 0).toLocaleString()}
             </div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>clicks</div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              {parseInt(url.unique_clicks || 0).toLocaleString()} unique
+            </div>
           </div>
 
-          {/* Actions */}
+          {/* Action Buttons */}
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
             <button className={`copy-btn ${copied ? 'copied' : ''}`} onClick={handleCopy} title="Copy short URL">
               {copied ? <Check size={13} /> : <Copy size={13} />}
             </button>
-            <button className="copy-btn" onClick={handleAnalytics} title="View analytics">
+            <button className="copy-btn" onClick={() => navigate(`/app/links/${url.id}`)} title="Link settings & smart rules">
+              <Sliders size={13} />
+            </button>
+            <button className="copy-btn" onClick={() => navigate(`/app/analytics/${url.id}`)} title="View link analytics">
               <BarChart3 size={13} />
             </button>
-            <button className="copy-btn" onClick={(e) => { e.stopPropagation(); setShowQr(true); }} title="QR Code">
+            <button className="copy-btn" onClick={() => setShowQr(true)} title="QR Code">
               <QrCode size={13} />
             </button>
             {showActions && onToggleStatus && (
               <button
                 className="copy-btn"
-                onClick={(e) => { e.stopPropagation(); onToggleStatus(); }}
-                title={url.status === 'active' ? 'Disable' : 'Enable'}
+                onClick={onToggleStatus}
+                title={url.status === 'active' ? 'Disable link' : 'Enable link'}
                 style={url.status === 'active' ? {} : { color: 'var(--warning)', borderColor: 'var(--warning)' }}
               >
                 {url.status === 'active' ? <ToggleRight size={13} /> : <ToggleLeft size={13} />}
@@ -118,8 +199,8 @@ export default function LinkCard({ url, onUpdated, onDelete, onToggleStatus, sho
             {showActions && onDelete && (
               <button
                 className="copy-btn"
-                onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                title="Delete"
+                onClick={onDelete}
+                title="Delete link"
                 style={{ color: 'var(--danger)' }}
               >
                 <Trash2 size={13} />
