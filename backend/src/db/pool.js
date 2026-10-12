@@ -6,8 +6,8 @@ const { Pool } = pg;
 const createPoolConfig = () => {
   const dbConfig = config.database;
 
-  // If DATABASE_URL is provided (e.g. Supabase Cloud)
-  if (dbConfig.connectionString) {
+  // If DATABASE_URL is provided (e.g. Supabase Cloud) and not an unfilled placeholder
+  if (dbConfig.connectionString && !dbConfig.connectionString.includes('[YOUR-PROJECT-REF]')) {
     const isSupabase = dbConfig.connectionString.includes('supabase.co') || 
                        dbConfig.connectionString.includes('supabase.com');
     
