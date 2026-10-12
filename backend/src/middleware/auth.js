@@ -17,8 +17,8 @@ export const authenticate = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, config.jwt.secret);
     
-    // Check if user is still active in database and fetch role
-    const userCheck = await query('SELECT id, is_active, role FROM users WHERE id = $1', [decoded.id]);
+    // Check if user is still active in database, fetch role and session token version
+    const userCheck = await query('SELECT id, is_active, role, token_version FROM users WHERE id = $1', [decoded.id]);
     if (userCheck.rows.length === 0) {
       return res.status(401).json({ 
         success: false, 
@@ -33,9 +33,20 @@ export const authenticate = async (req, res, next) => {
       });
     }
 
+    // Session revocation check
+    const currentTokenVersion = userCheck.rows[0].token_version || 1;
+    const tokenVersionInJwt = decoded.token_version || 1;
+    if (tokenVersionInJwt < currentTokenVersion) {
+      return res.status(401).json({
+        success: false,
+        message: 'Session invalidated. Please sign in again.'
+      });
+    }
+
     req.user = {
       ...decoded,
       role: userCheck.rows[0].role || decoded.role || 'user',
+      token_version: currentTokenVersion,
     };
     next();
   } catch (err) {

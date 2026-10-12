@@ -311,8 +311,205 @@ export const runMigrations = async () => {
       CREATE INDEX IF NOT EXISTS idx_clicks_experiment_id ON click_events(experiment_id);
     `);
 
+    // 9. Phase 3: Users enhancements (session invalidation, suspension, login tracking)
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'token_version'
+        ) THEN
+          ALTER TABLE users ADD COLUMN token_version INT DEFAULT 1;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'suspended_at'
+        ) THEN
+          ALTER TABLE users ADD COLUMN suspended_at TIMESTAMPTZ;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'suspended_reason'
+        ) THEN
+          ALTER TABLE users ADD COLUMN suspended_reason TEXT;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'last_login_at'
+        ) THEN
+          ALTER TABLE users ADD COLUMN last_login_at TIMESTAMPTZ;
+        END IF;
+      END $$;
+    `);
+
+    // 10. Phase 3: URLs enhancements (moderation & health status)
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'urls' AND column_name = 'moderation_status'
+        ) THEN
+          ALTER TABLE urls ADD COLUMN moderation_status VARCHAR(50) DEFAULT 'approved';
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'urls' AND column_name = 'moderation_reason'
+        ) THEN
+          ALTER TABLE urls ADD COLUMN moderation_reason TEXT;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'urls' AND column_name = 'moderated_at'
+        ) THEN
+          ALTER TABLE urls ADD COLUMN moderated_at TIMESTAMPTZ;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'urls' AND column_name = 'moderator_id'
+        ) THEN
+          ALTER TABLE urls ADD COLUMN moderator_id UUID REFERENCES users(id) ON DELETE SET NULL;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'urls' AND column_name = 'last_health_check_at'
+        ) THEN
+          ALTER TABLE urls ADD COLUMN last_health_check_at TIMESTAMPTZ;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'urls' AND column_name = 'health_status'
+        ) THEN
+          ALTER TABLE urls ADD COLUMN health_status VARCHAR(50) DEFAULT 'unknown';
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'urls' AND column_name = 'health_status_code'
+        ) THEN
+          ALTER TABLE urls ADD COLUMN health_status_code INT;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'urls' AND column_name = 'health_response_time_ms'
+        ) THEN
+          ALTER TABLE urls ADD COLUMN health_response_time_ms INT;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'urls' AND column_name = 'health_error'
+        ) THEN
+          ALTER TABLE urls ADD COLUMN health_error TEXT;
+        END IF;
+      END $$;
+    `);
+
+    // 11. Phase 3: Link Reports table (Public visitor abuse reports & moderation queue)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS link_reports (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        url_id UUID REFERENCES urls(id) ON DELETE CASCADE NOT NULL,
+        short_code VARCHAR(50) NOT NULL,
+        reporter_ip_hash VARCHAR(64),
+        reporter_email VARCHAR(255),
+        reason VARCHAR(100) NOT NULL,
+        details TEXT,
+        status VARCHAR(50) DEFAULT 'pending',
+        reviewer_id UUID REFERENCES users(id) ON DELETE SET NULL,
+        reviewer_notes TEXT,
+        resolved_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_reports_url_id ON link_reports(url_id);
+      CREATE INDEX IF NOT EXISTS idx_reports_status ON link_reports(status);
+      CREATE INDEX IF NOT EXISTS idx_reports_created_at ON link_reports(created_at);
+    `);
+
+    // 12. Phase 3: Link Health Checks history table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS link_health_checks (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        url_id UUID REFERENCES urls(id) ON DELETE CASCADE NOT NULL,
+        target_url TEXT NOT NULL,
+        status_code INT,
+        response_time_ms INT,
+        is_healthy BOOLEAN NOT NULL,
+        error_reason TEXT,
+        checked_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_health_checks_url_id ON link_health_checks(url_id);
+      CREATE INDEX IF NOT EXISTS idx_health_checks_checked_at ON link_health_checks(checked_at);
+    `);
+
+    // 13. Phase 3: Audit Logs table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        actor_id UUID REFERENCES users(id) ON DELETE SET NULL,
+        actor_email VARCHAR(255) NOT NULL,
+        action VARCHAR(100) NOT NULL,
+        target_type VARCHAR(50) NOT NULL,
+        target_id VARCHAR(255),
+        details JSONB DEFAULT '{}',
+        ip_hash VARCHAR(64),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_actor_id ON audit_logs(actor_id);
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+      CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
+    `);
+
+    // 14. Phase 3: Platform Settings table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS platform_settings (
+        key VARCHAR(100) PRIMARY KEY,
+        value JSONB NOT NULL,
+        description TEXT,
+        updated_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
+    // Seed default platform settings
+    const defaultSettings = [
+      { key: 'guest_hourly_limit', value: 10, description: 'Maximum links a guest can shorten per hour' },
+      { key: 'authenticated_daily_limit', value: 1000, description: 'Maximum links an authenticated member can create per day' },
+      { key: 'max_url_length', value: 4096, description: 'Maximum accepted destination URL character length' },
+      { key: 'default_expiration_days', value: 0, description: 'Default expiration in days (0 for permanent)' },
+      { key: 'enable_guest_shortening', value: true, description: 'Allow unauthenticated guests to shorten links' },
+      { key: 'enable_preview_pages', value: true, description: 'Enable safety interstitial preview pages' },
+      { key: 'enable_ab_testing', value: true, description: 'Allow authenticated users to run A/B experiments' },
+      { key: 'enable_smart_rules', value: true, description: 'Allow device and time smart routing rules' },
+      { key: 'require_captcha_for_guests', value: false, description: 'Require CAPTCHA for guest link creation' },
+    ];
+
+    for (const s of defaultSettings) {
+      await client.query(`
+        INSERT INTO platform_settings (key, value, description)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (key) DO NOTHING
+      `, [s.key, JSON.stringify(s.value), s.description]);
+    }
+
     await client.query('COMMIT');
-    console.log('✅ Phase 2 database schema, tables, and indexes migrated successfully');
+    console.log('✅ Phase 2 & Phase 3 database schema, tables, and indexes migrated successfully');
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('❌ Migration failed:', err.message);

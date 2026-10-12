@@ -7,7 +7,13 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const generateToken = (user) => {
   return jwt.sign(
-    { id: user.id, email: user.email, name: user.name, role: user.role || 'user' },
+    { 
+      id: user.id, 
+      email: user.email, 
+      name: user.name, 
+      role: user.role || 'user',
+      token_version: user.token_version || 1,
+    },
     config.jwt.secret,
     { expiresIn: config.jwt.expiresIn }
   );
@@ -117,7 +123,7 @@ export const login = async (req, res) => {
     const normalizedEmail = email.trim().toLowerCase();
 
     const result = await query(
-      'SELECT id, name, email, password_hash, plan, role, is_active FROM users WHERE email = $1',
+      'SELECT id, name, email, password_hash, plan, role, is_active, token_version FROM users WHERE email = $1',
       [normalizedEmail]
     );
 
@@ -135,6 +141,9 @@ export const login = async (req, res) => {
     if (!isValidPassword) {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
+
+    // Update last_login_at
+    query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]).catch(() => {});
 
     const token = generateToken(user);
 
