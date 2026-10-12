@@ -37,6 +37,10 @@ export const exportUserData = async (req, res) => {
     const archive = {
       exportedAt: new Date().toISOString(),
       formatVersion: '1.0',
+      data_policy_notice: {
+        retention_period: 'Active account duration',
+        backup_retention: 'Encrypted rolling 30-day backups',
+      },
       account: userRes.rows[0],
       links: urlsRes.rows,
       campaigns: campaignsRes.rows,
@@ -61,6 +65,7 @@ export const exportUserData = async (req, res) => {
     res.json({
       success: true,
       data: archive,
+      export: archive,
     });
   } catch (err) {
     console.error('exportUserData error:', err);
@@ -74,12 +79,16 @@ export const exportUserData = async (req, res) => {
 export const deleteUserAccount = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { confirmationEmail } = req.body;
+    const { confirmationEmail, confirmation } = req.body;
 
-    if (!confirmationEmail || confirmationEmail.toLowerCase().trim() !== req.user.email.toLowerCase().trim()) {
+    const isConfirmed =
+      (confirmationEmail && confirmationEmail.toLowerCase().trim() === req.user.email.toLowerCase().trim()) ||
+      (confirmation && confirmation.trim().toUpperCase() === 'DELETE MY ACCOUNT');
+
+    if (!isConfirmed) {
       return res.status(400).json({
         success: false,
-        message: 'Must provide exact account email to confirm permanent deletion.',
+        message: 'Must provide exact account email or confirmation phrase "DELETE MY ACCOUNT" to confirm permanent deletion.',
       });
     }
 

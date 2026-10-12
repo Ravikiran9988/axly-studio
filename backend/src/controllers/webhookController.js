@@ -63,7 +63,7 @@ export const createWebhook = async (req, res) => {
     if (!ssrfCheck.valid) {
       return res.status(400).json({
         success: false,
-        message: `Invalid webhook destination: ${ssrfCheck.reason}`,
+        message: `Blocked by SSRF policy: ${ssrfCheck.reason || ssrfCheck.error}`,
       });
     }
 
@@ -96,13 +96,16 @@ export const createWebhook = async (req, res) => {
       ip: req.ip,
     });
 
+    const webhookObj = {
+      ...created,
+      secret,
+    };
+
     res.status(201).json({
       success: true,
       message: 'Webhook endpoint registered. Store your signing secret safely.',
-      data: {
-        ...created,
-        secret, // Full secret provided once on creation
-      },
+      data: webhookObj,
+      webhook: webhookObj,
     });
   } catch (err) {
     console.error('createWebhook error:', err);

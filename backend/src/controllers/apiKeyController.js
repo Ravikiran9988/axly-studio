@@ -29,6 +29,7 @@ export const listApiKeys = async (req, res) => {
     res.json({
       success: true,
       data: result.rows,
+      apiKeys: result.rows,
     });
   } catch (err) {
     console.error('listApiKeys error:', err);
@@ -95,13 +96,16 @@ export const createApiKey = async (req, res) => {
       ip: req.ip,
     });
 
+    const keyData = {
+      ...createdKey,
+      key: fullKey, // Return secret ONCE
+    };
+
     res.status(201).json({
       success: true,
       message: 'API key created successfully. Store this secret immediately; it will never be displayed again.',
-      data: {
-        ...createdKey,
-        key: fullKey, // Return secret ONCE
-      },
+      data: keyData,
+      apiKey: keyData,
     });
   } catch (err) {
     console.error('createApiKey error:', err);

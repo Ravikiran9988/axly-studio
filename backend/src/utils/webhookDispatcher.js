@@ -11,12 +11,13 @@ export const signWebhookPayload = (payload, secret, timestamp = Math.floor(Date.
   const payloadString = typeof payload === 'string' ? payload : JSON.stringify(payload);
   const signaturePayload = `${timestamp}.${payloadString}`;
   const signature = crypto.createHmac('sha256', secret).update(signaturePayload).digest('hex');
+  const headerValue = `t=${timestamp},v1=${signature}`;
 
-  return {
-    timestamp,
-    signature,
-    headerValue: `t=${timestamp},v1=${signature}`,
-  };
+  const result = new String(headerValue);
+  result.timestamp = timestamp;
+  result.signature = signature;
+  result.headerValue = headerValue;
+  return result;
 };
 
 /**

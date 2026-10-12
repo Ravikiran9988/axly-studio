@@ -1,0 +1,496 @@
+openapi: 3.1.0
+info:
+  title: Axly Studio Developer Platform API
+  description: >
+    Comprehensive programmatic REST API for Axly URL Shortener & Link Intelligence Platform.
+    Provides link management, smart routing rules, campaign tracking, A/B experiments,
+    custom branded domains, HMAC-SHA256 signed webhooks, and team workspaces with RBAC.
+  version: 1.0.0
+  contact:
+    name: Axly API Engineering
+    url: https://github.com/Ravikiran9988/axly-url-shortener
+servers:
+  - url: https://url.axly.in/api
+    description: Production Cloud Edge API
+  - url: http://localhost:5000/api
+    description: Local Development Environment
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: High-entropy secret API key generated in Axly Developer settings (axly_live_...)
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JSON Web Token issued upon user authentication
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Resource not found or permission denied.
+        code:
+          type: string
+          example: FORBIDDEN_SCOPE
+
+    ShortUrl:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        shortCode:
+          type: string
+          example: q4launch
+        shortUrl:
+          type: string
+          example: https://s.axly.in/q4launch
+        originalUrl:
+          type: string
+          format: uri
+          example: https://github.com/Ravikiran9988/axly-url-shortener
+        customAlias:
+          type: string
+          nullable: true
+          example: q4launch
+        title:
+          type: string
+          example: Product Launch Page
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["marketing", "q4", "product"]
+        notes:
+          type: string
+          example: Campaign link for newsletter subscribers
+        clickCount:
+          type: integer
+          example: 1240
+        uniqueClicks:
+          type: integer
+          example: 982
+        status:
+          type: string
+          enum: [active, expired, disabled, reported]
+          example: active
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    ApiKey:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Production CI/CD
+        keyPrefix:
+          type: string
+          example: axly_live_8f3a
+        scopes:
+          type: array
+          items:
+            type: string
+          example: ["links:read", "links:write", "analytics:read"]
+        rateLimitPerMinute:
+          type: integer
+          example: 120
+        lastUsedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    Webhook:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+          format: uri
+          example: https://api.mycompany.com/webhooks/axly
+        events:
+          type: array
+          items:
+            type: string
+          example: ["link.created", "link.expired", "link.health_changed"]
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+
+    CustomDomain:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        domain:
+          type: string
+          example: links.mybrand.com
+        status:
+          type: string
+          enum: [pending_dns, active, suspended, error]
+          example: active
+        dnsRecordType:
+          type: string
+          example: CNAME
+        dnsExpectedValue:
+          type: string
+          example: cname.axly.in
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        sslStatus:
+          type: string
+          example: active
+
+    Workspace:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Growth Team
+        slug:
+          type: string
+          example: growth-team-9k2x1z
+        role:
+          type: string
+          enum: [owner, admin, editor, viewer]
+          example: owner
+
+paths:
+  /urls:
+    get:
+      summary: List shortened URLs
+      description: Retrieve paginated links for user or specified workspace with search, tags, and status filtering.
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, active, expired, disabled]
+        - name: workspaceId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated URLs retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ShortUrl'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Missing required scope (links:read)
+
+    post:
+      summary: Create a shortened URL
+      description: Shorten an HTTP/HTTPS destination with collision-safe alias, expiration, password protection, and UTM parameters.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  example: https://github.com/Ravikiran9988/axly-url-shortener
+                customAlias:
+                  type: string
+                  example: custom-short-code
+                title:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+                notes:
+                  type: string
+                expiresAt:
+                  type: string
+                  format: date-time
+                password:
+                  type: string
+                workspaceId:
+                  type: string
+                customDomainId:
+                  type: string
+      responses:
+        '201':
+          description: URL shortened successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ShortUrl'
+        '400':
+          description: Invalid URL, SSRF violation, or duplicate alias
+
+  /keys:
+    get:
+      summary: List API keys
+      description: Returns all API keys created by the authenticated user.
+      responses:
+        '200':
+          description: List of API keys (without secrets)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApiKey'
+    post:
+      summary: Generate a new API key
+      description: Generates a high-entropy API key. Full secret is displayed ONCE on creation and never stored in plaintext.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: Staging Webhook Dispatcher
+                scopes:
+                  type: array
+                  items:
+                    type: string
+                  example: ["links:read", "links:write", "webhooks:read"]
+                rateLimitPerMinute:
+                  type: integer
+                  default: 60
+                expiresInDays:
+                  type: integer
+                  nullable: true
+      responses:
+        '201':
+          description: API key created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      key:
+                        type: string
+                        example: axly_live_e9b21f8a70c34d...
+                      keyPrefix:
+                        type: string
+                      scopes:
+                        type: array
+                        items:
+                          type: string
+
+  /webhooks:
+    get:
+      summary: List webhooks
+      description: Retrieve user or workspace webhook endpoints.
+      responses:
+        '200':
+          description: List of webhook endpoints
+    post:
+      summary: Register a webhook endpoint
+      description: Subscribe to platform events. Target URLs are protected against SSRF and cloud metadata addresses.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+                - events
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  example: https://api.mybrand.com/webhooks/axly
+                events:
+                  type: array
+                  items:
+                    type: string
+                    enum: [link.created, link.expired, link.health_changed, experiment.completed]
+      responses:
+        '201':
+          description: Webhook registered with signing secret
+        '400':
+          description: Invalid destination or blocked by SSRF policy
+
+  /domains:
+    get:
+      summary: List custom domains
+      description: List branded short link domains.
+      responses:
+        '200':
+          description: Custom domains
+    post:
+      summary: Register a custom domain
+      description: Initiates DNS setup for a branded short domain.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - domain
+              properties:
+                domain:
+                  type: string
+                  example: links.mybrand.com
+      responses:
+        '201':
+          description: Domain registered with DNS verification instructions
+
+  /domains/{id}/verify:
+    post:
+      summary: Verify custom domain DNS
+      description: Actively probes DNS records (TXT token or CNAME target) to verify ownership and activate routing.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Domain verified and activated
+        '400':
+          description: DNS records not found or misconfigured
+
+  /workspaces:
+    get:
+      summary: List workspaces
+      description: Retrieve personal and team collaborative workspaces for user.
+      responses:
+        '200':
+          description: Workspace listing
+    post:
+      summary: Create collaborative team workspace
+      description: Creates a workspace and assigns caller as owner.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: Marketing Team
+      responses:
+        '201':
+          description: Workspace created
+
+  /user/export:
+    get:
+      summary: Export personal data archive
+      description: Download complete machine-readable JSON archive of user account, links, campaigns, experiments, and domains.
+      responses:
+        '200':
+          description: JSON data archive
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /healthz:
+    get:
+      summary: Liveness probe
+      description: Container orchestrator liveness check.
+      responses:
+        '200':
+          description: Service alive
+
+  /readyz:
+    get:
+      summary: Readiness probe
+      description: Verifies database connection pool readiness.
+      responses:
+        '200':
+          description: Service ready
+        '503':
+          description: Database unavailable

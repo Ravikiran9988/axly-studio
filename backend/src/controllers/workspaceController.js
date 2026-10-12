@@ -123,6 +123,7 @@ export const createWorkspace = async (req, res) => {
       success: true,
       message: 'Workspace created successfully.',
       data: workspace,
+      workspace,
     });
   } catch (err) {
     console.error('createWorkspace error:', err);

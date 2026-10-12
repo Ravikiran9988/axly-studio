@@ -27,8 +27,11 @@ export const generateApiKey = (prefix = 'axly_live_') => {
 
   return {
     fullKey,
+    key: fullKey,
     keyPrefix,
+    prefix: keyPrefix,
     keyHash,
+    hash: keyHash,
   };
 };
 

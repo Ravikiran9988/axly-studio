@@ -45,7 +45,7 @@ export const validateDomainSyntax = (rawDomain) => {
     return { valid: false, reason: 'This domain is reserved by the platform and cannot be registered.' };
   }
 
-  return { valid: true, domain: clean };
+  return { valid: true, domain: clean, normalized: clean };
 };
 
 /**

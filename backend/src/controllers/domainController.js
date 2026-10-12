@@ -82,24 +82,27 @@ export const createDomain = async (req, res) => {
       ip: req.ip,
     });
 
+    const domainData = {
+      ...created,
+      instructions: {
+        primaryMethod: {
+          type: 'CNAME',
+          host: cleanDomain,
+          target: 'cname.axly.in',
+        },
+        alternativeMethod: {
+          type: 'TXT',
+          host: `_axly-verify.${cleanDomain}`,
+          value: verificationToken,
+        },
+      },
+    };
+
     res.status(201).json({
       success: true,
       message: 'Custom domain registered. Configure DNS records to complete verification.',
-      data: {
-        ...created,
-        instructions: {
-          primaryMethod: {
-            type: 'CNAME',
-            host: cleanDomain,
-            target: 'cname.axly.in',
-          },
-          alternativeMethod: {
-            type: 'TXT',
-            host: `_axly-verify.${cleanDomain}`,
-            value: verificationToken,
-          },
-        },
-      },
+      data: domainData,
+      domain: domainData,
     });
   } catch (err) {
     console.error('createDomain error:', err);

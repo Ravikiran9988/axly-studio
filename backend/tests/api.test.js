@@ -1181,6 +1181,7 @@ describe('Axly URL Shortener API Tests', () => {
                 user_email: 'test@axly.in',
                 user_name: 'Tester',
                 user_role: 'user',
+                user_active: true,
                 is_active: true,
               }]
             };
@@ -1240,7 +1241,7 @@ describe('Axly URL Shortener API Tests', () => {
             .send({ url: 'https://example.com/target' });
 
           assert.equal(res.status, 403);
-          assert.match(res.body.message, /Required scope 'links:write' is missing/i);
+          assert.match(res.body.message, /required 'links:write' scope/i);
         } finally {
           pool.query = originalQuery;
         }
@@ -1435,6 +1436,9 @@ describe('Axly URL Shortener API Tests', () => {
           if (text.includes('token_version') || text.includes('WHERE id = $1')) {
             return { rows: [{ id: testUserId, is_active: true, role: 'user', token_version: 1 }] };
           }
+          if (text.includes('JOIN users u')) {
+            return { rows: [] };
+          }
           if (text.includes('FROM workspace_members')) {
             return { rows: [{ role: 'admin', user_id: testUserId, workspace_id: workspaceId }] };
           }
@@ -1589,8 +1593,8 @@ describe('Axly URL Shortener API Tests', () => {
           if (text.includes('token_version') || text.includes('WHERE id = $1')) {
             return { rows: [{ id: testUserId, is_active: true, role: 'user', token_version: 1 }] };
           }
-          if (text.includes('COUNT(*) as unread')) {
-            return { rows: [{ unread: '2' }] };
+          if (text.includes('COUNT(*)')) {
+            return { rows: [{ unread_count: 2, unread: 2 }] };
           }
           if (text.includes('FROM notifications')) {
             return {

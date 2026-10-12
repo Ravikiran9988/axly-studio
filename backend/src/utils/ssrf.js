@@ -76,19 +76,22 @@ export const isPrivateOrBlockedIp = (ip) => {
 // Validate that a user-supplied destination URL is safe from SSRF and protocol exploits
 export const validateSafeDestinationUrl = (urlString) => {
   if (!urlString || typeof urlString !== 'string') {
-    return { valid: false, error: 'URL must be a valid non-empty string.' };
+    const msg = 'URL must be a valid non-empty string.';
+    return { valid: false, error: msg, reason: msg };
   }
 
   let parsed;
   try {
     parsed = new URL(urlString.trim());
   } catch {
-    return { valid: false, error: 'Malformed URL format.' };
+    const msg = 'Malformed URL format.';
+    return { valid: false, error: msg, reason: msg };
   }
 
   // Enforce HTTP / HTTPS protocol only
   if (!['http:', 'https:'].includes(parsed.protocol)) {
-    return { valid: false, error: 'Invalid URL. Destination URL must use http: or https: protocol.' };
+    const msg = 'Invalid URL. Destination URL must use http: or https: protocol.';
+    return { valid: false, error: msg, reason: msg };
   }
 
   const hostname = parsed.hostname.toLowerCase();
@@ -103,13 +106,15 @@ export const validateSafeDestinationUrl = (urlString) => {
     hostname === 'instance-data' ||
     hostname === 'metadata'
   ) {
-    return { valid: false, error: 'Destination addresses pointing to local or internal hosts are restricted for security.' };
+    const msg = 'Destination addresses pointing to local or internal hosts are restricted for security.';
+    return { valid: false, error: msg, reason: msg };
   }
 
   // If hostname is an IP address, check for private/loopback/cloud ranges
   if (net.isIP(hostname)) {
     if (isPrivateOrBlockedIp(hostname)) {
-      return { valid: false, error: 'Destination addresses pointing to private or metadata IP ranges are restricted.' };
+      const msg = 'Destination addresses pointing to private or metadata IP ranges are restricted.';
+      return { valid: false, error: msg, reason: msg };
     }
   }
 

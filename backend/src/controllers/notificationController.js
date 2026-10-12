@@ -24,10 +24,14 @@ export const getNotifications = async (req, res) => {
       `, [req.user.id]),
     ]);
 
+    const rawUnread = unreadRes.rows[0]?.unread_count ?? unreadRes.rows[0]?.unread ?? 0;
+    const unreadCount = parseInt(rawUnread, 10) || 0;
+
     res.json({
       success: true,
       data: notifRes.rows,
-      unreadCount: unreadRes.rows[0].unread_count,
+      notifications: notifRes.rows,
+      unreadCount,
     });
   } catch (err) {
     console.error('getNotifications error:', err);
