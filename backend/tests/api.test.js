@@ -100,35 +100,129 @@ describe('Axly URL Shortener API Tests', () => {
       assert.match(res.body.message, /Invalid URL/i);
     });
 
-    test('POST /api/urls rejects reserved custom aliases', async () => {
-      const res = await request(app)
-        .post('/api/urls')
-        .send({ url: 'https://example.com', customAlias: 'login' });
+    test('POST /api/urls allows guests to shorten ordinary URLs', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('INSERT INTO urls')) {
+          return {
+            rows: [{
+              id: 'guest-1',
+              short_code: 'gst123',
+              original_url: 'https://example.com',
+              user_id: null,
+              click_count: 0,
+              created_at: new Date(),
+            }]
+          };
+        }
+        return { rows: [] };
+      };
 
-      assert.equal(res.status, 400);
-      assert.equal(res.body.success, false);
-      assert.match(res.body.message, /reserved by the system/i);
+      try {
+        const res = await request(app)
+          .post('/api/urls')
+          .send({ url: 'https://example.com' });
+
+        assert.equal(res.status, 201);
+        assert.equal(res.body.success, true);
+        assert.equal(res.body.data.is_guest, true);
+        assert.ok(res.body.data.short_url.includes('gst123'));
+      } finally {
+        pool.query = originalQuery;
+      }
     });
 
-    test('POST /api/urls rejects invalid custom alias format', async () => {
+    test('POST /api/urls rejects guest attempts to use customAlias with unlock prompt', async () => {
       const res = await request(app)
         .post('/api/urls')
-        .send({ url: 'https://example.com', customAlias: 'hi' }); // < 3 chars
+        .send({ url: 'https://example.com', customAlias: 'my-brand' });
 
-      assert.equal(res.status, 400);
+      assert.equal(res.status, 403);
       assert.equal(res.body.success, false);
-      assert.match(res.body.message, /3-30 characters/i);
+      assert.equal(res.body.unlock_prompt, true);
+      assert.match(res.body.message, /Axly Studio account/i);
     });
 
-    test('POST /api/urls rejects past expiration date', async () => {
+    test('POST /api/urls rejects guest attempts to use expiresAt with unlock prompt', async () => {
+      const futureDate = new Date(Date.now() + 86400000).toISOString();
+      const res = await request(app)
+        .post('/api/urls')
+        .send({ url: 'https://example.com', expiresAt: futureDate });
+
+      assert.equal(res.status, 403);
+      assert.equal(res.body.success, false);
+      assert.equal(res.body.unlock_prompt, true);
+      assert.match(res.body.message, /Axly Studio account/i);
+    });
+
+    test('POST /api/urls rejects reserved custom aliases for authenticated users', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('FROM users')) {
+          return { rows: [{ id: testUserId, is_active: true, role: 'user' }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .post('/api/urls')
+          .set('Authorization', `Bearer ${testToken}`)
+          .send({ url: 'https://example.com', customAlias: 'login' });
+
+        assert.equal(res.status, 400);
+        assert.equal(res.body.success, false);
+        assert.match(res.body.message, /reserved by the system/i);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('POST /api/urls rejects invalid custom alias format for authenticated users', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('FROM users')) {
+          return { rows: [{ id: testUserId, is_active: true, role: 'user' }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .post('/api/urls')
+          .set('Authorization', `Bearer ${testToken}`)
+          .send({ url: 'https://example.com', customAlias: 'hi' }); // < 3 chars
+
+        assert.equal(res.status, 400);
+        assert.equal(res.body.success, false);
+        assert.match(res.body.message, /3-30 characters/i);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('POST /api/urls rejects past expiration date for authenticated users', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('FROM users')) {
+          return { rows: [{ id: testUserId, is_active: true, role: 'user' }] };
+        }
+        return { rows: [] };
+      };
+
       const pastDate = new Date(Date.now() - 3600000).toISOString();
-      const res = await request(app)
-        .post('/api/urls')
-        .send({ url: 'https://example.com', expiresAt: pastDate });
+      try {
+        const res = await request(app)
+          .post('/api/urls')
+          .set('Authorization', `Bearer ${testToken}`)
+          .send({ url: 'https://example.com', expiresAt: pastDate });
 
-      assert.equal(res.status, 400);
-      assert.equal(res.body.success, false);
-      assert.match(res.body.message, /must be in the future/i);
+        assert.equal(res.status, 400);
+        assert.equal(res.body.success, false);
+        assert.match(res.body.message, /must be in the future/i);
+      } finally {
+        pool.query = originalQuery;
+      }
     });
   });
 

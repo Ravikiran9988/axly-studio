@@ -37,7 +37,7 @@ export default function AnalyticsPage() {
         setData(res.data.data);
       } catch (err) {
         toast.error('Failed to load analytics');
-        navigate('/links');
+        navigate('/app/links');
       } finally {
         setLoading(false);
       }
@@ -85,7 +85,7 @@ export default function AnalyticsPage() {
       <div style={{ marginBottom: 24 }}>
         <button
           className="btn btn-ghost btn-sm"
-          onClick={() => navigate('/links')}
+          onClick={() => navigate('/app/links')}
           style={{ marginBottom: 16, paddingLeft: 0 }}
         >
           <ArrowLeft size={16} /> Back to Links
@@ -145,10 +145,10 @@ export default function AnalyticsPage() {
       {/* Stats */}
       <div className="stats-grid" style={{ marginBottom: 24 }}>
         {[
-          { icon: <MousePointerClick size={20} />, label: 'Total Clicks', value: analytics.totalClicks.toLocaleString(), color: '#7c3aed', bg: 'rgba(124,58,237,0.12)' },
-          { icon: <Users size={20} />, label: 'Unique Clicks', value: analytics.uniqueClicks.toLocaleString(), color: '#06b6d4', bg: 'rgba(6,182,212,0.12)' },
-          { icon: <Globe size={20} />, label: 'Countries', value: analytics.byCountry.length, color: '#10b981', bg: 'rgba(16,185,129,0.12)' },
-          { icon: <Clock size={20} />, label: 'Created', value: new Date(url.created_at).toLocaleDateString(), color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+          { icon: <MousePointerClick size={20} />, label: 'Total Clicks', value: analytics.totalClicks.toLocaleString(), color: '#2563eb', bg: '#eff6ff' },
+          { icon: <Users size={20} />, label: 'Unique Clicks', value: analytics.uniqueClicks.toLocaleString(), color: '#0284c7', bg: '#f0f9ff' },
+          { icon: <Globe size={20} />, label: 'Countries', value: analytics.byCountry.length, color: '#059669', bg: '#ecfdf5' },
+          { icon: <Clock size={20} />, label: 'Created', value: new Date(url.created_at).toLocaleDateString(), color: '#d97706', bg: '#fffbeb' },
         ].map(card => (
           <div className="stat-card" key={card.label}>
             <div className="stat-icon" style={{ background: card.bg, color: card.color }}>{card.icon}</div>
@@ -173,15 +173,15 @@ export default function AnalyticsPage() {
             }))}>
               <defs>
                 <linearGradient id="aGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#2563eb" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" opacity={0.6} />
               <XAxis dataKey="date" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, fontSize: '0.85rem' }} />
-              <Area type="monotone" dataKey="clicks" stroke="#7c3aed" strokeWidth={2} fill="url(#aGrad)" />
+              <Area type="monotone" dataKey="clicks" stroke="#2563eb" strokeWidth={2} fill="url(#aGrad)" />
             </AreaChart>
           </ResponsiveContainer>
         )}

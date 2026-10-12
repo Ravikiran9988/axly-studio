@@ -52,6 +52,7 @@ export const createUrl = async (req, res) => {
       if (customAlias) {
         return res.status(403).json({
           success: false,
+          unlock_prompt: true,
           code: 'AUTH_REQUIRED_FOR_CUSTOM_ALIAS',
           message: 'Custom vanity aliases require an Axly Studio account. Please register or sign in to create branded links.'
         });
@@ -60,6 +61,7 @@ export const createUrl = async (req, res) => {
       if (expiresAt) {
         return res.status(403).json({
           success: false,
+          unlock_prompt: true,
           code: 'AUTH_REQUIRED_FOR_EXPIRATION',
           message: 'Link expiration schedules require an Axly Studio account. Please register or sign in to set link timers.'
         });

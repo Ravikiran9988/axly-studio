@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedLayout from './components/ProtectedLayout';
+import AdminRoute from './components/AdminRoute';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -10,6 +11,7 @@ import DashboardPage from './pages/DashboardPage';
 import LinksPage from './pages/LinksPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
+import AdminPage from './pages/AdminPage';
 import './index.css';
 
 export default function App() {
@@ -23,13 +25,25 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
 
-            {/* Protected routes */}
-            <Route element={<ProtectedLayout />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/links" element={<LinksPage />} />
-              <Route path="/analytics/:id" element={<AnalyticsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
+            {/* Standard user application workspace */}
+            <Route path="/app" element={<ProtectedLayout />}>
+              <Route index element={<Navigate to="/app/dashboard" replace />} />
+              <Route path="dashboard" element={<DashboardPage />} />
+              <Route path="links" element={<LinksPage />} />
+              <Route path="analytics/:id" element={<AnalyticsPage />} />
+              <Route path="settings" element={<SettingsPage />} />
             </Route>
+
+            {/* Administrative console route guarded by AdminRoute */}
+            <Route element={<AdminRoute />}>
+              <Route path="/admin" element={<AdminPage />} />
+            </Route>
+
+            {/* Backward-compatibility legacy redirects */}
+            <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
+            <Route path="/links" element={<Navigate to="/app/links" replace />} />
+            <Route path="/analytics/:id" element={<Navigate to="/app/links" replace />} />
+            <Route path="/settings" element={<Navigate to="/app/settings" replace />} />
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />

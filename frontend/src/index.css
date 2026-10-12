@@ -1038,17 +1038,65 @@ tbody tr:hover {
   max-width: 800px;
   margin: 0 auto;
 }
-  align-items: center;
-  justify-content: space-between;
+
+/* Shorten Result Card */
+.shorten-result-card {
+  margin-top: 24px;
+  padding: 20px 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  animation: slideUp 0.4s ease;
+  animation: slideUp 0.3s ease;
+  text-align: left;
+}
+
+.result-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.result-label-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .result-short-url {
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
   color: var(--brand-primary);
   word-break: break-all;
+  text-decoration: none;
+}
+
+.result-short-url:hover {
+  text-decoration: underline;
+}
+
+.result-actions-cluster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.guest-unlock-banner {
+  margin-top: 8px;
+  padding: 14px 18px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 /* ============================================
