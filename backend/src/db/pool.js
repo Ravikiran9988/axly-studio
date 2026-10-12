@@ -6,14 +6,17 @@ const { Pool } = pg;
 const createPoolConfig = () => {
   const dbConfig = config.database;
 
-  // If DATABASE_URL is provided (e.g. Supabase Cloud) and not an unfilled placeholder
-  if (dbConfig.connectionString && !dbConfig.connectionString.includes('[YOUR-PROJECT-REF]')) {
-    const isSupabase = dbConfig.connectionString.includes('supabase.co') || 
-                       dbConfig.connectionString.includes('supabase.com');
+  // If DATABASE_URL is provided (e.g. Neon or Supabase Cloud) and not an unfilled placeholder
+  if (dbConfig.connectionString && 
+      !dbConfig.connectionString.includes('[YOUR-PROJECT-REF]') &&
+      !dbConfig.connectionString.includes('[USER]')) {
+    const isCloudManaged = dbConfig.connectionString.includes('supabase.co') || 
+                          dbConfig.connectionString.includes('supabase.com') ||
+                          dbConfig.connectionString.includes('neon.tech');
     
     return {
       connectionString: dbConfig.connectionString,
-      ssl: dbConfig.ssl || (isSupabase ? { rejectUnauthorized: true } : false),
+      ssl: dbConfig.ssl || (isCloudManaged ? { rejectUnauthorized: true } : false),
       max: dbConfig.max,
       idleTimeoutMillis: dbConfig.idleTimeoutMillis,
       connectionTimeoutMillis: dbConfig.connectionTimeoutMillis,

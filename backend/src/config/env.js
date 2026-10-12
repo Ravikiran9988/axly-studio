@@ -53,7 +53,12 @@ export const config = {
     database: process.env.DB_NAME || 'axly_db',
     user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || 'password',
-    ssl: process.env.DB_SSL === 'true' || (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('supabase.com'))
+    ssl: process.env.DB_SSL === 'true' ||
+      (process.env.DATABASE_URL && (
+        process.env.DATABASE_URL.includes('supabase.com') ||
+        process.env.DATABASE_URL.includes('supabase.co') ||
+        process.env.DATABASE_URL.includes('neon.tech')
+      ))
       ? { rejectUnauthorized: true }
       : false,
     max: parseInt(process.env.DB_POOL_MAX || '10', 10),
