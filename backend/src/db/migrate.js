@@ -508,8 +508,204 @@ export const runMigrations = async () => {
       `, [s.key, JSON.stringify(s.value), s.description]);
     }
 
+    // ==========================================
+    // PHASE 4 MIGRATIONS: WORKSPACES, API KEYS,
+    // WEBHOOKS, CUSTOM DOMAINS, NOTIFICATIONS
+    // ==========================================
+
+    // 15. Workspaces table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS workspaces (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(255) NOT NULL,
+        slug VARCHAR(100) UNIQUE NOT NULL,
+        owner_id UUID REFERENCES users(id) ON DELETE RESTRICT NOT NULL,
+        is_personal BOOLEAN DEFAULT false,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_workspaces_owner_id ON workspaces(owner_id);
+      CREATE INDEX IF NOT EXISTS idx_workspaces_slug ON workspaces(slug);
+    `);
+
+    // 16. Workspace Members table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS workspace_members (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE NOT NULL,
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+        role VARCHAR(50) NOT NULL DEFAULT 'viewer',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(workspace_id, user_id)
+      );
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_workspace_members_user_id ON workspace_members(user_id);
+      CREATE INDEX IF NOT EXISTS idx_workspace_members_workspace_id ON workspace_members(workspace_id);
+    `);
+
+    // 17. Workspace Invitations table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS workspace_invitations (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        role VARCHAR(50) NOT NULL DEFAULT 'viewer',
+        token_hash VARCHAR(64) UNIQUE NOT NULL,
+        invited_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        accepted_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_invitations_token_hash ON workspace_invitations(token_hash);
+      CREATE INDEX IF NOT EXISTS idx_invitations_workspace_id ON workspace_invitations(workspace_id);
+    `);
+
+    // 18. Backfill personal workspaces for any existing users
+    await client.query(`
+      INSERT INTO workspaces (name, slug, owner_id, is_personal)
+      SELECT 
+        CONCAT(u.name, '''s Workspace'),
+        CONCAT('personal-', SUBSTRING(REPLACE(u.id::text, '-', ''), 1, 12)),
+        u.id,
+        true
+      FROM users u
+      WHERE NOT EXISTS (
+        SELECT 1 FROM workspaces w WHERE w.owner_id = u.id AND w.is_personal = true
+      );
+
+      INSERT INTO workspace_members (workspace_id, user_id, role)
+      SELECT w.id, w.owner_id, 'owner'
+      FROM workspaces w
+      ON CONFLICT (workspace_id, user_id) DO NOTHING;
+    `);
+
+    // Add workspace_id to existing resource tables
+    await client.query(`
+      ALTER TABLE urls ADD COLUMN IF NOT EXISTS workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE;
+      ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE;
+      ALTER TABLE experiments ADD COLUMN IF NOT EXISTS workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE;
+      CREATE INDEX IF NOT EXISTS idx_urls_workspace_id ON urls(workspace_id);
+      CREATE INDEX IF NOT EXISTS idx_campaigns_workspace_id ON campaigns(workspace_id);
+      CREATE INDEX IF NOT EXISTS idx_experiments_workspace_id ON experiments(workspace_id);
+    `);
+
+    // 19. Developer API Keys table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS api_keys (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+        workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        key_prefix VARCHAR(16) NOT NULL,
+        key_hash VARCHAR(64) NOT NULL UNIQUE,
+        scopes TEXT[] DEFAULT '{"links:read","links:write"}',
+        rate_limit_per_minute INT DEFAULT 120,
+        expires_at TIMESTAMPTZ,
+        last_used_at TIMESTAMPTZ,
+        is_revoked BOOLEAN DEFAULT false,
+        revoked_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash);
+      CREATE INDEX IF NOT EXISTS idx_api_keys_user_id ON api_keys(user_id);
+      CREATE INDEX IF NOT EXISTS idx_api_keys_workspace_id ON api_keys(workspace_id);
+    `);
+
+    // 20. Webhooks and Deliveries tables
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS webhooks (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+        workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
+        url TEXT NOT NULL,
+        secret VARCHAR(64) NOT NULL,
+        events TEXT[] NOT NULL DEFAULT '{"link.created"}',
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_webhooks_user_id ON webhooks(user_id);
+      CREATE INDEX IF NOT EXISTS idx_webhooks_workspace_id ON webhooks(workspace_id);
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS webhook_deliveries (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        webhook_id UUID REFERENCES webhooks(id) ON DELETE CASCADE NOT NULL,
+        event VARCHAR(100) NOT NULL,
+        payload JSONB NOT NULL,
+        status_code INT,
+        response_body TEXT,
+        duration_ms INT,
+        is_success BOOLEAN DEFAULT false,
+        attempt_count INT DEFAULT 1,
+        next_retry_at TIMESTAMPTZ,
+        error_reason TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_webhook_id ON webhook_deliveries(webhook_id);
+      CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_created_at ON webhook_deliveries(created_at);
+    `);
+
+    // 21. Custom Domains table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS custom_domains (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+        workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
+        domain VARCHAR(255) UNIQUE NOT NULL,
+        verification_token VARCHAR(64) NOT NULL,
+        status VARCHAR(50) DEFAULT 'pending_dns',
+        dns_record_type VARCHAR(10) DEFAULT 'CNAME',
+        dns_expected_value VARCHAR(255) NOT NULL,
+        verified_at TIMESTAMPTZ,
+        ssl_status VARCHAR(50) DEFAULT 'pending',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_custom_domains_user_id ON custom_domains(user_id);
+      CREATE INDEX IF NOT EXISTS idx_custom_domains_domain ON custom_domains(domain);
+    `);
+
+    await client.query(`
+      ALTER TABLE urls ADD COLUMN IF NOT EXISTS custom_domain_id UUID REFERENCES custom_domains(id) ON DELETE SET NULL;
+      CREATE INDEX IF NOT EXISTS idx_urls_custom_domain_id ON urls(custom_domain_id);
+    `);
+
+    // 22. In-App Notifications table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+        type VARCHAR(100) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        metadata JSONB DEFAULT '{}',
+        is_read BOOLEAN DEFAULT false,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+      CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
+    `);
+
     await client.query('COMMIT');
-    console.log('✅ Phase 2 & Phase 3 database schema, tables, and indexes migrated successfully');
+    console.log('✅ Phase 2, 3 & Phase 4 database schema, tables, and indexes migrated successfully');
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('❌ Migration failed:', err.message);

@@ -84,8 +84,36 @@ export const requireRole = (...allowedRoles) => {
 
 export const requireAdmin = requireRole('admin');
 
-export const optionalAuth = (req, res, next) => {
+import { hashApiKey } from '../utils/apiKey.js';
+
+export const optionalAuth = async (req, res, next) => {
+  const headerKey = req.headers['x-api-key'];
   const authHeader = req.headers.authorization;
+
+  if (headerKey || (authHeader && authHeader.startsWith('Bearer axly_'))) {
+    const rawKey = headerKey ? headerKey.trim() : authHeader.substring(7).trim();
+    try {
+      const keyHash = hashApiKey(rawKey);
+      const result = await query(`
+        SELECT k.id, k.scopes, k.workspace_id, u.id as user_id, u.name, u.email, u.role
+        FROM api_keys k
+        JOIN users u ON k.user_id = u.id
+        WHERE k.key_hash = $1 AND k.is_revoked = false AND (k.expires_at IS NULL OR k.expires_at > NOW()) AND u.is_active = true
+      `, [keyHash]);
+
+      if (result.rows.length > 0) {
+        const row = result.rows[0];
+        req.user = { id: row.user_id, name: row.name, email: row.email, role: row.role };
+        req.apiKey = { id: row.id, scopes: row.scopes, workspaceId: row.workspace_id };
+        req.workspaceId = row.workspace_id;
+        req.authMethod = 'api_key';
+        return next();
+      }
+    } catch {
+      // Continue as guest
+    }
+    return next();
+  }
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return next();

@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticate } from '../middleware/auth.js';
+import { authenticateOrApiKey, requireScope } from '../middleware/apiKeyAuth.js';
 import {
   getAccountAnalytics,
   exportAnalyticsCsv
@@ -7,7 +7,7 @@ import {
 
 const router = express.Router();
 
-router.use(authenticate);
+router.use(authenticateOrApiKey, requireScope('analytics:read'));
 
 router.get('/export/csv', exportAnalyticsCsv);
 router.get('/', getAccountAnalytics);

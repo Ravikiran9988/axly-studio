@@ -100,18 +100,39 @@ export const redirect = async (req, res) => {
 
     const cleanCode = shortCode.trim().toLowerCase();
 
-    // Fetch URL with smart routing parameters
-    const result = await query(
-      `SELECT id, original_url, status, expires_at, password_hash, is_preview_enabled, title 
-       FROM urls WHERE short_code = $1`,
-      [cleanCode]
-    );
+    // Check if request is routed via an active custom domain
+    const hostHeader = (req.headers.host || '').split(':')[0].toLowerCase();
+    let url = null;
 
-    if (result.rows.length === 0) {
-      return res.status(404).send(renderErrorPage('Link Not Found', 'This short link does not exist or has been removed.'));
+    if (hostHeader && !hostHeader.includes('localhost') && !hostHeader.includes('axly.in') && !hostHeader.includes('127.0.0.1')) {
+      const domainLookup = await query(`
+        SELECT u.id, u.original_url, u.status, u.expires_at, u.password_hash, u.is_preview_enabled, u.title
+        FROM urls u
+        JOIN custom_domains cd ON (u.custom_domain_id = cd.id OR u.workspace_id = cd.workspace_id)
+        WHERE cd.domain = $1 AND cd.status = 'active' AND u.short_code = $2
+      `, [hostHeader, cleanCode]);
+
+      if (domainLookup.rows.length > 0) {
+        url = domainLookup.rows[0];
+      }
     }
 
-    const url = result.rows[0];
+    // Default short code resolution fallback
+    if (!url) {
+      const result = await query(
+        `SELECT id, original_url, status, expires_at, password_hash, is_preview_enabled, title 
+         FROM urls WHERE short_code = $1`,
+        [cleanCode]
+      );
+
+      if (result.rows.length > 0) {
+        url = result.rows[0];
+      }
+    }
+
+    if (!url) {
+      return res.status(404).send(renderErrorPage('Link Not Found', 'This short link does not exist or has been removed.'));
+    }
 
     // Check link active status
     if (url.status !== 'active') {

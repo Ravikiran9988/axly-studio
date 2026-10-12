@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { query } from '../db/pool.js';
 import { config } from '../config/env.js';
 import { validateSafeDestinationUrl } from '../utils/ssrf.js';
+import { dispatchWebhookEvent } from '../utils/webhookDispatcher.js';
 
 const RESERVED_ALIASES = new Set([
   'api', 'auth', 'login', 'register', 'dashboard', 'links', 'analytics',
@@ -182,6 +183,23 @@ export const createUrl = async (req, res) => {
       const savedUrl = result.rows[0];
       const shortUrl = `${config.SHORT_DOMAIN}/${savedUrl.short_code}`;
       const isGuest = !userId;
+
+      // Asynchronously dispatch link.created webhook (never blocks response)
+      if (!isGuest) {
+        dispatchWebhookEvent({
+          event: 'link.created',
+          payload: {
+            id: savedUrl.id,
+            shortCode: savedUrl.short_code,
+            originalUrl: savedUrl.original_url,
+            title: savedUrl.title,
+            shortUrl,
+            createdAt: savedUrl.created_at,
+          },
+          userId,
+          workspaceId: req.workspaceId || null,
+        });
+      }
 
       res.status(201).json({
         success: true,

@@ -1,6 +1,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { authenticate, optionalAuth } from '../middleware/auth.js';
+import { authenticateOrApiKey, requireScope } from '../middleware/apiKeyAuth.js';
 import {
   createUrl,
   getUserUrls,
@@ -59,28 +60,28 @@ const dynamicCreateLimiter = (req, res, next) => {
   return guestCreateLimiter(req, res, next);
 };
 
-// Public/Guest creation with optionalAuth
-router.post('/', optionalAuth, dynamicCreateLimiter, createUrl);
+// Public/Guest creation with optionalAuth (and links:write scope check if API key is provided)
+router.post('/', optionalAuth, requireScope('links:write'), dynamicCreateLimiter, createUrl);
 
 // Explicit endpoints before /:id parameter
-router.get('/export/csv', authenticate, exportUrlsCsv);
-router.post('/bulk', authenticate, bulkUrlsAction);
-router.post('/bulk-import', authenticate, bulkImportCsv);
-router.get('/stats', authenticate, getDashboardStats);
-router.get('/', authenticate, getUserUrls);
+router.get('/export/csv', authenticateOrApiKey, requireScope('links:read'), exportUrlsCsv);
+router.post('/bulk', authenticateOrApiKey, requireScope('links:write'), bulkUrlsAction);
+router.post('/bulk-import', authenticateOrApiKey, requireScope('links:write'), bulkImportCsv);
+router.get('/stats', authenticateOrApiKey, requireScope('analytics:read'), getDashboardStats);
+router.get('/', authenticateOrApiKey, requireScope('links:read'), getUserUrls);
 
 // Smart redirect rules subroutes
-router.get('/:urlId/rules', authenticate, getRulesForUrl);
-router.post('/:urlId/rules', authenticate, createRule);
-router.patch('/:urlId/rules/:ruleId', authenticate, updateRule);
-router.delete('/:urlId/rules/:ruleId', authenticate, deleteRule);
-router.put('/:urlId/rules/reorder', authenticate, reorderRules);
+router.get('/:urlId/rules', authenticateOrApiKey, requireScope('links:read'), getRulesForUrl);
+router.post('/:urlId/rules', authenticateOrApiKey, requireScope('links:write'), createRule);
+router.patch('/:urlId/rules/:ruleId', authenticateOrApiKey, requireScope('links:write'), updateRule);
+router.delete('/:urlId/rules/:ruleId', authenticateOrApiKey, requireScope('links:write'), deleteRule);
+router.put('/:urlId/rules/reorder', authenticateOrApiKey, requireScope('links:write'), reorderRules);
 
 // Individual URL operations
-router.get('/:id', authenticate, getUrl);
-router.patch('/:id', authenticate, updateUrl);
-router.delete('/:id', authenticate, deleteUrl);
-router.get('/:id/qr', authenticate, getQrCode);
-router.get('/:id/analytics', authenticate, getAnalytics);
+router.get('/:id', authenticateOrApiKey, requireScope('links:read'), getUrl);
+router.patch('/:id', authenticateOrApiKey, requireScope('links:write'), updateUrl);
+router.delete('/:id', authenticateOrApiKey, requireScope('links:write'), deleteUrl);
+router.get('/:id/qr', authenticateOrApiKey, requireScope('links:read'), getQrCode);
+router.get('/:id/analytics', authenticateOrApiKey, requireScope('analytics:read'), getAnalytics);
 
 export default router;

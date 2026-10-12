@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticate } from '../middleware/auth.js';
+import { authenticateOrApiKey, requireScope } from '../middleware/apiKeyAuth.js';
 import {
   getCampaigns,
   createCampaign,
@@ -11,13 +11,11 @@ import {
 
 const router = express.Router();
 
-router.use(authenticate);
-
-router.get('/', getCampaigns);
-router.post('/', createCampaign);
-router.get('/:id/export/csv', exportCampaignCsv);
-router.get('/:id', getCampaignById);
-router.patch('/:id', updateCampaign);
-router.delete('/:id', deleteCampaign);
+router.get('/', authenticateOrApiKey, requireScope('campaigns:read'), getCampaigns);
+router.post('/', authenticateOrApiKey, requireScope('campaigns:write'), createCampaign);
+router.get('/:id/export/csv', authenticateOrApiKey, requireScope('campaigns:read'), exportCampaignCsv);
+router.get('/:id', authenticateOrApiKey, requireScope('campaigns:read'), getCampaignById);
+router.patch('/:id', authenticateOrApiKey, requireScope('campaigns:write'), updateCampaign);
+router.delete('/:id', authenticateOrApiKey, requireScope('campaigns:write'), deleteCampaign);
 
 export default router;
