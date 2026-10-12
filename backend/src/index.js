@@ -3,93 +3,154 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
 
+import { config, validateEnv } from './config/env.js';
+import { closePool, query } from './db/pool.js';
 import authRoutes from './routes/auth.js';
 import urlRoutes from './routes/urls.js';
 import { redirect } from './controllers/redirectController.js';
 
-dotenv.config();
+// Validate environment variables on startup
+validateEnv();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = config.PORT;
 
-// Security middleware
-app.use(helmet());
+// Trust proxy setting (for deployment behind Nginx / Cloudflare / reverse proxy)
+if (config.TRUST_PROXY) {
+  app.set('trust proxy', config.TRUST_PROXY);
+}
 
-// CORS
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: false, // Allows flexible SPA framing / external scripts if needed
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+// CORS configuration
 app.use(cors({
   origin: [
-    process.env.FRONTEND_URL || 'http://localhost:5173',
+    config.FRONTEND_URL,
+    'http://localhost:5173',
     'http://localhost:3000',
+    'http://localhost:80',
+    'http://localhost',
   ],
   credentials: true,
 }));
 
 // Body parsing
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Logging
-if (process.env.NODE_ENV !== 'test') {
+// Request logging (skip in test environment)
+if (config.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
 
-// Rate limiting
+// Global API rate limiting
 const apiLimiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 min
-  max: parseInt(process.env.RATE_LIMIT_MAX || '100'),
+  windowMs: config.rateLimits.generalWindowMs,
+  max: config.rateLimits.generalMax,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, message: 'Too many requests. Please try again later.' }
-});
-
-const createLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 50,
-  message: { success: false, message: 'Too many URLs created. Try again in an hour.' }
+  message: { 
+    success: false, 
+    message: 'Too many requests. Please try again later.' 
+  }
 });
 
 app.use('/api/', apiLimiter);
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    success: true, 
-    message: 'Axly API is running!', 
+// Health check endpoint (verifies database connectivity)
+app.get('/api/health', async (req, res) => {
+  let dbStatus = 'healthy';
+  let dbLatencyMs = null;
+
+  try {
+    const start = Date.now();
+    await query('SELECT 1');
+    dbLatencyMs = Date.now() - start;
+  } catch (err) {
+    dbStatus = 'unhealthy';
+  }
+
+  const statusCode = dbStatus === 'healthy' ? 200 : 503;
+
+  res.status(statusCode).json({ 
+    success: dbStatus === 'healthy', 
+    status: dbStatus === 'healthy' ? 'ok' : 'degraded',
+    message: 'Axly URL Shortener API', 
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
+    services: {
+      database: {
+        status: dbStatus,
+        latencyMs: dbLatencyMs,
+      }
+    }
   });
 });
 
-// API Routes
+// Mount API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/urls', urlRoutes);
 
-// Short URL redirect (must be last)
+// Short URL redirection route (public, handles /:shortCode)
 app.get('/:shortCode', redirect);
 
-// 404 handler
+// 404 handler for unmatched routes
 app.use((req, res) => {
-  res.status(404).json({ success: false, message: 'Route not found.' });
+  res.status(404).json({ success: false, message: 'Resource not found.' });
 });
 
-// Global error handler
+// Centralized error handler
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({ success: false, message: 'Internal server error.' });
+  if (config.NODE_ENV !== 'test') {
+    console.error('Unhandled application error:', err);
+  }
+  res.status(err.status || 500).json({ 
+    success: false, 
+    message: err.message || 'Internal server error.' 
+  });
 });
 
-app.listen(PORT, () => {
-  console.log(`
-╔══════════════════════════════════════╗
-║          Axly URL Shortener          ║
-║       Backend API v1.0.0             ║
-╠══════════════════════════════════════╣
-║  🚀 Server: http://localhost:${PORT}    ║
-║  📊 Mode:   ${process.env.NODE_ENV || 'development'}              ║
-╚══════════════════════════════════════╝
-  `);
-});
+let server;
 
+// Start server only when run directly (not when required/imported by test runners)
+if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
+  server = app.listen(PORT, () => {
+    console.log(`
+╔══════════════════════════════════════════════════╗
+║               Axly URL Shortener                 ║
+║            Production-Ready API v1.0.0           ║
+╠══════════════════════════════════════════════════╣
+║  🚀 API Server:    http://localhost:${PORT}         ║
+║  🌐 Short Domain:  ${config.SHORT_DOMAIN.padEnd(29)} ║
+║  📊 Mode:          ${config.NODE_ENV.padEnd(29)} ║
+╚══════════════════════════════════════════════════╝
+    `);
+  });
+
+  // Graceful shutdown
+  const shutdown = async (signal) => {
+    console.log(`\nReceived ${signal}. Gracefully shutting down...`);
+    if (server) {
+      server.close(async () => {
+        console.log('HTTP server closed.');
+        await closePool();
+        console.log('PostgreSQL pool drained. Exiting process.');
+        process.exit(0);
+      });
+    } else {
+      await closePool();
+      process.exit(0);
+    }
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+}
+
+export { server };
 export default app;

@@ -1,12 +1,15 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { query } from '../db/pool.js';
+import { config } from '../config/env.js';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const generateToken = (user) => {
   return jwt.sign(
     { id: user.id, email: user.email, name: user.name },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    config.jwt.secret,
+    { expiresIn: config.jwt.expiresIn }
   );
 };
 
@@ -15,36 +18,87 @@ export const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: 'Name, email and password are required.' });
+    // Validate name
+    if (!name || typeof name !== 'string' || name.trim().length < 2) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Name is required and must be at least 2 characters.' 
+      });
+    }
+    if (name.trim().length > 100) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Name cannot exceed 100 characters.' 
+      });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
+    // Validate email
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Valid email address is required.' 
+      });
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail.length > 255 || !EMAIL_REGEX.test(normalizedEmail)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Please provide a valid email address.' 
+      });
     }
 
-    // Check if email exists
-    const existing = await query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
+    // Validate password
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Password is required.' 
+      });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Password must be at least 8 characters long.' 
+      });
+    }
+    if (password.length > 128) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Password cannot exceed 128 characters.' 
+      });
+    }
+
+    // Check if email already exists
+    const existing = await query('SELECT id FROM users WHERE email = $1', [normalizedEmail]);
     if (existing.rows.length > 0) {
-      return res.status(409).json({ success: false, message: 'Email already registered.' });
+      return res.status(409).json({ success: false, message: 'Email is already registered.' });
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    const result = await query(
-      `INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, name, email, plan, created_at`,
-      [name.trim(), email.toLowerCase().trim(), passwordHash]
-    );
+    try {
+      const result = await query(
+        `INSERT INTO users (name, email, password_hash) 
+         VALUES ($1, $2, $3) 
+         RETURNING id, name, email, plan, created_at`,
+        [name.trim(), normalizedEmail, passwordHash]
+      );
 
-    const user = result.rows[0];
-    const token = generateToken(user);
+      const user = result.rows[0];
+      const token = generateToken(user);
 
-    res.status(201).json({
-      success: true,
-      message: 'Account created successfully!',
-      token,
-      user: { id: user.id, name: user.name, email: user.email, plan: user.plan }
-    });
+      res.status(201).json({
+        success: true,
+        message: 'Account created successfully!',
+        token,
+        user: { id: user.id, name: user.name, email: user.email, plan: user.plan }
+      });
+    } catch (insertErr) {
+      // Handle PostgreSQL unique constraint violation race condition
+      if (insertErr.code === '23505') {
+        return res.status(409).json({ success: false, message: 'Email is already registered.' });
+      }
+      throw insertErr;
+    }
   } catch (err) {
     console.error('Register error:', err);
     res.status(500).json({ success: false, message: 'Server error during registration.' });
@@ -56,13 +110,15 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (!email || typeof email !== 'string' || !password || typeof password !== 'string') {
       return res.status(400).json({ success: false, message: 'Email and password are required.' });
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+
     const result = await query(
       'SELECT id, name, email, password_hash, plan, is_active FROM users WHERE email = $1',
-      [email.toLowerCase().trim()]
+      [normalizedEmail]
     );
 
     if (result.rows.length === 0) {
@@ -72,7 +128,7 @@ export const login = async (req, res) => {
     const user = result.rows[0];
 
     if (!user.is_active) {
-      return res.status(401).json({ success: false, message: 'Account is disabled. Contact support.' });
+      return res.status(403).json({ success: false, message: 'Account is disabled. Contact support.' });
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password_hash);

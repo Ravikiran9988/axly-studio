@@ -1,15 +1,30 @@
 import { nanoid } from 'nanoid';
 import QRCode from 'qrcode';
 import { query } from '../db/pool.js';
+import { config } from '../config/env.js';
 
-const SHORT_DOMAIN = process.env.SHORT_DOMAIN || 'http://localhost:5000';
+const RESERVED_ALIASES = new Set([
+  'api', 'auth', 'login', 'register', 'dashboard', 'links', 'analytics',
+  'settings', 'health', 'docs', 'admin', 's', 'url', 'favicon', 'robots',
+  'static', 'assets', 'help', 'status', 'terms', 'privacy', 'pricing', 'about',
+]);
 
 const generateShortCode = () => nanoid(6);
 
-const isValidUrl = (url) => {
+const isValidUrl = (urlStr) => {
+  if (typeof urlStr !== 'string' || urlStr.length > 2048) {
+    return false;
+  }
   try {
-    const parsed = new URL(url);
-    return ['http:', 'https:'].includes(parsed.protocol);
+    const parsed = new URL(urlStr);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return false;
+    }
+    // Must have a valid host
+    if (!parsed.hostname || parsed.hostname.length < 3) {
+      return false;
+    }
+    return true;
   } catch {
     return false;
   }
@@ -25,55 +40,125 @@ export const createUrl = async (req, res) => {
       return res.status(400).json({ success: false, message: 'URL is required.' });
     }
 
-    if (!isValidUrl(url)) {
-      return res.status(400).json({ success: false, message: 'Invalid URL. Must start with http:// or https://' });
+    if (!isValidUrl(url.trim())) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid URL. Must be a valid web address starting with http:// or https://' 
+      });
     }
 
-    let shortCode = customAlias ? customAlias.trim().toLowerCase() : generateShortCode();
+    let shortCode;
+    let cleanAlias = null;
 
-    // Validate custom alias
-    if (customAlias) {
-      if (!/^[a-zA-Z0-9_-]{3,30}$/.test(shortCode)) {
+    // Validate custom alias if provided
+    if (customAlias && typeof customAlias === 'string') {
+      const alias = customAlias.trim().toLowerCase();
+      
+      if (!/^[a-zA-Z0-9_-]{3,30}$/.test(alias)) {
         return res.status(400).json({ 
           success: false, 
           message: 'Custom alias must be 3-30 characters, letters, numbers, hyphens and underscores only.' 
         });
       }
 
-      const existing = await query('SELECT id FROM urls WHERE short_code = $1', [shortCode]);
+      if (RESERVED_ALIASES.has(alias)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'This custom alias is reserved by the system.' 
+        });
+      }
+
+      // Check for collision
+      const existing = await query('SELECT id FROM urls WHERE short_code = $1', [alias]);
       if (existing.rows.length > 0) {
         return res.status(409).json({ success: false, message: 'This custom alias is already taken.' });
       }
+
+      shortCode = alias;
+      cleanAlias = alias;
     } else {
-      // Ensure uniqueness for generated codes
+      // Generate a collision-free code
       let attempts = 0;
+      let foundUnique = false;
+
       while (attempts < 5) {
-        const existing = await query('SELECT id FROM urls WHERE short_code = $1', [shortCode]);
-        if (existing.rows.length === 0) break;
-        shortCode = generateShortCode();
+        const candidate = generateShortCode();
+        if (RESERVED_ALIASES.has(candidate.toLowerCase())) {
+          attempts++;
+          continue;
+        }
+
+        const existing = await query('SELECT id FROM urls WHERE short_code = $1', [candidate]);
+        if (existing.rows.length === 0) {
+          shortCode = candidate;
+          foundUnique = true;
+          break;
+        }
         attempts++;
+      }
+
+      if (!foundUnique) {
+        shortCode = nanoid(8);
       }
     }
 
-    const expiresAtValue = expiresAt ? new Date(expiresAt) : null;
-
-    const result = await query(
-      `INSERT INTO urls (short_code, original_url, title, user_id, expires_at, custom_alias)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, short_code, original_url, title, click_count, status, expires_at, created_at`,
-      [shortCode, url, title || null, userId, expiresAtValue, customAlias ? shortCode : null]
-    );
-
-    const savedUrl = result.rows[0];
-    const shortUrl = `${SHORT_DOMAIN}/${savedUrl.short_code}`;
-
-    res.status(201).json({
-      success: true,
-      data: {
-        ...savedUrl,
-        short_url: shortUrl,
+    // Expiration date validation
+    let expiresAtValue = null;
+    if (expiresAt) {
+      const parsedDate = new Date(expiresAt);
+      if (isNaN(parsedDate.getTime())) {
+        return res.status(400).json({ success: false, message: 'Invalid expiration date format.' });
       }
-    });
+      if (parsedDate <= new Date()) {
+        return res.status(400).json({ success: false, message: 'Expiration date must be in the future.' });
+      }
+      expiresAtValue = parsedDate;
+    }
+
+    const cleanTitle = title && typeof title === 'string' ? title.trim().slice(0, 500) : null;
+
+    try {
+      const result = await query(
+        `INSERT INTO urls (short_code, original_url, title, user_id, expires_at, custom_alias)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, short_code, original_url, title, click_count, unique_clicks, status, expires_at, created_at`,
+        [shortCode, url.trim(), cleanTitle, userId, expiresAtValue, cleanAlias]
+      );
+
+      const savedUrl = result.rows[0];
+      const shortUrl = `${config.SHORT_DOMAIN}/${savedUrl.short_code}`;
+
+      res.status(201).json({
+        success: true,
+        data: {
+          ...savedUrl,
+          short_url: shortUrl,
+        }
+      });
+    } catch (insertErr) {
+      if (insertErr.code === '23505') {
+        if (cleanAlias) {
+          return res.status(409).json({ success: false, message: 'This custom alias is already taken.' });
+        }
+        // Rare concurrent collision on generated code — retry once
+        const retryCode = nanoid(8);
+        const retryResult = await query(
+          `INSERT INTO urls (short_code, original_url, title, user_id, expires_at, custom_alias)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           RETURNING id, short_code, original_url, title, click_count, unique_clicks, status, expires_at, created_at`,
+          [retryCode, url.trim(), cleanTitle, userId, expiresAtValue, null]
+        );
+        const savedUrl = retryResult.rows[0];
+        return res.status(201).json({
+          success: true,
+          data: {
+            ...savedUrl,
+            short_url: `${config.SHORT_DOMAIN}/${savedUrl.short_code}`,
+          }
+        });
+      }
+      throw insertErr;
+    }
   } catch (err) {
     console.error('Create URL error:', err);
     res.status(500).json({ success: false, message: 'Server error creating short URL.' });
@@ -84,8 +169,10 @@ export const createUrl = async (req, res) => {
 export const getUserUrls = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { page = 1, limit = 20, search = '' } = req.query;
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const offset = (page - 1) * limit;
+    const search = req.query.search ? String(req.query.search).trim() : '';
 
     let queryText = `
       SELECT id, short_code, original_url, title, click_count, unique_clicks, status, expires_at, created_at, custom_alias
@@ -95,33 +182,35 @@ export const getUserUrls = async (req, res) => {
     const params = [userId];
 
     if (search) {
-      queryText += ` AND (original_url ILIKE $${params.length + 1} OR title ILIKE $${params.length + 1} OR short_code ILIKE $${params.length + 1})`;
       params.push(`%${search}%`);
+      queryText += ` AND (original_url ILIKE $${params.length} OR title ILIKE $${params.length} OR short_code ILIKE $${params.length})`;
     }
 
+    // Get total count matching search
+    const countQuery = search
+      ? `SELECT COUNT(*) FROM urls WHERE user_id = $1 AND (original_url ILIKE $2 OR title ILIKE $2 OR short_code ILIKE $2)`
+      : `SELECT COUNT(*) FROM urls WHERE user_id = $1`;
+    const countResult = await query(countQuery, search ? [userId, `%${search}%`] : [userId]);
+    const totalCount = parseInt(countResult.rows[0].count, 10);
+
     queryText += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-    params.push(parseInt(limit), offset);
+    params.push(limit, offset);
 
     const result = await query(queryText, params);
 
-    const countResult = await query(
-      'SELECT COUNT(*) FROM urls WHERE user_id = $1',
-      [userId]
-    );
-
     const urls = result.rows.map(url => ({
       ...url,
-      short_url: `${SHORT_DOMAIN}/${url.short_code}`
+      short_url: `${config.SHORT_DOMAIN}/${url.short_code}`
     }));
 
     res.json({
       success: true,
       data: urls,
       pagination: {
-        total: parseInt(countResult.rows[0].count),
-        page: parseInt(page),
-        limit: parseInt(limit),
-        pages: Math.ceil(parseInt(countResult.rows[0].count) / parseInt(limit))
+        total: totalCount,
+        page,
+        limit,
+        pages: Math.max(1, Math.ceil(totalCount / limit))
       }
     });
   } catch (err) {
@@ -148,7 +237,7 @@ export const getUrl = async (req, res) => {
 
     const url = {
       ...result.rows[0],
-      short_url: `${SHORT_DOMAIN}/${result.rows[0].short_code}`
+      short_url: `${config.SHORT_DOMAIN}/${result.rows[0].short_code}`
     };
 
     res.json({ success: true, data: url });
@@ -158,27 +247,86 @@ export const getUrl = async (req, res) => {
   }
 };
 
-// PATCH /api/urls/:id - Update URL
+// PATCH /api/urls/:id - Partial Update URL (Fixing Expiration Update Bug)
 export const updateUrl = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
     const { title, expiresAt, status } = req.body;
 
-    const result = await query(
-      `UPDATE urls SET title = COALESCE($1, title), expires_at = $2, status = COALESCE($3, status), updated_at = NOW()
-       WHERE id = $4 AND user_id = $5
-       RETURNING id, short_code, original_url, title, click_count, status, expires_at, updated_at`,
-      [title, expiresAt ? new Date(expiresAt) : null, status, id, userId]
-    );
-
-    if (result.rows.length === 0) {
+    // Check link exists and belongs to user
+    const check = await query('SELECT id, expires_at, status, title FROM urls WHERE id = $1 AND user_id = $2', [id, userId]);
+    if (check.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'URL not found.' });
     }
 
+    const existing = check.rows[0];
+    const updateClauses = [];
+    const params = [];
+
+    // Title
+    if (title !== undefined) {
+      const cleanTitle = title === null || title === '' ? null : String(title).trim().slice(0, 500);
+      params.push(cleanTitle);
+      updateClauses.push(`title = $${params.length}`);
+    }
+
+    // Status
+    if (status !== undefined) {
+      if (!['active', 'inactive'].includes(status)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Status must be active or inactive.' 
+        });
+      }
+      params.push(status);
+      updateClauses.push(`status = $${params.length}`);
+    }
+
+    // Expiration date partial update logic
+    if (expiresAt !== undefined) {
+      if (expiresAt === null || expiresAt === '') {
+        // Explicit null clears expiration
+        updateClauses.push(`expires_at = NULL`);
+      } else {
+        const parsedDate = new Date(expiresAt);
+        if (isNaN(parsedDate.getTime())) {
+          return res.status(400).json({ success: false, message: 'Invalid expiration date format.' });
+        }
+        if (parsedDate <= new Date()) {
+          return res.status(400).json({ success: false, message: 'Expiration date must be in the future.' });
+        }
+        params.push(parsedDate);
+        updateClauses.push(`expires_at = $${params.length}`);
+      }
+    }
+
+    // If no fields to update
+    if (updateClauses.length === 0) {
+      return res.json({
+        success: true,
+        data: {
+          ...existing,
+          short_url: `${config.SHORT_DOMAIN}/${existing.short_code}`,
+        }
+      });
+    }
+
+    updateClauses.push('updated_at = NOW()');
+    params.push(id, userId);
+
+    const queryText = `
+      UPDATE urls 
+      SET ${updateClauses.join(', ')}
+      WHERE id = $${params.length - 1} AND user_id = $${params.length}
+      RETURNING id, short_code, original_url, title, click_count, unique_clicks, status, expires_at, updated_at
+    `;
+
+    const result = await query(queryText, params);
+
     res.json({ 
       success: true, 
-      data: { ...result.rows[0], short_url: `${SHORT_DOMAIN}/${result.rows[0].short_code}` }
+      data: { ...result.rows[0], short_url: `${config.SHORT_DOMAIN}/${result.rows[0].short_code}` }
     });
   } catch (err) {
     console.error('Update URL error:', err);
@@ -223,7 +371,7 @@ export const getQrCode = async (req, res) => {
       return res.status(404).json({ success: false, message: 'URL not found.' });
     }
 
-    const shortUrl = `${SHORT_DOMAIN}/${result.rows[0].short_code}`;
+    const shortUrl = `${config.SHORT_DOMAIN}/${result.rows[0].short_code}`;
     const qrDataUrl = await QRCode.toDataURL(shortUrl, {
       width: 300,
       margin: 2,
@@ -242,7 +390,7 @@ export const getAnalytics = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const { days = 30 } = req.query;
+    const days = Math.min(365, Math.max(1, parseInt(req.query.days, 10) || 30));
 
     // Verify ownership
     const urlResult = await query(
@@ -256,7 +404,7 @@ export const getAnalytics = async (req, res) => {
 
     const url = urlResult.rows[0];
     const since = new Date();
-    since.setDate(since.getDate() - parseInt(days));
+    since.setDate(since.getDate() - days);
 
     // Daily clicks
     const dailyClicks = await query(`
@@ -267,9 +415,9 @@ export const getAnalytics = async (req, res) => {
       ORDER BY date ASC
     `, [id, since]);
 
-    // By country
+    // By country (honestly reporting actual recorded data or Unknown)
     const byCountry = await query(`
-      SELECT COALESCE(country, 'Unknown') as country, COUNT(*) as clicks
+      SELECT COALESCE(NULLIF(country, ''), 'Unknown') as country, COUNT(*) as clicks
       FROM click_events
       WHERE url_id = $1 AND clicked_at >= $2
       GROUP BY country
@@ -279,7 +427,7 @@ export const getAnalytics = async (req, res) => {
 
     // By device
     const byDevice = await query(`
-      SELECT COALESCE(device_type, 'Unknown') as device, COUNT(*) as clicks
+      SELECT COALESCE(NULLIF(device_type, ''), 'desktop') as device, COUNT(*) as clicks
       FROM click_events
       WHERE url_id = $1 AND clicked_at >= $2
       GROUP BY device_type
@@ -288,7 +436,7 @@ export const getAnalytics = async (req, res) => {
 
     // By browser
     const byBrowser = await query(`
-      SELECT COALESCE(browser, 'Unknown') as browser, COUNT(*) as clicks
+      SELECT COALESCE(NULLIF(browser, ''), 'Unknown') as browser, COUNT(*) as clicks
       FROM click_events
       WHERE url_id = $1 AND clicked_at >= $2
       GROUP BY browser
@@ -298,7 +446,7 @@ export const getAnalytics = async (req, res) => {
 
     // By OS
     const byOs = await query(`
-      SELECT COALESCE(os, 'Unknown') as os, COUNT(*) as clicks
+      SELECT COALESCE(NULLIF(os, ''), 'Unknown') as os, COUNT(*) as clicks
       FROM click_events
       WHERE url_id = $1 AND clicked_at >= $2
       GROUP BY os
@@ -308,7 +456,7 @@ export const getAnalytics = async (req, res) => {
 
     // By referer
     const byReferer = await query(`
-      SELECT COALESCE(referer, 'Direct') as referer, COUNT(*) as clicks
+      SELECT COALESCE(NULLIF(referer, ''), 'Direct') as referer, COUNT(*) as clicks
       FROM click_events
       WHERE url_id = $1 AND clicked_at >= $2
       GROUP BY referer
@@ -319,10 +467,10 @@ export const getAnalytics = async (req, res) => {
     res.json({
       success: true,
       data: {
-        url: { ...url, short_url: `${SHORT_DOMAIN}/${url.short_code}` },
+        url: { ...url, short_url: `${config.SHORT_DOMAIN}/${url.short_code}` },
         analytics: {
-          totalClicks: parseInt(url.click_count),
-          uniqueClicks: parseInt(url.unique_clicks),
+          totalClicks: parseInt(url.click_count, 10) || 0,
+          uniqueClicks: parseInt(url.unique_clicks, 10) || 0,
           dailyClicks: dailyClicks.rows,
           byCountry: byCountry.rows,
           byDevice: byDevice.rows,
@@ -346,7 +494,7 @@ export const getDashboardStats = async (req, res) => {
     const statsResult = await query(`
       SELECT 
         COUNT(*) as total_urls,
-        SUM(click_count) as total_clicks,
+        COALESCE(SUM(click_count), 0) as total_clicks,
         COUNT(CASE WHEN status = 'active' THEN 1 END) as active_urls,
         COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END) as new_this_month
       FROM urls
@@ -367,10 +515,10 @@ export const getDashboardStats = async (req, res) => {
     res.json({
       success: true,
       data: {
-        totalUrls: parseInt(stats.total_urls) || 0,
-        totalClicks: parseInt(stats.total_clicks) || 0,
-        activeUrls: parseInt(stats.active_urls) || 0,
-        newThisMonth: parseInt(stats.new_this_month) || 0,
+        totalUrls: parseInt(stats.total_urls, 10) || 0,
+        totalClicks: parseInt(stats.total_clicks, 10) || 0,
+        activeUrls: parseInt(stats.active_urls, 10) || 0,
+        newThisMonth: parseInt(stats.new_this_month, 10) || 0,
         recentClicks: recentClicks.rows
       }
     });
