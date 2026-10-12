@@ -1,6 +1,6 @@
 # Axly URL Shortener 🔗
 
-> **The smart link shortener** — Create, manage and track short URLs with beautiful analytics, custom aliases, QR codes, and more.
+> **The smart link shortener** — Create, manage and track short URLs with analytics, custom aliases, QR codes, and more.
 
 [![Tech Stack](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-blue)](./frontend)
 [![Tech Stack](https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-green)](./backend)
@@ -9,27 +9,28 @@
 
 ---
 
-## 🌐 URLs
+## 🌐 Planned production URLs
+
+These are configuration examples; deploy and configure DNS before using them.
 
 | Service | URL |
 |---------|-----|
-| Main site | https://url.axly.in |
+| Dashboard / frontend | https://url.axly.in |
 | Short links | https://s.axly.in/aB72x |
-| Dashboard | https://url.axly.in/dashboard |
-| API | https://url.axly.in/api/v1 |
+| API health check | https://url.axly.in/api/health |
 
 ---
 
-## 🚀 Quick Start (Development)
+## 🚀 Quick Start (local development)
 
 ### Prerequisites
 - Node.js 18+
-- PostgreSQL 14+
+- PostgreSQL 14+ (or Docker)
 - npm
 
 ### 1. Clone and setup
 ```bash
-git clone <repo-url>
+git clone https://github.com/Ravikiran9988/axly-url-shortener.git
 cd axly-url-shortener
 ```
 
@@ -37,108 +38,103 @@ cd axly-url-shortener
 ```bash
 cd backend
 cp .env.example .env
-# Edit .env with your PostgreSQL credentials
+# Edit .env with your local PostgreSQL credentials
 npm install
-npm run migrate   # Create database tables
-npm run seed      # Insert demo data (optional)
-npm run dev       # Start backend on :5000
+npm run migrate
+npm run seed # Optional demo data; do not run against production data
+npm run dev
 ```
 
 ### 3. Frontend setup
+Open a second terminal:
 ```bash
 cd frontend
 npm install
-npm run dev       # Start frontend on :5173
+npm run dev
 ```
 
-### 4. Open in browser
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:5000/api/health
-- Demo login: `demo@axly.in` / `demo1234`
+Open the frontend at http://localhost:5173. The backend health endpoint is http://localhost:5000/api/health.
 
 ---
 
-## 🐳 Docker (Production-like)
+## ☁️ Supabase PostgreSQL (production database)
+
+Axly uses the standard PostgreSQL driver (`pg`), so it can connect to Supabase PostgreSQL without replacing the database layer. The backend supports either a hosted `DATABASE_URL` or the individual `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD` variables for local development.
+
+1. Create a project in [Supabase](https://supabase.com/).
+2. In the Supabase dashboard, open **Connect** and copy a PostgreSQL connection string. Use the Session Pooler connection string if your application host cannot connect to the direct endpoint (for example, if it does not support IPv6).
+3. Set these environment variables in the backend hosting provider's secret/environment settings:
+   ```env
+   NODE_ENV=production
+   DATABASE_URL=postgresql://...your-Supabase-connection-string...
+   DB_SSL_REJECT_UNAUTHORIZED=true
+   JWT_SECRET=your-long-random-production-secret
+   JWT_EXPIRES_IN=7d
+   PORT=5000
+   APP_URL=https://url.axly.in
+   FRONTEND_URL=https://url.axly.in
+   SHORT_DOMAIN=https://s.axly.in
+   ```
+   Replace the example values with the actual URLs and connection string. Never commit the real connection string or JWT secret.
+4. Run the existing schema migration once against the intended Supabase database from the backend environment:
+   ```bash
+   npm install
+   npm run migrate
+   ```
+5. Deploy the frontend and backend, configure DNS/TLS and reverse-proxy or hosting routes for the dashboard, API and short-link hostname, then test registration, login, URL creation and redirects.
+
+**Important:** Supabase provides the PostgreSQL database; it does not automatically host this Express API or React frontend. Those still need to be deployed separately. The hostnames above are planned examples, not proof that DNS or deployment is already configured.
+
+### Database configuration notes
+- If `DATABASE_URL` is set, it takes precedence over the local `DB_*` variables.
+- TLS certificate verification is enabled by default for `DATABASE_URL` connections. Do not disable verification to work around a connection error; check the connection string and provider's TLS guidance.
+- Use the database password from Supabase, URL-encoded if it contains special characters.
+- Keep `backend/.env` out of Git and use your hosting provider's secret manager for production values.
+- Do not run the seed script on a production database unless you intentionally want demo records.
+
+---
+
+## 🐳 Docker (local PostgreSQL)
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
-Access at http://localhost
+The current Compose stack includes a local PostgreSQL container for development. It is separate from Supabase; configure the backend hosting environment with `DATABASE_URL` to use Supabase in a deployed environment.
 
 ---
 
-## 📁 Project Structure
+## 📁 Project structure
 
 ```
-Axly Link Shortener/
+axly-url-shortener/
 ├── frontend/                   # React + Vite frontend
-│   ├── src/
-│   │   ├── pages/
-│   │   │   ├── LandingPage.jsx     # Public home page with URL shortener
-│   │   │   ├── LoginPage.jsx       # Auth - split panel design
-│   │   │   ├── RegisterPage.jsx    # Auth - with password strength
-│   │   │   ├── DashboardPage.jsx   # Main dashboard with stats + chart
-│   │   │   ├── LinksPage.jsx       # All links with search + pagination
-│   │   │   ├── AnalyticsPage.jsx   # Per-link analytics
-│   │   │   └── SettingsPage.jsx    # Profile + preferences
-│   │   ├── components/
-│   │   │   ├── Sidebar.jsx         # Nav sidebar (mobile responsive)
-│   │   │   ├── LinkCard.jsx        # Reusable link card
-│   │   │   ├── CreateLinkModal.jsx # Create link modal with success state
-│   │   │   ├── QRModal.jsx         # QR code generator + download
-│   │   │   └── ProtectedLayout.jsx # Auth guard + layout wrapper
-│   │   ├── context/
-│   │   │   ├── AuthContext.jsx     # JWT auth + axios instance
-│   │   │   └── ThemeContext.jsx    # Dark/light mode persistence
-│   │   └── index.css              # Complete design system (CSS variables)
-│   ├── public/favicon.svg
-│   ├── Dockerfile
-│   └── nginx.conf
-│
 ├── backend/                    # Node.js + Express API
-│   ├── src/
-│   │   ├── controllers/
-│   │   │   ├── authController.js       # Register, login, getMe
-│   │   │   ├── urlController.js        # CRUD, QR, analytics
-│   │   │   └── redirectController.js   # Short URL redirect + tracking
-│   │   ├── middleware/
-│   │   │   └── auth.js                 # JWT middleware
-│   │   ├── routes/
-│   │   │   ├── auth.js
-│   │   │   └── urls.js
-│   │   ├── db/
-│   │   │   ├── pool.js                 # PostgreSQL connection pool
-│   │   │   ├── migrate.js              # Create all tables
-│   │   │   └── seed.js                 # Demo data
-│   │   └── index.js                    # Express entry point
-│   ├── .env.example
-│   ├── Dockerfile
-│   └── package.json
-│
-└── docker-compose.yml          # Full stack Docker orchestration
+│   └── src/
+│       ├── controllers/
+│       ├── middleware/
+│       ├── routes/
+│       └── db/
+│           ├── pool.js         # Local or hosted PostgreSQL connection
+│           ├── migrate.js      # Create database tables
+│           └── seed.js          # Optional demo data
+└── docker-compose.yml          # Local full-stack development
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Tech stack
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 18 + Vite |
-| Styling | Vanilla CSS with design tokens |
-| Charts | Recharts |
-| Routing | React Router v6 |
-| HTTP | Axios |
+| Frontend | React + Vite |
 | Backend | Node.js + Express |
-| Database | PostgreSQL |
+| Database | PostgreSQL (local or Supabase-hosted) |
 | Auth | JWT + bcrypt |
 | Short codes | nanoid |
-| QR codes | qrcode |
-| Analytics | UA-Parser-JS |
 | Container | Docker + Docker Compose |
 
 ---
 
-## 📡 API Reference
+## 📡 API reference
 
 ### Auth
 | Method | Endpoint | Description |
@@ -166,62 +162,23 @@ Axly Link Shortener/
 
 ---
 
-## 🗄️ Database Schema
+## 🗄️ Database schema
 
-```sql
-users         — id, name, email, password_hash, plan, is_active
-urls          — id, short_code, original_url, custom_alias, title, user_id, 
-                click_count, unique_clicks, status, expires_at
-click_events  — id, url_id, ip_address, user_agent, referer, country, 
-                city, device_type, browser, os, clicked_at
-```
+The migration script creates the `users`, `urls`, and `click_events` tables in the configured PostgreSQL database. Run `npm run migrate` against the database you intend to use.
 
 ---
 
 ## ✨ Features
 
-- **Phase 1** ✅
-  - URL shortening (anonymous + authenticated)
-  - Short URL redirect with click tracking
-  - Device, browser, OS detection
-  - User authentication (JWT)
-
-- **Phase 2** ✅
-  - User dashboard with stats + 7-day chart
-  - Link management (create, edit, delete, disable)
-  - Custom aliases
-  - Link expiration
-  - Click analytics (countries, devices, browsers, referrers)
-  - QR code generation + download
-  - Dark/light mode toggle
-  - Search + pagination
-
-- **Phase 3 (planned)** 🔜
-  - Redis caching for redirects
-  - Rate limiting per user
-  - Kafka async analytics
-  - API keys
-  - Advanced security (malicious URL detection)
-
-- **Phase 4 (planned)** 🔜
-  - AWS deployment
-  - Kubernetes
-  - CDN / CloudFront
-  - Auto-scaling
-
----
-
-## 🏗️ Architecture
-
-```
-Browser
-   ↓
-React + Vite (Frontend)
-   ↓  (API calls)
-Express (Backend) ←→ PostgreSQL
-   ↓  (redirects)
-s.axly.in/:code → original URL
-```
+- URL shortening (anonymous + authenticated)
+- Short URL redirects with click tracking
+- Device, browser and OS detection
+- JWT user authentication
+- Dashboard and link management
+- Custom aliases and link expiration
+- QR code generation
+- Dark/light mode
+- Search and pagination
 
 ---
 
