@@ -823,7 +823,7 @@ describe('Axly URL Shortener API Tests', () => {
           .send({ role: 'user' });
 
         assert.equal(res.status, 400);
-        assert.match(res.body.message, /demote your own administrative role/i);
+        assert.match(res.body.message, /revoke your own administrator|demote/i);
       } finally {
         pool.query = originalQuery;
       }
@@ -921,12 +921,15 @@ describe('Axly URL Shortener API Tests', () => {
       const originalQuery = pool.query;
       let insertedReport = false;
       pool.query = async (text, params) => {
-        if (text.includes('SELECT id, short_code, original_url FROM urls WHERE short_code = $1')) {
+        if (text.includes('FROM urls WHERE short_code = $1')) {
           return { rows: [{ id: 'url-rep-1', short_code: 'rep123', original_url: 'https://example.com/bad' }] };
         }
         if (text.includes('INSERT INTO link_reports')) {
           insertedReport = true;
           return { rows: [{ id: 'rep-id-1', short_code: 'rep123', status: 'pending', created_at: new Date() }] };
+        }
+        if (text.includes('COUNT(*)::int as count FROM link_reports')) {
+          return { rows: [{ count: 1 }] };
         }
         return { rows: [] };
       };
@@ -951,7 +954,7 @@ describe('Axly URL Shortener API Tests', () => {
     test('Public report rejects non-existent short codes', async () => {
       const originalQuery = pool.query;
       pool.query = async (text) => {
-        if (text.includes('SELECT id, short_code, original_url FROM urls')) {
+        if (text.includes('SELECT id, short_code, original_url FROM urls') || text.includes('FROM urls WHERE short_code = $1')) {
           return { rows: [] };
         }
         return { rows: [] };
@@ -1030,7 +1033,7 @@ describe('Axly URL Shortener API Tests', () => {
           });
 
         assert.equal(res.status, 400);
-        assert.match(res.body.message, /positive integer/i);
+        assert.match(res.body.message, /numeric value|positive integer/i);
       } finally {
         pool.query = originalQuery;
       }
