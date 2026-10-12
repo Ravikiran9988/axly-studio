@@ -6,6 +6,9 @@ import app from '../src/index.js';
 import pool, { closePool } from '../src/db/pool.js';
 import { config } from '../src/config/env.js';
 import { validateSafeDestinationUrl } from '../src/utils/ssrf.js';
+import { generateApiKey, hashApiKey } from '../src/utils/apiKey.js';
+import { signWebhookPayload } from '../src/utils/webhookDispatcher.js';
+import { validateDomainSyntax } from '../src/utils/dnsVerifier.js';
 
 describe('Axly URL Shortener API Tests', () => {
   const testUserId = '11111111-1111-1111-1111-111111111111';
@@ -1037,6 +1040,582 @@ describe('Axly URL Shortener API Tests', () => {
       } finally {
         pool.query = originalQuery;
       }
+    });
+  });
+
+  describe('Phase 4: Developer Platform, Teams, Custom Domains & Production Readiness', () => {
+    describe('Production Probes & Liveness', () => {
+      test('GET /healthz returns 200 OK with liveness indicator', async () => {
+        const res = await request(app).get('/healthz');
+        assert.equal(res.status, 200);
+        assert.equal(res.body.status, 'ok');
+        assert.equal(res.body.liveness, true);
+        assert.ok(res.body.timestamp);
+      });
+
+      test('GET /readyz returns 200 OK when database is connected', async () => {
+        const originalQuery = pool.query;
+        pool.query = async (text) => {
+          if (text === 'SELECT 1') return { rows: [{ '?column?': 1 }] };
+          return { rows: [] };
+        };
+
+        try {
+          const res = await request(app).get('/readyz');
+          assert.equal(res.status, 200);
+          assert.equal(res.body.status, 'ready');
+          assert.equal(res.body.database, 'connected');
+        } finally {
+          pool.query = originalQuery;
+        }
+      });
+    });
+
+    describe('Developer Platform & API Keys', () => {
+      test('generateApiKey generates correct prefix and high entropy string', () => {
+        const { key, prefix, hash } = generateApiKey();
+        assert.ok(key.startsWith('axly_live_'));
+        assert.equal(key.length, 58);
+        assert.equal(prefix, key.substring(0, 14));
+        assert.equal(hash, hashApiKey(key));
+      });
+
+      test('POST /api/keys creates a key and returns plaintext key only once', async () => {
+        const originalQuery = pool.query;
+        let insertedScopes = null;
+        pool.query = async (text, params) => {
+          if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+            return { rows: [{ id: testUserId, is_active: true, role: 'user', token_version: 1 }] };
+          }
+          if (text.includes('INSERT INTO api_keys')) {
+            insertedScopes = params[5];
+            return {
+              rows: [{
+                id: 'key-test-1',
+                name: 'CI/CD Pipeline',
+                key_prefix: 'axly_live_abc1',
+                scopes: insertedScopes,
+                rate_limit_per_minute: 120,
+                expires_at: null,
+                created_at: new Date(),
+              }]
+            };
+          }
+          return { rows: [] };
+        };
+
+        try {
+          const res = await request(app)
+            .post('/api/keys')
+            .set('Authorization', `Bearer ${testToken}`)
+            .send({
+              name: 'CI/CD Pipeline',
+              scopes: ['links:read', 'links:write'],
+              rateLimitPerMinute: 120,
+            });
+
+          assert.equal(res.status, 201);
+          assert.equal(res.body.success, true);
+          assert.ok(res.body.apiKey.key.startsWith('axly_live_'));
+          assert.deepEqual(res.body.apiKey.scopes, ['links:read', 'links:write']);
+        } finally {
+          pool.query = originalQuery;
+        }
+      });
+
+      test('GET /api/keys lists keys without exposing secrets or hashes', async () => {
+        const originalQuery = pool.query;
+        pool.query = async (text) => {
+          if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+            return { rows: [{ id: testUserId, is_active: true, role: 'user', token_version: 1 }] };
+          }
+          if (text.includes('FROM api_keys')) {
+            return {
+              rows: [{
+                id: 'key-1',
+                name: 'Production Key',
+                key_prefix: 'axly_live_1234',
+                scopes: ['links:read'],
+                rate_limit_per_minute: 60,
+                is_revoked: false,
+                last_used_at: null,
+                created_at: new Date(),
+              }]
+            };
+          }
+          return { rows: [] };
+        };
+
+        try {
+          const res = await request(app)
+            .get('/api/keys')
+            .set('Authorization', `Bearer ${testToken}`);
+
+          assert.equal(res.status, 200);
+          assert.equal(res.body.success, true);
+          assert.equal(res.body.apiKeys.length, 1);
+          assert.equal(res.body.apiKeys[0].key_prefix, 'axly_live_1234');
+          assert.equal(res.body.apiKeys[0].key_hash, undefined);
+          assert.equal(res.body.apiKeys[0].key, undefined);
+        } finally {
+          pool.query = originalQuery;
+        }
+      });
+
+      test('API Key authentication allows programmatic access with valid scope', async () => {
+        const { key, hash } = generateApiKey();
+        const originalQuery = pool.query;
+        pool.query = async (text, params) => {
+          if (text.includes('FROM api_keys k') && text.includes('JOIN users u')) {
+            return {
+              rows: [{
+                id: 'key-abc',
+                name: 'Service Key',
+                key_hash: hash,
+                scopes: ['links:read'],
+                rate_limit_per_minute: 60,
+                is_revoked: false,
+                expires_at: null,
+                user_id: testUserId,
+                workspace_id: null,
+                user_email: 'test@axly.in',
+                user_name: 'Tester',
+                user_role: 'user',
+                is_active: true,
+              }]
+            };
+          }
+          if (text.includes('UPDATE api_keys SET last_used_at')) {
+            return { rows: [] };
+          }
+          if (text.includes('FROM urls')) {
+            return { rows: [{ id: 'url-1', short_code: 'abc', original_url: 'https://example.com' }] };
+          }
+          return { rows: [{ count: 1 }] };
+        };
+
+        try {
+          const res = await request(app)
+            .get('/api/urls')
+            .set('x-api-key', key);
+
+          assert.equal(res.status, 200);
+          assert.equal(res.body.success, true);
+        } finally {
+          pool.query = originalQuery;
+        }
+      });
+
+      test('API Key rejects request when required scope is missing', async () => {
+        const { key, hash } = generateApiKey();
+        const originalQuery = pool.query;
+        pool.query = async (text) => {
+          if (text.includes('FROM api_keys k') && text.includes('JOIN users u')) {
+            return {
+              rows: [{
+                id: 'key-abc',
+                name: 'Readonly Key',
+                key_hash: hash,
+                scopes: ['links:read'],
+                is_revoked: false,
+                expires_at: null,
+                user_id: testUserId,
+                workspace_id: null,
+                user_email: 'test@axly.in',
+                user_role: 'user',
+                is_active: true,
+              }]
+            };
+          }
+          if (text.includes('UPDATE api_keys SET last_used_at')) {
+            return { rows: [] };
+          }
+          return { rows: [] };
+        };
+
+        try {
+          const res = await request(app)
+            .post('/api/urls')
+            .set('x-api-key', key)
+            .send({ url: 'https://example.com/target' });
+
+          assert.equal(res.status, 403);
+          assert.match(res.body.message, /Required scope 'links:write' is missing/i);
+        } finally {
+          pool.query = originalQuery;
+        }
+      });
+
+      test('Revoked API Key is rejected with 401 Unauthorized', async () => {
+        const { key, hash } = generateApiKey();
+        const originalQuery = pool.query;
+        pool.query = async (text) => {
+          if (text.includes('FROM api_keys k') && text.includes('JOIN users u')) {
+            return {
+              rows: [{
+                id: 'key-revoked',
+                key_hash: hash,
+                scopes: ['links:read'],
+                is_revoked: true,
+                is_active: true,
+              }]
+            };
+          }
+          return { rows: [] };
+        };
+
+        try {
+          const res = await request(app)
+            .get('/api/urls')
+            .set('x-api-key', key);
+
+          assert.equal(res.status, 401);
+          assert.match(res.body.message, /API key has been revoked/i);
+        } finally {
+          pool.query = originalQuery;
+        }
+      });
+    });
+
+    describe('Webhooks & SSRF Safety Protection', () => {
+      test('signWebhookPayload generates valid HMAC-SHA256 signature and timestamp header', () => {
+        const payload = { event: 'link.created', data: { id: 'link-1' } };
+        const secret = 'whsec_sample_secret_key_12345';
+        const timestamp = 1776000000;
+        const header = signWebhookPayload(payload, secret, timestamp);
+
+        assert.ok(header.startsWith(`t=${timestamp},v1=`));
+      });
+
+      test('POST /api/webhooks strictly rejects internal and link-local destinations (SSRF)', async () => {
+        const originalQuery = pool.query;
+        pool.query = async (text) => {
+          if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+            return { rows: [{ id: testUserId, is_active: true, role: 'user', token_version: 1 }] };
+          }
+          return { rows: [] };
+        };
+
+        try {
+          const resMetadata = await request(app)
+            .post('/api/webhooks')
+            .set('Authorization', `Bearer ${testToken}`)
+            .send({
+              url: 'http://169.254.169.254/latest/meta-data',
+              events: ['link.created'],
+            });
+
+          assert.equal(resMetadata.status, 400);
+          assert.match(resMetadata.body.message, /SSRF policy/i);
+
+          const resLocalhost = await request(app)
+            .post('/api/webhooks')
+            .set('Authorization', `Bearer ${testToken}`)
+            .send({
+              url: 'http://127.0.0.1:8080/hook',
+              events: ['link.created'],
+            });
+
+          assert.equal(resLocalhost.status, 400);
+          assert.match(resLocalhost.body.message, /SSRF policy/i);
+        } finally {
+          pool.query = originalQuery;
+        }
+      });
+
+      test('POST /api/webhooks registers a valid public webhook endpoint with secret', async () => {
+        const originalQuery = pool.query;
+        pool.query = async (text) => {
+          if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+            return { rows: [{ id: testUserId, is_active: true, role: 'user', token_version: 1 }] };
+          }
+          if (text.includes('INSERT INTO webhooks')) {
+            return {
+              rows: [{
+                id: 'wh-123',
+                url: 'https://example.com/api/webhooks',
+                secret: 'whsec_random123',
+                events: ['link.created', 'link.expired'],
+                is_active: true,
+                created_at: new Date(),
+              }]
+            };
+          }
+          return { rows: [] };
+        };
+
+        try {
+          const res = await request(app)
+            .post('/api/webhooks')
+            .set('Authorization', `Bearer ${testToken}`)
+            .send({
+              url: 'https://example.com/api/webhooks',
+              events: ['link.created', 'link.expired'],
+            });
+
+          assert.equal(res.status, 201);
+          assert.equal(res.body.success, true);
+          assert.equal(res.body.webhook.url, 'https://example.com/api/webhooks');
+          assert.ok(res.body.webhook.secret);
+        } finally {
+          pool.query = originalQuery;
+        }
+      });
+    });
+
+    describe('Teams and Workspace RBAC', () => {
+      const workspaceId = 'ws-team-alpha';
+
+      test('POST /api/workspaces creates a workspace and assigns owner role', async () => {
+        const originalQuery = pool.query;
+        pool.query = async (text) => {
+          if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+            return { rows: [{ id: testUserId, is_active: true, role: 'user', token_version: 1 }] };
+          }
+          if (text.includes('INSERT INTO workspaces')) {
+            return {
+              rows: [{
+                id: workspaceId,
+                name: 'Acme Growth Team',
+                slug: 'acme-growth-team',
+                owner_id: testUserId,
+                is_personal: false,
+                created_at: new Date(),
+              }]
+            };
+          }
+          if (text.includes('INSERT INTO workspace_members')) {
+            return { rows: [] };
+          }
+          return { rows: [] };
+        };
+
+        try {
+          const res = await request(app)
+            .post('/api/workspaces')
+            .set('Authorization', `Bearer ${testToken}`)
+            .send({ name: 'Acme Growth Team' });
+
+          assert.equal(res.status, 201);
+          assert.equal(res.body.success, true);
+          assert.equal(res.body.workspace.name, 'Acme Growth Team');
+        } finally {
+          pool.query = originalQuery;
+        }
+      });
+
+      test('Workspace RBAC: Viewer cannot update workspace settings (requires admin)', async () => {
+        const originalQuery = pool.query;
+        pool.query = async (text) => {
+          if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+            return { rows: [{ id: testUserId, is_active: true, role: 'user', token_version: 1 }] };
+          }
+          if (text.includes('FROM workspace_members')) {
+            return { rows: [{ role: 'viewer', user_id: testUserId, workspace_id: workspaceId }] };
+          }
+          return { rows: [] };
+        };
+
+        try {
+          const res = await request(app)
+            .patch(`/api/workspaces/${workspaceId}`)
+            .set('Authorization', `Bearer ${testToken}`)
+            .send({ name: 'Renamed Unauthorized' });
+
+          assert.equal(res.status, 403);
+          assert.match(res.body.message, /Requires at least 'admin' role/i);
+        } finally {
+          pool.query = originalQuery;
+        }
+      });
+
+      test('Workspace Invitations: Admin can invite member with single-use token', async () => {
+        const originalQuery = pool.query;
+        pool.query = async (text) => {
+          if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+            return { rows: [{ id: testUserId, is_active: true, role: 'user', token_version: 1 }] };
+          }
+          if (text.includes('FROM workspace_members')) {
+            return { rows: [{ role: 'admin', user_id: testUserId, workspace_id: workspaceId }] };
+          }
+          if (text.includes('FROM users WHERE email = $1')) {
+            return { rows: [] };
+          }
+          if (text.includes('INSERT INTO workspace_invitations')) {
+            return {
+              rows: [{
+                id: 'inv-123',
+                workspace_id: workspaceId,
+                email: 'colleague@example.com',
+                role: 'editor',
+                expires_at: new Date(Date.now() + 86400000),
+                created_at: new Date(),
+              }]
+            };
+          }
+          return { rows: [] };
+        };
+
+        try {
+          const res = await request(app)
+            .post(`/api/workspaces/${workspaceId}/invites`)
+            .set('Authorization', `Bearer ${testToken}`)
+            .send({ email: 'colleague@example.com', role: 'editor' });
+
+          assert.equal(res.status, 201);
+          assert.equal(res.body.success, true);
+          assert.ok(res.body.invitation.inviteToken);
+          assert.ok(res.body.invitation.inviteLink);
+        } finally {
+          pool.query = originalQuery;
+        }
+      });
+    });
+
+    describe('Custom Domains Management', () => {
+      test('validateDomainSyntax validates hostname rules and blocks reserved domains', () => {
+        assert.equal(validateDomainSyntax('go.mybrand.com').valid, true);
+        assert.equal(validateDomainSyntax('GO.MYBRAND.COM').normalized, 'go.mybrand.com');
+        assert.equal(validateDomainSyntax('192.168.1.1').valid, false);
+        assert.equal(validateDomainSyntax('localhost').valid, false);
+        assert.equal(validateDomainSyntax('domain..com').valid, false);
+      });
+
+      test('POST /api/domains creates a domain with DNS TXT verification token', async () => {
+        const originalQuery = pool.query;
+        pool.query = async (text) => {
+          if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+            return { rows: [{ id: testUserId, is_active: true, role: 'user', token_version: 1 }] };
+          }
+          if (text.includes('FROM custom_domains WHERE domain = $1')) {
+            return { rows: [] };
+          }
+          if (text.includes('INSERT INTO custom_domains')) {
+            return {
+              rows: [{
+                id: 'dom-1',
+                domain: 'links.acmecorp.com',
+                verification_token: 'axly-verify-abcdef123456',
+                status: 'pending_verification',
+                dns_record_type: 'TXT',
+                dns_expected_value: 'axly-verify=axly-verify-abcdef123456',
+                created_at: new Date(),
+              }]
+            };
+          }
+          return { rows: [] };
+        };
+
+        try {
+          const res = await request(app)
+            .post('/api/domains')
+            .set('Authorization', `Bearer ${testToken}`)
+            .send({ domain: 'links.acmecorp.com' });
+
+          assert.equal(res.status, 201);
+          assert.equal(res.body.success, true);
+          assert.equal(res.body.domain.status, 'pending_verification');
+          assert.ok(res.body.domain.verification_token);
+        } finally {
+          pool.query = originalQuery;
+        }
+      });
+    });
+
+    describe('Privacy, Data Governance & Export', () => {
+      test('GET /api/user/export returns machine-readable JSON data archive', async () => {
+        const originalQuery = pool.query;
+        pool.query = async (text) => {
+          if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+            return { rows: [{ id: testUserId, email: 'test@axly.in', name: 'Tester', is_active: true, role: 'user', token_version: 1, created_at: new Date() }] };
+          }
+          if (text.includes('FROM urls')) {
+            return { rows: [{ id: 'url-1', short_code: 'abc', original_url: 'https://example.com' }] };
+          }
+          if (text.includes('FROM campaigns')) {
+            return { rows: [] };
+          }
+          if (text.includes('FROM experiments')) {
+            return { rows: [] };
+          }
+          if (text.includes('FROM custom_domains')) {
+            return { rows: [] };
+          }
+          return { rows: [] };
+        };
+
+        try {
+          const res = await request(app)
+            .get('/api/user/export')
+            .set('Authorization', `Bearer ${testToken}`);
+
+          assert.equal(res.status, 200);
+          assert.equal(res.body.success, true);
+          assert.ok(res.body.export.account);
+          assert.ok(Array.isArray(res.body.export.links));
+          assert.equal(res.body.export.data_policy_notice.retention_period, 'Active account duration');
+        } finally {
+          pool.query = originalQuery;
+        }
+      });
+
+      test('DELETE /api/user/account strictly requires explicit confirmation phrase', async () => {
+        const originalQuery = pool.query;
+        pool.query = async (text) => {
+          if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+            return { rows: [{ id: testUserId, is_active: true, role: 'user', token_version: 1 }] };
+          }
+          return { rows: [] };
+        };
+
+        try {
+          const res = await request(app)
+            .delete('/api/user/account')
+            .set('Authorization', `Bearer ${testToken}`)
+            .send({ confirmation: 'wrong phrase' });
+
+          assert.equal(res.status, 400);
+          assert.match(res.body.message, /DELETE MY ACCOUNT/i);
+        } finally {
+          pool.query = originalQuery;
+        }
+      });
+    });
+
+    describe('Notifications Layer', () => {
+      test('GET /api/notifications returns user in-app notifications and unread count', async () => {
+        const originalQuery = pool.query;
+        pool.query = async (text) => {
+          if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+            return { rows: [{ id: testUserId, is_active: true, role: 'user', token_version: 1 }] };
+          }
+          if (text.includes('COUNT(*) as unread')) {
+            return { rows: [{ unread: '2' }] };
+          }
+          if (text.includes('FROM notifications')) {
+            return {
+              rows: [
+                { id: 'notif-1', title: 'Webhook Failure', message: 'Endpoint returned 500', is_read: false, created_at: new Date() },
+                { id: 'notif-2', title: 'Team Invite', message: 'You were invited to Acme', is_read: false, created_at: new Date() }
+              ]
+            };
+          }
+          return { rows: [] };
+        };
+
+        try {
+          const res = await request(app)
+            .get('/api/notifications')
+            .set('Authorization', `Bearer ${testToken}`);
+
+          assert.equal(res.status, 200);
+          assert.equal(res.body.success, true);
+          assert.equal(res.body.unreadCount, 2);
+          assert.equal(res.body.notifications.length, 2);
+        } finally {
+          pool.query = originalQuery;
+        }
+      });
     });
   });
 

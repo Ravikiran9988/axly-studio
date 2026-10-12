@@ -13,6 +13,12 @@ import campaignRoutes from './routes/campaigns.js';
 import experimentRoutes from './routes/experiments.js';
 import analyticsRoutes from './routes/analytics.js';
 import reportRoutes from './routes/reports.js';
+import apiKeyRoutes from './routes/apiKeys.js';
+import webhookRoutes from './routes/webhooks.js';
+import workspaceRoutes from './routes/workspaces.js';
+import domainRoutes from './routes/domains.js';
+import privacyRoutes from './routes/privacy.js';
+import notificationRoutes from './routes/notifications.js';
 import { redirect, unlockPasswordProtectedLink } from './controllers/redirectController.js';
 
 // Validate environment variables on startup
@@ -52,6 +58,33 @@ app.use(express.urlencoded({ extended: true }));
 if (config.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
+
+// Liveness probe (Kubernetes / container orchestrator)
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ status: 'ok', liveness: true, timestamp: new Date().toISOString() });
+});
+
+// Readiness probe (checks database connection)
+app.get('/readyz', async (req, res) => {
+  try {
+    const start = Date.now();
+    await query('SELECT 1');
+    const latency = Date.now() - start;
+    res.status(200).json({
+      status: 'ready',
+      database: 'connected',
+      latencyMs: latency,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(503).json({
+      status: 'not_ready',
+      database: 'error',
+      error: err.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
 // Global API rate limiting
 const apiLimiter = rateLimit({
@@ -105,6 +138,12 @@ app.use('/api/campaigns', campaignRoutes);
 app.use('/api/experiments', experimentRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/keys', apiKeyRoutes);
+app.use('/api/webhooks', webhookRoutes);
+app.use('/api/workspaces', workspaceRoutes);
+app.use('/api/domains', domainRoutes);
+app.use('/api/user', privacyRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Short URL redirection & password unlock route
 app.post('/:shortCode/unlock', unlockPasswordProtectedLink);
