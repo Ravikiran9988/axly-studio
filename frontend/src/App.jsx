@@ -9,6 +9,10 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import LinksPage from './pages/LinksPage';
+import LinkDetailPage from './pages/LinkDetailPage';
+import CampaignsPage from './pages/CampaignsPage';
+import ExperimentsPage from './pages/ExperimentsPage';
+import BulkImportPage from './pages/BulkImportPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminPage from './pages/AdminPage';
@@ -30,6 +34,11 @@ export default function App() {
               <Route index element={<Navigate to="/app/dashboard" replace />} />
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="links" element={<LinksPage />} />
+              <Route path="links/:id" element={<LinkDetailPage />} />
+              <Route path="campaigns" element={<CampaignsPage />} />
+              <Route path="experiments" element={<ExperimentsPage />} />
+              <Route path="bulk" element={<BulkImportPage />} />
+              <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="analytics/:id" element={<AnalyticsPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
