@@ -18,10 +18,24 @@ describe('Axly URL Shortener API Tests', () => {
     { expiresIn: '1h' }
   );
 
+  // Mock pool.connect to return a mock client backed by pool.query for transaction safety
+  const originalConnect = pool.connect;
+  pool.connect = async () => ({
+    query: async (text, params) => pool.query(text, params),
+    release: () => {},
+  });
+
   test('GET /api/health returns health status', async () => {
-    const res = await request(app).get('/api/health');
-    assert.ok(res.body.timestamp);
-    assert.equal(res.body.version, '1.0.0');
+    const originalQuery = pool.query;
+    pool.query = async () => ({ rows: [{ '?column?': 1 }] });
+    try {
+      const res = await request(app).get('/api/health');
+      assert.ok(res.body.timestamp);
+      assert.equal(res.body.version, '1.0.0');
+      assert.equal(res.status, 200);
+    } finally {
+      pool.query = originalQuery;
+    }
   });
 
   describe('Authentication & Validation', () => {
@@ -1624,6 +1638,7 @@ describe('Axly URL Shortener API Tests', () => {
   });
 
   after(async () => {
+    pool.connect = originalConnect;
     await closePool();
     setTimeout(() => process.exit(0), 100);
   });

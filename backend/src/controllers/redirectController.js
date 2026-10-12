@@ -42,8 +42,8 @@ const checkPasswordRateLimit = (ip, shortCode) => {
   return true;
 };
 
-// Clean up stale rate limit entries periodically
-setInterval(() => {
+// Clean up stale rate limit entries periodically (unref so it doesn't block process exit)
+const cleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of unlockAttempts.entries()) {
     if (now > entry.resetAt) {
@@ -51,6 +51,9 @@ setInterval(() => {
     }
   }
 }, 60 * 1000);
+if (cleanupTimer.unref) {
+  cleanupTimer.unref();
+}
 
 // Consistent weighted allocation for A/B experiment variants
 const allocateVariant = (variants, visitorHash) => {

@@ -27,6 +27,13 @@ jobs:
 
       - name: Run Backend Tests
         working-directory: ./backend
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test_jwt_secret_32_characters_minimum_required_for_ci
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+          APP_URL: http://localhost:5000
+          SHORT_DOMAIN: http://localhost:5000
+          FRONTEND_URL: http://localhost:5173
         run: npm test
 
   frontend-build:

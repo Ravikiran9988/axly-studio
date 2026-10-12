@@ -42,47 +42,49 @@ export const getExperiments = async (req, res) => {
 
 // POST /api/experiments - Create experiment with variants
 export const createExperiment = async (req, res) => {
-  const client = await pool.connect();
-  try {
-    const userId = req.user.id;
-    const { urlId, name, conversionGoal, startTime, endTime, variants } = req.body;
+  const userId = req.user.id;
+  const { urlId, name, conversionGoal, startTime, endTime, variants } = req.body;
 
-    if (!urlId || !name || !Array.isArray(variants) || variants.length < 2) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Experiment requires a valid URL, a name, and at least 2 destination variants.' 
-      });
+  if (!urlId || !name || !Array.isArray(variants) || variants.length < 2) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Experiment requires a valid URL, a name, and at least 2 destination variants.' 
+    });
+  }
+
+  // Validate variants
+  let totalWeight = 0;
+  const validatedVariants = [];
+
+  for (let i = 0; i < variants.length; i++) {
+    const v = variants[i];
+    if (!v.name || !v.destinationUrl) {
+      return res.status(400).json({ success: false, message: `Variant ${i + 1} requires a name and destinationUrl.` });
     }
+
+    const ssrfCheck = validateSafeDestinationUrl(v.destinationUrl);
+    if (!ssrfCheck.valid) {
+      return res.status(400).json({ success: false, message: `Variant ${i + 1} (${v.name}): ${ssrfCheck.error}` });
+    }
+
+    const weight = Math.max(1, Math.min(100, parseInt(v.weight, 10) || 50));
+    totalWeight += weight;
+
+    validatedVariants.push({
+      name: String(v.name).trim().slice(0, 100),
+      destinationUrl: ssrfCheck.url,
+      weight,
+    });
+  }
+
+  let client;
+  try {
+    client = await pool.connect();
 
     // Verify URL ownership
     const urlCheck = await client.query('SELECT id, original_url FROM urls WHERE id = $1 AND user_id = $2', [urlId, userId]);
     if (urlCheck.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'URL not found or unauthorized.' });
-    }
-
-    // Validate variants
-    let totalWeight = 0;
-    const validatedVariants = [];
-
-    for (let i = 0; i < variants.length; i++) {
-      const v = variants[i];
-      if (!v.name || !v.destinationUrl) {
-        return res.status(400).json({ success: false, message: `Variant ${i + 1} requires a name and destinationUrl.` });
-      }
-
-      const ssrfCheck = validateSafeDestinationUrl(v.destinationUrl);
-      if (!ssrfCheck.valid) {
-        return res.status(400).json({ success: false, message: `Variant ${i + 1} (${v.name}): ${ssrfCheck.error}` });
-      }
-
-      const weight = Math.max(1, Math.min(100, parseInt(v.weight, 10) || 50));
-      totalWeight += weight;
-
-      validatedVariants.push({
-        name: String(v.name).trim().slice(0, 100),
-        destinationUrl: ssrfCheck.url,
-        weight,
-      });
     }
 
     await client.query('BEGIN');
@@ -125,11 +127,19 @@ export const createExperiment = async (req, res) => {
       }
     });
   } catch (err) {
-    await client.query('ROLLBACK');
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackErr) {
+        // Ignore rollback error if client closed
+      }
+    }
     console.error('createExperiment error:', err);
     res.status(500).json({ success: false, message: 'Failed to create experiment.' });
   } finally {
-    client.release();
+    if (client) {
+      client.release();
+    }
   }
 };
 
