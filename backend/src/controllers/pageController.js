@@ -326,10 +326,11 @@ export const getPage = async (req, res) => {
 
 export const updatePage = async (req, res) => {
   try {
+    const body = req.body || {};
     const current = await getOwnedPage(req.params.id, req.user.id);
     if (!current) return res.status(404).json({ success: false, message: 'Page not found.' });
 
-    const input = pageInput(req.body || {}, current);
+    const input = pageInput(body, current);
     if (!input.valid) return res.status(400).json({ success: false, message: input.message });
     const value = input.value;
     const quota = await getUserQuota(req.user.id);
@@ -372,7 +373,7 @@ export const updatePage = async (req, res) => {
         contact_phone:'contactPhone', contact_company:'contactCompany', contact_job_title:'contactJobTitle',
         custom_domain_id:'customDomainId',
       };
-      if (key in req.body || (aliases[key] && aliases[key] in req.body)) {
+      if (key in body || (aliases[key] && aliases[key] in body)) {
         let fieldValue = values[key];
         if (key === 'theme' || key === 'blocks') fieldValue = JSON.stringify(fieldValue);
         params.push(fieldValue ?? null);
@@ -385,7 +386,7 @@ export const updatePage = async (req, res) => {
     params.push(req.params.id, req.user.id);
     await query(
       'INSERT INTO page_revisions (page_id, user_id, revision_label, snapshot) VALUES ($1, $2, $3, $4::jsonb)',
-      [current.id, req.user.id, safeText(req.body.revisionLabel, 160) || 'Before update', JSON.stringify(current)]
+      [current.id, req.user.id, safeText(body.revisionLabel, 160) || 'Before update', JSON.stringify(current)]
     );
     const saved = await query(
       `UPDATE public_pages SET ${set.join(', ')} WHERE id = $${params.length - 1} AND user_id = $${params.length} RETURNING *`,
