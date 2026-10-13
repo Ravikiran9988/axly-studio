@@ -216,12 +216,12 @@ export default function TeamsPage() {
           </div>
 
           {/* Members Table */}
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="card admin-table-container" style={{ padding: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', fontWeight: 600 }}>
               Team Members ({workspaceDetails?.members?.length || 0})
             </div>
 
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+            <table style={{ width: '100%', minWidth: 580, borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-input)', color: 'var(--text-muted)' }}>
                   <th style={{ padding: '12px 20px', fontWeight: 600 }}>Member</th>

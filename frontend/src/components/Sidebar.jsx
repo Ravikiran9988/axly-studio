@@ -22,13 +22,20 @@ const NAV_ITEMS = [
   { to: '/app/settings', icon: <Settings size={18} />, label: 'Settings' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  const isSidebarOpen = isOpen !== undefined ? isOpen : internalOpen;
+  const handleClose = () => {
+    if (onClose) onClose();
+    else setInternalOpen(false);
+  };
 
   const handleLogout = () => {
+    handleClose();
     logout();
     toast.success('Signed out successfully');
     navigate('/');
@@ -42,34 +49,16 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile Toggle Button */}
-      <button
-        id="sidebar-toggle"
-        onClick={() => setMobileOpen(p => !p)}
-        style={{
-          position: 'fixed', top: 16, left: 16, zIndex: 200,
-          width: 44, height: 44, borderRadius: 10,
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          display: 'none', alignItems: 'center', justifyContent: 'center',
-          color: 'var(--text-primary)', cursor: 'pointer',
-          boxShadow: 'var(--shadow-sm)',
-        }}
-        className="mobile-only"
-        aria-label="Toggle Navigation Sidebar"
-      >
-        {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-      </button>
-
-      {/* Overlay */}
-      {mobileOpen && (
+      {/* Overlay for mobile drawer */}
+      {isSidebarOpen && (
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 99, backdropFilter: 'blur(3px)' }}
-          onClick={() => setMobileOpen(false)}
+          className="sidebar-overlay"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999, backdropFilter: 'blur(4px)' }}
+          onClick={handleClose}
         />
       )}
 
-      <aside className={`sidebar ${mobileOpen ? 'open' : ''}`}>
+      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         {/* Studio Branding */}
         <div className="sidebar-logo">
           <div className="logo-icon">A</div>
@@ -79,6 +68,19 @@ export default function Sidebar() {
               Enterprise Link Suite
             </div>
           </div>
+          <button
+            onClick={handleClose}
+            className="mobile-only"
+            style={{
+              marginLeft: 'auto', width: 32, height: 32, borderRadius: 8,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--text-muted)', background: 'var(--bg-glass)',
+              border: '1px solid var(--border-color)', cursor: 'pointer',
+            }}
+            aria-label="Close Sidebar"
+          >
+            <X size={16} />
+          </button>
         </div>
 
         {/* Navigation Items */}
@@ -89,7 +91,7 @@ export default function Sidebar() {
               key={item.to}
               to={item.to}
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-              onClick={() => setMobileOpen(false)}
+              onClick={handleClose}
               id={`nav-${item.label.toLowerCase().replace(' ', '-')}`}
             >
               {item.icon}
@@ -105,7 +107,7 @@ export default function Sidebar() {
               <NavLink
                 to="/admin"
                 className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-                onClick={() => setMobileOpen(false)}
+                onClick={handleClose}
                 id="nav-admin-operations"
                 style={{ color: '#2563eb' }}
               >

@@ -54,7 +54,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{
+    <div className="auth-container" style={{
       minHeight: '100vh',
       display: 'flex',
       background: 'var(--bg-primary)',
@@ -121,14 +121,14 @@ export default function LoginPage() {
       </div>
 
       {/* Right Panel - Shared Sign-In Form */}
-      <div style={{
+      <div className="auth-form-panel" style={{
         width: '100%', maxWidth: 520,
         display: 'flex', flexDirection: 'column',
         justifyContent: 'center', padding: '48px 40px',
         position: 'relative', zIndex: 1,
       }}>
         {/* Mobile Header */}
-        <div style={{ marginBottom: 32, display: 'none' }} className="show-mobile">
+        <div style={{ marginBottom: 32 }} className="show-mobile">
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
             <div className="logo-icon" style={{ width: 36, height: 36 }}>A</div>
             <span style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)' }}>Axly Studio</span>

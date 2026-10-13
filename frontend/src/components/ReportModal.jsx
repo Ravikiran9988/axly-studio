@@ -50,20 +50,12 @@ export default function ReportModal({ isOpen, onClose, shortCode = '', urlId = n
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose} style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 1000, padding: 16, backdropFilter: 'blur(4px)',
-    }}>
+    <div className="modal-overlay" onClick={onClose}>
       <div 
-        className="card"
+        className="modal"
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: '100%', maxWidth: 520, padding: 28,
-          borderRadius: 'var(--radius-xl)',
-          background: 'var(--bg-card)',
-          boxShadow: 'var(--shadow-xl)',
-          border: '1px solid var(--border-color)',
+          width: '100%', maxWidth: 520,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>

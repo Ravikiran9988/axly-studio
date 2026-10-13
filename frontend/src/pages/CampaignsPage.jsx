@@ -287,7 +287,7 @@ export default function CampaignsPage() {
       )}
 
       {/* Main Content Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: selectedCampaign ? '1fr 1fr' : '1fr', gap: 24 }}>
+      <div className="campaigns-layout-grid" style={{ display: 'grid', gridTemplateColumns: selectedCampaign ? '1fr 1fr' : '1fr', gap: 24 }}>
         {/* Campaign Cards List */}
         <div>
           <h2 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 14 }}>Active Campaigns ({campaigns.length})</h2>

@@ -239,7 +239,7 @@ export default function DeveloperPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 12, borderBottom: '1px solid var(--border-color)', marginBottom: 24 }}>
+      <div className="tab-nav" style={{ display: 'flex', gap: 12, borderBottom: '1px solid var(--border-color)', marginBottom: 24, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
         <button
           onClick={() => setTab('keys')}
           className={`tab-btn ${tab === 'keys' ? 'active' : ''}`}
@@ -346,8 +346,8 @@ export default function DeveloperPage() {
               <button className="btn btn-primary btn-sm" onClick={() => setKeyModalOpen(true)}>Generate Key</button>
             </div>
           ) : (
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+            <div className="card admin-table-container" style={{ padding: 0, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              <table style={{ width: '100%', minWidth: 620, borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--bg-input)', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '12px 16px', fontWeight: 600 }}>Key Name</th>

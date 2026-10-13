@@ -67,7 +67,7 @@ export default function RegisterPage() {
   })();
 
   return (
-    <div style={{
+    <div className="auth-container" style={{
       minHeight: '100vh',
       display: 'flex',
       background: 'var(--bg-primary)',
@@ -83,7 +83,7 @@ export default function RegisterPage() {
       }} />
 
       {/* Form Panel */}
-      <div style={{
+      <div className="auth-form-panel" style={{
         width: '100%', maxWidth: 520,
         display: 'flex', flexDirection: 'column',
         justifyContent: 'center', padding: '48px 40px',
