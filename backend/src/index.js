@@ -39,15 +39,29 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// CORS configuration
+// CORS configuration: fixed first-party origins plus verified custom page domains.
+// Domain registration does not grant API permissions; authenticated routes still require a session.
+const allowedOrigins = [
+  config.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:80',
+  'http://localhost',
+];
 app.use(cors({
-  origin: [
-    config.FRONTEND_URL,
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'http://localhost:80',
-    'http://localhost',
-  ],
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    let parsed;
+    try { parsed = new URL(origin); } catch { return callback(null, false); }
+    if (parsed.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(parsed.hostname)) {
+      return callback(null, false);
+    }
+    query(
+      "SELECT 1 FROM custom_domains WHERE LOWER(domain) = LOWER($1) AND domain_type = 'page' AND status = 'active' LIMIT 1",
+      [parsed.hostname.toLowerCase()]
+    ).then(result => callback(null, result.rows.length > 0))
+      .catch(() => callback(null, false));
+  },
   credentials: true,
 }));
 
