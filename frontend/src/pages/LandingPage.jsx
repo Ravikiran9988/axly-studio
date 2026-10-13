@@ -4,7 +4,7 @@ import {
   Link2, ArrowRight, Moon, Sun, Copy, Check, ExternalLink, 
   ShieldCheck, Zap, BarChart2, Globe, Sparkles, QrCode, Lock,
   CheckCircle2, XCircle, ShieldAlert, UserRound, PanelsTopLeft, Megaphone,
-  GitCompare, Users, Code2, Mail
+  GitCompare, Users, Code2, Mail, Menu, X
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth, api } from '../context/AuthContext';
@@ -13,7 +13,8 @@ import toast from 'react-hot-toast';
 
 const COMPARISON_FEATURES = [
   { feature: 'Instant URL Shortening', guest: true, account: true },
-  { feature: 'Branded aliases and QR codes', guest: true, account: true },
+  { feature: 'Standard short links and QR preview', guest: true, account: true },
+  { feature: 'Custom aliases and expiring links', guest: false, account: true },
   { feature: 'Link expiry and status controls', guest: false, account: true },
   { feature: 'Click and visitor analytics', guest: false, account: true },
   { feature: 'Public link-in-bio and portfolio pages', guest: false, account: true },
@@ -32,6 +33,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
 
   const [url, setUrl] = useState('');
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -81,14 +83,24 @@ export default function LandingPage() {
           </div>
         </Link>
 
-        <nav className="nav-links desktop-only landing-nav-links" aria-label="Main navigation">
-          <a href="#shorten" className="nav-link">Shorten</a>
-          <a href="#pages" className="nav-link">Pages</a>
-          <a href="#features" className="nav-link">Platform</a>
-          <a href="#security" className="nav-link">Security</a>
+        <nav className={`nav-links landing-nav-links ${mobileNavOpen ? 'mobile-open' : ''}`} aria-label="Main navigation">
+          <a href="#shorten" className="nav-link" onClick={() => setMobileNavOpen(false)}>Shorten</a>
+          <a href="#pages" className="nav-link" onClick={() => setMobileNavOpen(false)}>Pages</a>
+          <a href="#features" className="nav-link" onClick={() => setMobileNavOpen(false)}>Platform</a>
+          <a href="#security" className="nav-link" onClick={() => setMobileNavOpen(false)}>Security</a>
         </nav>
 
         <div className="nav-actions landing-nav-actions">
+          <button
+            type="button"
+            className="landing-mobile-menu-toggle"
+            onClick={() => setMobileNavOpen((open) => !open)}
+            aria-expanded={mobileNavOpen}
+            aria-label={mobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            title={mobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          >
+            {mobileNavOpen ? <X size={19} /> : <Menu size={19} />}
+          </button>
           <button 
             className="theme-toggle" 
             onClick={toggleTheme} 
@@ -548,8 +560,8 @@ export default function LandingPage() {
             Start with a free short link, then bring your public pages, branded domains, campaigns, and insights into one workspace.
           </p>
           <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/register" className="btn btn-primary" style={{ padding: '14px 32px', fontSize: '1rem' }}>
-              Create Free Account <ArrowRight size={16} style={{ marginLeft: 6 }} />
+            <Link to={user ? '/app/pages' : '/register'} className="btn btn-primary" style={{ padding: '14px 32px', fontSize: '1rem' }}>
+              {user ? 'Build a Public Page' : 'Create Free Account'} <ArrowRight size={16} style={{ marginLeft: 6 }} />
             </Link>
             <a href="#shorten" className="btn btn-outline" style={{ padding: '14px 28px', fontSize: '1rem' }}>
               Shorten a Link Now
