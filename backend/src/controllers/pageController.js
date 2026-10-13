@@ -225,7 +225,12 @@ const hashVisitor = (req, pageId) => crypto
   .update(`${pageId}:${req.ip || req.socket?.remoteAddress || 'unknown'}:${req.headers['user-agent'] || ''}`)
   .digest('hex');
 
-const getUserQuota = async (userId) => {\n  const result = await query('SELECT plan FROM users WHERE id = $1', [userId]);\n  return countPageQuota(result.rows[0]?.plan || 'free');\n};\n\nconst getOwnedPage = async (id, userId) => {
+const getUserQuota = async (userId) => {
+  const result = await query('SELECT plan FROM users WHERE id = $1', [userId]);
+  return countPageQuota(result.rows[0]?.plan || 'free');
+};
+
+const getOwnedPage = async (id, userId) => {
   const result = await query('SELECT * FROM public_pages WHERE id = $1 AND user_id = $2', [id, userId]);
   return result.rows[0] || null;
 };
