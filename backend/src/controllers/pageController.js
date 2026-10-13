@@ -380,7 +380,7 @@ export const updatePage = async (req, res) => {
       [current.id, req.user.id, safeText(req.body.revisionLabel, 160) || 'Before update', JSON.stringify(current)]
     );
     const saved = await query(
-      `UPDATE public_pages SET ${set.join(', ')} WHERE id = ${params.length - 1} AND user_id = ${params.length} RETURNING *`,
+      `UPDATE public_pages SET ${set.join(', ')} WHERE id = $${params.length - 1} AND user_id = $${params.length} RETURNING *`,
       params
     );
     res.json({ success: true, data: saved.rows[0], message: 'Page saved.' });
