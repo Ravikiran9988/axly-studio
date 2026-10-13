@@ -4,7 +4,7 @@ import { useAuth, api } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import {
   Bell, Check, AlertCircle, Info, Menu, X, Sun, Moon,
-  LayoutDashboard, Link2, Plus, BarChart3, MoreHorizontal, HelpCircle
+  LayoutDashboard, Link2, Plus, BarChart3, MoreHorizontal, HelpCircle, Radio
 } from 'lucide-react';
 import Sidebar from './Sidebar';
 import CreateLinkModal from './CreateLinkModal';
@@ -22,6 +22,8 @@ export default function ProtectedLayout() {
     return localStorage.getItem('axly_sidebar_collapsed') === 'true';
   });
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
+  const [announcement, setAnnouncement] = useState(null);
+  const [announcementDismissed, setAnnouncementDismissed] = useState(false);
   const dropdownRef = useRef(null);
 
   const toggleSidebarCollapse = () => {
@@ -48,6 +50,22 @@ export default function ProtectedLayout() {
     const interval = setInterval(fetchNotifications, 45000); // 45s poll
     return () => clearInterval(interval);
   }, [user]);
+
+  useEffect(() => {
+    const fetchAnnouncement = async () => {
+      try {
+        const res = await api.get('/announcement');
+        if (res.data?.announcement?.enabled && res.data.announcement.message) {
+          setAnnouncement(res.data.announcement);
+        } else {
+          setAnnouncement(null);
+        }
+      } catch {
+        // Silently ignore
+      }
+    };
+    fetchAnnouncement();
+  }, []);
 
   // Click outside listener for dropdown
   useEffect(() => {
@@ -288,6 +306,24 @@ export default function ProtectedLayout() {
 
         {/* Main Content Area */}
         <main className="main-content" style={{ flex: 1 }}>
+          {announcement && !announcementDismissed && (
+            <div className={`admin-broadcast-preview ${announcement.type || 'info'}`} style={{ marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Radio size={18} style={{ flexShrink: 0 }} />
+                <span>{announcement.message}</span>
+              </div>
+              {announcement.dismissible !== false && (
+                <button 
+                  type="button" 
+                  onClick={() => setAnnouncementDismissed(true)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.7, color: 'inherit', display: 'flex', alignItems: 'center' }}
+                  aria-label="Dismiss announcement"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          )}
           <Outlet />
         </main>
       </div>

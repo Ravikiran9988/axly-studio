@@ -151,6 +151,19 @@ app.get('/api/health', async (req, res) => {
   });
 });
 
+// Public platform broadcast / announcement banner
+app.get('/api/announcement', async (req, res) => {
+  try {
+    const result = await query("SELECT value FROM platform_settings WHERE key = 'system_announcement_banner'");
+    if (result.rows.length > 0 && result.rows[0].value && result.rows[0].value.enabled) {
+      return res.json({ success: true, announcement: result.rows[0].value });
+    }
+    res.json({ success: true, announcement: null });
+  } catch (err) {
+    res.json({ success: true, announcement: null });
+  }
+});
+
 // Mount API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/urls', urlRoutes);

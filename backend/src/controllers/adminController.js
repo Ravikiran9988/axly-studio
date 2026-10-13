@@ -1,6 +1,8 @@
 import { query } from '../db/pool.js';
 import { logAuditEvent } from '../utils/audit.js';
 import { checkUrlHealth, recordLinkHealthCheck } from '../utils/healthChecker.js';
+import jwt from 'jsonwebtoken';
+import { config } from '../config/env.js';
 
 /**
  * GET /api/admin/stats
@@ -914,6 +916,8 @@ export const updatePlatformSettings = async (req, res) => {
       'enable_ab_testing',
       'enable_smart_rules',
       'require_captcha_for_guests',
+      'system_announcement_banner',
+      'banned_domains',
     ];
 
     const updatedKeys = [];
@@ -922,7 +926,15 @@ export const updatePlatformSettings = async (req, res) => {
       if (!allowedKeys.includes(key)) continue;
 
       // Validate types
-      if (key.includes('limit') || key.includes('length') || key.includes('days')) {
+      if (key === 'system_announcement_banner') {
+        if (typeof value !== 'object' || value === null) {
+          return res.status(400).json({ success: false, message: 'system_announcement_banner must be an object.' });
+        }
+      } else if (key === 'banned_domains') {
+        if (!Array.isArray(value)) {
+          return res.status(400).json({ success: false, message: 'banned_domains must be an array.' });
+        }
+      } else if (key.includes('limit') || key.includes('length') || key.includes('days')) {
         const num = Number(value);
         if (isNaN(num) || num < 0 || num > 100000) {
           return res.status(400).json({ success: false, message: `Invalid numeric value for ${key}.` });
@@ -1016,5 +1028,624 @@ export const getAuditLogs = async (req, res) => {
   } catch (err) {
     console.error('getAuditLogs error:', err);
     res.status(500).json({ success: false, message: 'Failed to retrieve audit trail.' });
+  }
+};
+
+/**
+ * GET /api/admin/system/diagnostics
+ * Deep platform telemetry, PostgreSQL storage & connection metrics
+ */
+export const getSystemDiagnostics = async (req, res) => {
+  try {
+    const start = process.hrtime.bigint();
+    const [dbRes, countsRes, connRes] = await Promise.all([
+      query('SELECT NOW() as db_time, version() as db_version, current_database() as db_name'),
+      query(`
+        SELECT 
+          (SELECT COUNT(*)::int FROM users) as users_count,
+          (SELECT COUNT(*)::int FROM urls) as urls_count,
+          (SELECT COUNT(*)::int FROM click_events) as clicks_count,
+          (SELECT COUNT(*)::int FROM public_pages) as pages_count,
+          (SELECT COUNT(*)::int FROM custom_domains) as custom_domains_count,
+          (SELECT COUNT(*)::int FROM api_keys WHERE is_revoked = false) as active_api_keys_count,
+          (SELECT COUNT(*)::int FROM webhooks WHERE is_active = true) as active_webhooks_count,
+          (SELECT COUNT(*)::int FROM link_reports WHERE status = 'pending') as pending_reports_count,
+          (SELECT COUNT(*)::int FROM audit_logs) as audit_logs_count
+      `),
+      query(`
+        SELECT COUNT(*)::int as active_connections 
+        FROM pg_stat_activity 
+        WHERE datname = current_database()
+      `).catch(() => ({ rows: [{ active_connections: 1 }] })),
+    ]);
+    const end = process.hrtime.bigint();
+    const dbPingLatencyMs = Number(end - start) / 1000000;
+
+    const memory = process.memoryUsage();
+    const nodeTelemetry = {
+      uptimeSeconds: Math.floor(process.uptime()),
+      nodeVersion: process.version,
+      platform: process.platform,
+      arch: process.arch,
+      pid: process.pid,
+      environment: process.env.NODE_ENV || 'development',
+      rssMemoryMb: Math.round(memory.rss / (1024 * 1024)),
+      heapUsedMb: Math.round(memory.heapUsed / (1024 * 1024)),
+      heapTotalMb: Math.round(memory.heapTotal / (1024 * 1024)),
+      externalMemoryMb: Math.round(memory.external / (1024 * 1024)),
+    };
+
+    res.json({
+      success: true,
+      data: {
+        database: {
+          status: 'healthy',
+          pingLatencyMs: Math.round(dbPingLatencyMs * 100) / 100,
+          version: dbRes.rows[0]?.db_version || 'PostgreSQL',
+          name: dbRes.rows[0]?.db_name || 'postgres',
+          serverTime: dbRes.rows[0]?.db_time,
+          activeConnections: connRes.rows[0]?.active_connections || 1,
+        },
+        tableCounts: countsRes.rows[0] || {},
+        runtime: nodeTelemetry,
+      }
+    });
+  } catch (err) {
+    console.error('getSystemDiagnostics error:', err);
+    res.status(500).json({ success: false, message: 'Failed to retrieve system diagnostics.' });
+  }
+};
+
+/**
+ * POST /api/admin/system/ping
+ * Instant database roundtrip ping latency test
+ */
+export const pingDatabase = async (req, res) => {
+  try {
+    const start = process.hrtime.bigint();
+    await query('SELECT 1');
+    const end = process.hrtime.bigint();
+    const latencyMs = Math.round((Number(end - start) / 1000000) * 100) / 100;
+
+    res.json({
+      success: true,
+      latencyMs,
+      timestamp: new Date().toISOString(),
+      status: 'operational',
+    });
+  } catch (err) {
+    console.error('pingDatabase error:', err);
+    res.status(500).json({ success: false, message: 'Database ping failed.', error: err.message });
+  }
+};
+
+/**
+ * POST /api/admin/system/cleanup
+ * Perform platform maintenance (prune expired guest links, old webhook deliveries, etc.)
+ */
+export const cleanupMaintenance = async (req, res) => {
+  try {
+    const { target } = req.body;
+    let deletedCount = 0;
+    let description = '';
+
+    if (target === 'expired_guest_links') {
+      const result = await query(
+        'DELETE FROM urls WHERE user_id IS NULL AND expires_at < NOW() RETURNING id'
+      );
+      deletedCount = result.rows.length;
+      description = `Removed ${deletedCount} expired guest links.`;
+    } else if (target === 'stale_webhook_logs') {
+      const result = await query(
+        "DELETE FROM webhook_deliveries WHERE created_at < NOW() - INTERVAL '30 days' RETURNING id"
+      );
+      deletedCount = result.rows.length;
+      description = `Pruned ${deletedCount} webhook delivery logs older than 30 days.`;
+    } else if (target === 'prune_health_history') {
+      const result = await query(`
+        DELETE FROM link_health_checks 
+        WHERE id NOT IN (
+          SELECT id FROM link_health_checks ORDER BY checked_at DESC LIMIT 500
+        ) RETURNING id
+      `);
+      deletedCount = result.rows.length;
+      description = `Pruned ${deletedCount} historical link health checks (kept latest 500).`;
+    } else {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid maintenance target. Allowed: 'expired_guest_links', 'stale_webhook_logs', 'prune_health_history'." 
+      });
+    }
+
+    await logAuditEvent({
+      actorId: req.user.id,
+      actorEmail: req.user.email,
+      action: `system.cleanup_${target}`,
+      targetType: 'system',
+      targetId: target,
+      details: { deletedCount, description },
+      ip: req.ip,
+    });
+
+    res.json({
+      success: true,
+      message: description,
+      deletedCount,
+    });
+  } catch (err) {
+    console.error('cleanupMaintenance error:', err);
+    res.status(500).json({ success: false, message: 'Maintenance cleanup operation failed.' });
+  }
+};
+
+/**
+ * GET /api/admin/firewall
+ * Domain firewall rules, banned domains list, and tenant custom domains oversight
+ */
+export const getFirewallOverview = async (req, res) => {
+  try {
+    const [settingsRes, domainsRes] = await Promise.all([
+      query("SELECT value FROM platform_settings WHERE key = 'banned_domains'"),
+      query(`
+        SELECT 
+          cd.id, cd.domain, cd.domain_type, cd.status, cd.dns_record_type, 
+          cd.dns_expected_value, cd.verified_at, cd.ssl_status, cd.created_at,
+          u.id as user_id, u.name as owner_name, u.email as owner_email,
+          w.id as workspace_id, w.name as workspace_name
+        FROM custom_domains cd
+        LEFT JOIN users u ON cd.user_id = u.id
+        LEFT JOIN workspaces w ON cd.workspace_id = w.id
+        ORDER BY cd.created_at DESC
+      `),
+    ]);
+
+    let bannedDomains = [];
+    if (settingsRes.rows.length > 0 && Array.isArray(settingsRes.rows[0].value)) {
+      bannedDomains = settingsRes.rows[0].value;
+    } else {
+      bannedDomains = [
+        { domain: 'phish-axly.xyz', reason: 'Known phishing threat', addedAt: new Date().toISOString() },
+        { domain: 'free-crypto-airdrop.net', reason: 'Cryptocurrency scam', addedAt: new Date().toISOString() },
+        { domain: 'malware-distribution.cc', reason: 'Malicious payload dropper', addedAt: new Date().toISOString() },
+        { domain: 'telegram-gift-bot.tk', reason: 'Credential harvester', addedAt: new Date().toISOString() },
+      ];
+    }
+
+    const customDomains = domainsRes.rows;
+    const stats = {
+      totalDomains: customDomains.length,
+      verifiedDomains: customDomains.filter(d => d.status === 'verified').length,
+      pendingDnsDomains: customDomains.filter(d => d.status === 'pending_dns').length,
+      sslActiveDomains: customDomains.filter(d => d.ssl_status === 'active').length,
+    };
+
+    res.json({
+      success: true,
+      data: {
+        bannedDomains,
+        customDomains,
+        stats,
+      }
+    });
+  } catch (err) {
+    console.error('getFirewallOverview error:', err);
+    res.status(500).json({ success: false, message: 'Failed to retrieve firewall overview.' });
+  }
+};
+
+/**
+ * POST /api/admin/firewall/ban
+ * Add a domain to the global malicious domain blocklist
+ */
+export const addBannedDomain = async (req, res) => {
+  try {
+    let { domain, reason } = req.body;
+    if (!domain || typeof domain !== 'string') {
+      return res.status(400).json({ success: false, message: 'Domain name is required.' });
+    }
+
+    domain = domain.trim().toLowerCase().replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+    if (!domain || domain.length < 3 || !domain.includes('.')) {
+      return res.status(400).json({ success: false, message: 'Invalid domain format.' });
+    }
+
+    const settingsRes = await query("SELECT value FROM platform_settings WHERE key = 'banned_domains'");
+    let currentList = [];
+    if (settingsRes.rows.length > 0 && Array.isArray(settingsRes.rows[0].value)) {
+      currentList = settingsRes.rows[0].value;
+    }
+
+    // Check if already in list
+    if (currentList.some(item => (typeof item === 'string' ? item : item.domain) === domain)) {
+      return res.status(400).json({ success: false, message: `Domain '${domain}' is already banned.` });
+    }
+
+    const newEntry = {
+      domain,
+      reason: reason ? String(reason).trim() : 'Malicious or suspicious destination',
+      addedBy: req.user.email,
+      addedAt: new Date().toISOString(),
+    };
+
+    const updatedList = [newEntry, ...currentList];
+
+    await query(`
+      INSERT INTO platform_settings (key, value, description, updated_by, updated_at)
+      VALUES ('banned_domains', $1, 'Global list of prohibited malicious domains', $2, NOW())
+      ON CONFLICT (key) DO UPDATE SET value = $1, updated_by = $2, updated_at = NOW()
+    `, [JSON.stringify(updatedList), req.user.id]);
+
+    await logAuditEvent({
+      actorId: req.user.id,
+      actorEmail: req.user.email,
+      action: 'firewall.domain_banned',
+      targetType: 'domain',
+      targetId: domain,
+      details: newEntry,
+      ip: req.ip,
+    });
+
+    res.json({
+      success: true,
+      message: `Domain '${domain}' successfully added to the global blocklist.`,
+      bannedDomains: updatedList,
+    });
+  } catch (err) {
+    console.error('addBannedDomain error:', err);
+    res.status(500).json({ success: false, message: 'Failed to ban domain.' });
+  }
+};
+
+/**
+ * DELETE /api/admin/firewall/ban/:domain
+ * Remove a domain from the global blocklist
+ */
+export const removeBannedDomain = async (req, res) => {
+  try {
+    const targetDomain = req.params.domain.trim().toLowerCase();
+
+    const settingsRes = await query("SELECT value FROM platform_settings WHERE key = 'banned_domains'");
+    let currentList = [];
+    if (settingsRes.rows.length > 0 && Array.isArray(settingsRes.rows[0].value)) {
+      currentList = settingsRes.rows[0].value;
+    }
+
+    const updatedList = currentList.filter(item => {
+      const d = typeof item === 'string' ? item : item.domain;
+      return d !== targetDomain;
+    });
+
+    await query(`
+      UPDATE platform_settings 
+      SET value = $1, updated_by = $2, updated_at = NOW()
+      WHERE key = 'banned_domains'
+    `, [JSON.stringify(updatedList), req.user.id]);
+
+    await logAuditEvent({
+      actorId: req.user.id,
+      actorEmail: req.user.email,
+      action: 'firewall.domain_unbanned',
+      targetType: 'domain',
+      targetId: targetDomain,
+      details: { domain: targetDomain },
+      ip: req.ip,
+    });
+
+    res.json({
+      success: true,
+      message: `Domain '${targetDomain}' removed from global blocklist.`,
+      bannedDomains: updatedList,
+    });
+  } catch (err) {
+    console.error('removeBannedDomain error:', err);
+    res.status(500).json({ success: false, message: 'Failed to unban domain.' });
+  }
+};
+
+/**
+ * POST /api/admin/firewall/test
+ * Test if a destination URL matches any firewall blocklist rules
+ */
+export const testFirewallUrl = async (req, res) => {
+  try {
+    const { targetUrl } = req.body;
+    if (!targetUrl) {
+      return res.status(400).json({ success: false, message: 'Target URL is required.' });
+    }
+
+    let hostname = '';
+    try {
+      const parsed = new URL(targetUrl.includes('://') ? targetUrl : `https://${targetUrl}`);
+      hostname = parsed.hostname.toLowerCase();
+    } catch {
+      return res.status(400).json({ success: false, message: 'Malformed target URL.' });
+    }
+
+    const settingsRes = await query("SELECT value FROM platform_settings WHERE key = 'banned_domains'");
+    let currentList = [];
+    if (settingsRes.rows.length > 0 && Array.isArray(settingsRes.rows[0].value)) {
+      currentList = settingsRes.rows[0].value;
+    }
+
+    const matched = currentList.find(item => {
+      const d = (typeof item === 'string' ? item : item.domain).toLowerCase();
+      return hostname === d || hostname.endsWith(`.${d}`);
+    });
+
+    res.json({
+      success: true,
+      data: {
+        targetUrl,
+        hostname,
+        isBlocked: Boolean(matched),
+        matchedRule: matched || null,
+        status: matched ? 'BLOCKED_BY_FIREWALL' : 'ALLOWED',
+      }
+    });
+  } catch (err) {
+    console.error('testFirewallUrl error:', err);
+    res.status(500).json({ success: false, message: 'Failed to evaluate URL against firewall.' });
+  }
+};
+
+/**
+ * PATCH /api/admin/firewall/domains/:id
+ * Force-verify, revoke or update custom domain status
+ */
+export const updateCustomDomainAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, sslStatus, reason } = req.body;
+
+    if (status && !['verified', 'pending_dns', 'revoked'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid domain status.' });
+    }
+
+    const result = await query(`
+      UPDATE custom_domains 
+      SET 
+        status = COALESCE($1, status),
+        ssl_status = COALESCE($2, ssl_status),
+        verified_at = CASE WHEN $1 = 'verified' THEN NOW() ELSE verified_at END,
+        updated_at = NOW()
+      WHERE id = $3 
+      RETURNING id, domain, domain_type, status, ssl_status, verified_at
+    `, [status || null, sslStatus || null, id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Custom domain not found.' });
+    }
+
+    const updated = result.rows[0];
+
+    await logAuditEvent({
+      actorId: req.user.id,
+      actorEmail: req.user.email,
+      action: `domain.${status || 'updated'}_by_admin`,
+      targetType: 'custom_domain',
+      targetId: id,
+      details: { domain: updated.domain, status, sslStatus, reason },
+      ip: req.ip,
+    });
+
+    res.json({
+      success: true,
+      message: `Custom domain ${updated.domain} updated to ${updated.status}.`,
+      data: updated,
+    });
+  } catch (err) {
+    console.error('updateCustomDomainAdmin error:', err);
+    res.status(500).json({ success: false, message: 'Failed to update custom domain.' });
+  }
+};
+
+/**
+ * GET /api/admin/public-pages
+ * Paginated registry of link-in-bio and public profile pages
+ */
+export const getAdminPublicPages = async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 15));
+    const offset = (page - 1) * limit;
+
+    const search = req.query.search ? `%${req.query.search.trim().toLowerCase()}%` : null;
+    const status = req.query.status && ['draft', 'published', 'archived'].includes(req.query.status) ? req.query.status : null;
+    const pageType = req.query.pageType ? req.query.pageType.trim() : null;
+
+    let whereConditions = [];
+    let params = [];
+
+    if (search) {
+      params.push(search);
+      whereConditions.push(`(
+        LOWER(p.slug) LIKE $${params.length} 
+        OR LOWER(p.title) LIKE $${params.length} 
+        OR LOWER(COALESCE(u.email, '')) LIKE $${params.length}
+      )`);
+    }
+
+    if (status) {
+      params.push(status);
+      whereConditions.push(`p.status = $${params.length}`);
+    }
+
+    if (pageType) {
+      params.push(pageType);
+      whereConditions.push(`p.page_type = $${params.length}`);
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    const countRes = await query(`
+      SELECT COUNT(*)::int as total 
+      FROM public_pages p 
+      LEFT JOIN users u ON p.user_id = u.id 
+      ${whereClause}
+    `, params);
+    const total = countRes.rows[0].total;
+
+    params.push(limit, offset);
+    const dataQuery = `
+      SELECT 
+        p.id, p.slug, p.title, p.bio, p.page_type, p.template_key, p.status,
+        p.seo_title, p.publish_at, p.unpublish_at, p.published_at, p.created_at, p.updated_at,
+        jsonb_array_length(p.blocks) as blocks_count,
+        u.id as user_id, u.name as owner_name, u.email as owner_email
+      FROM public_pages p
+      LEFT JOIN users u ON p.user_id = u.id
+      ${whereClause}
+      ORDER BY p.updated_at DESC
+      LIMIT $${params.length - 1} OFFSET $${params.length}
+    `;
+
+    const result = await query(dataQuery, params);
+
+    res.json({
+      success: true,
+      data: result.rows,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit) || 1,
+      }
+    });
+  } catch (err) {
+    console.error('getAdminPublicPages error:', err);
+    res.status(500).json({ success: false, message: 'Failed to retrieve public pages.' });
+  }
+};
+
+/**
+ * PATCH /api/admin/public-pages/:id/status
+ * Suspend/archive or publish a public bio page
+ */
+export const updatePublicPageStatusAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, reason } = req.body;
+
+    if (!['draft', 'published', 'archived'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid page status.' });
+    }
+
+    const result = await query(`
+      UPDATE public_pages 
+      SET 
+        status = $1,
+        published_at = CASE WHEN $1 = 'published' THEN NOW() ELSE published_at END,
+        updated_at = NOW()
+      WHERE id = $2 
+      RETURNING id, slug, title, status, page_type
+    `, [status, id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Public page not found.' });
+    }
+
+    const updated = result.rows[0];
+
+    await logAuditEvent({
+      actorId: req.user.id,
+      actorEmail: req.user.email,
+      action: `public_page.${status}_by_admin`,
+      targetType: 'public_page',
+      targetId: id,
+      details: { slug: updated.slug, status, reason },
+      ip: req.ip,
+    });
+
+    res.json({
+      success: true,
+      message: `Public page /p/${updated.slug} status set to ${updated.status}.`,
+      data: updated,
+    });
+  } catch (err) {
+    console.error('updatePublicPageStatusAdmin error:', err);
+    res.status(500).json({ success: false, message: 'Failed to update public page status.' });
+  }
+};
+
+/**
+ * DELETE /api/admin/public-pages/:id
+ * Permanently delete a public bio page
+ */
+export const deletePublicPageAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await query('DELETE FROM public_pages WHERE id = $1 RETURNING id, slug, title', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Public page not found.' });
+    }
+
+    const deleted = result.rows[0];
+
+    await logAuditEvent({
+      actorId: req.user.id,
+      actorEmail: req.user.email,
+      action: 'public_page.deleted_by_admin',
+      targetType: 'public_page',
+      targetId: id,
+      details: { slug: deleted.slug, title: deleted.title },
+      ip: req.ip,
+    });
+
+    res.json({
+      success: true,
+      message: `Public page /p/${deleted.slug} permanently deleted.`
+    });
+  } catch (err) {
+    console.error('deletePublicPageAdmin error:', err);
+    res.status(500).json({ success: false, message: 'Failed to delete public page.' });
+  }
+};
+
+/**
+ * POST /api/admin/users/:id/reset-token
+ * Generate a secure administrative password recovery / support token for a user
+ */
+export const generateUserSupportToken = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const userRes = await query('SELECT id, name, email, is_active FROM users WHERE id = $1', [id]);
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    const targetUser = userRes.rows[0];
+
+    // Generate signed recovery token (valid for 24h)
+    const token = jwt.sign(
+      { id: targetUser.id, email: targetUser.email, role: 'support_recovery' },
+      config.jwt.secret,
+      { expiresIn: '24h' }
+    );
+
+    await logAuditEvent({
+      actorId: req.user.id,
+      actorEmail: req.user.email,
+      action: 'user.support_token_generated',
+      targetType: 'user',
+      targetId: targetUser.id,
+      details: { targetEmail: targetUser.email },
+      ip: req.ip,
+    });
+
+    res.json({
+      success: true,
+      message: `Support password reset token generated for ${targetUser.email}.`,
+      data: {
+        token,
+        targetEmail: targetUser.email,
+        expiresIn: '24 hours',
+        recoveryUrl: `${config.FRONTEND_URL}/reset-password?token=${token}`,
+      }
+    });
+  } catch (err) {
+    console.error('generateUserSupportToken error:', err);
+    res.status(500).json({ success: false, message: 'Failed to generate support token.' });
   }
 };

@@ -1099,6 +1099,185 @@ describe('Axly URL Shortener API Tests', () => {
         pool.query = originalQuery;
       }
     });
+
+    test('Admin can retrieve system diagnostics, connection stats and table counts', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+          return { rows: [{ id: adminUserId, is_active: true, role: 'admin', token_version: 1 }] };
+        }
+        if (text.includes('current_database()')) {
+          return { rows: [{ db_time: new Date(), db_version: 'PostgreSQL 16.1', db_name: 'test_db', active_connections: 3 }] };
+        }
+        if (text.includes('COUNT(*)::int FROM users')) {
+          return { rows: [{ users_count: 42, urls_count: 100, clicks_count: 500 }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .get('/api/admin/system/diagnostics')
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        assert.equal(res.status, 200);
+        assert.equal(res.body.success, true);
+        assert.ok(res.body.data.database);
+        assert.ok(res.body.data.runtime);
+        assert.equal(res.body.data.database.status, 'healthy');
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('Admin can perform instant database ping test', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+          return { rows: [{ id: adminUserId, is_active: true, role: 'admin', token_version: 1 }] };
+        }
+        return { rows: [{ '?column?': 1 }] };
+      };
+
+      try {
+        const res = await request(app)
+          .post('/api/admin/system/ping')
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        assert.equal(res.status, 200);
+        assert.equal(res.body.success, true);
+        assert.equal(res.body.status, 'operational');
+        assert.ok(typeof res.body.latencyMs === 'number');
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('Admin can trigger expired guest links maintenance cleanup', async () => {
+      const originalQuery = pool.query;
+      let auditLogged = false;
+      pool.query = async (text) => {
+        if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+          return { rows: [{ id: adminUserId, is_active: true, role: 'admin', token_version: 1 }] };
+        }
+        if (text.includes('DELETE FROM urls WHERE user_id IS NULL AND expires_at < NOW()')) {
+          return { rows: [{ id: 'url-1' }, { id: 'url-2' }] };
+        }
+        if (text.includes('INSERT INTO audit_logs')) {
+          auditLogged = true;
+          return { rows: [{ id: 'audit-cleanup' }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .post('/api/admin/system/cleanup')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ target: 'expired_guest_links' });
+
+        assert.equal(res.status, 200);
+        assert.equal(res.body.success, true);
+        assert.equal(res.body.deletedCount, 2);
+        assert.equal(auditLogged, true);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('Admin can manage firewall blocklist and test URLs against firewall', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('token_version') || text.includes('WHERE id = $1')) {
+          return { rows: [{ id: adminUserId, is_active: true, role: 'admin', token_version: 1 }] };
+        }
+        if (text.includes("FROM platform_settings WHERE key = 'banned_domains'")) {
+          return { rows: [{ value: [{ domain: 'phish-threat.com', reason: 'Phishing' }] }] };
+        }
+        if (text.includes('INSERT INTO platform_settings') || text.includes('INSERT INTO audit_logs')) {
+          return { rows: [] };
+        }
+        if (text.includes('FROM custom_domains cd')) {
+          return { rows: [] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        // Test URL evaluation
+        const testRes = await request(app)
+          .post('/api/admin/firewall/test')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ targetUrl: 'https://phish-threat.com/steal-creds' });
+
+        assert.equal(testRes.status, 200);
+        assert.equal(testRes.body.data.isBlocked, true);
+        assert.equal(testRes.body.data.status, 'BLOCKED_BY_FIREWALL');
+
+        // Test safe URL
+        const safeRes = await request(app)
+          .post('/api/admin/firewall/test')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({ targetUrl: 'https://trusted-site.org/docs' });
+
+        assert.equal(safeRes.status, 200);
+        assert.equal(safeRes.body.data.isBlocked, false);
+        assert.equal(safeRes.body.data.status, 'ALLOWED');
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('Admin can generate user support recovery token', async () => {
+      const originalQuery = pool.query;
+      let auditLogged = false;
+      pool.query = async (text) => {
+        if (text.includes('token_version') || (text.includes('WHERE id = $1') && !text.includes('target@axly.in'))) {
+          return { rows: [{ id: adminUserId, is_active: true, role: 'admin', token_version: 1 }] };
+        }
+        if (text.includes('SELECT id, name, email, is_active FROM users WHERE id = $1')) {
+          return { rows: [{ id: targetUserId, name: 'Target User', email: 'target@axly.in', is_active: true }] };
+        }
+        if (text.includes('INSERT INTO audit_logs')) {
+          auditLogged = true;
+          return { rows: [{ id: 'audit-token' }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .post(`/api/admin/users/${targetUserId}/reset-token`)
+          .set('Authorization', `Bearer ${adminToken}`);
+
+        assert.equal(res.status, 200);
+        assert.equal(res.body.success, true);
+        assert.ok(res.body.data.token);
+        assert.ok(res.body.data.recoveryUrl);
+        assert.equal(auditLogged, true);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('Public broadcast announcement endpoint returns null when disabled', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes("FROM platform_settings WHERE key = 'system_announcement_banner'")) {
+          return { rows: [{ value: { enabled: false, message: 'Maintenance' } }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app).get('/api/announcement');
+        assert.equal(res.status, 200);
+        assert.equal(res.body.success, true);
+        assert.equal(res.body.announcement, null);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
   });
 
   describe('Phase 4: Developer Platform, Teams, Custom Domains & Production Readiness', () => {
