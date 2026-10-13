@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Zap, ShieldCheck, Database, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import BrandMark from '../components/BrandMark';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
@@ -79,7 +80,7 @@ export default function LoginPage() {
       }} className="hide-mobile">
         <div style={{ maxWidth: 460 }}>
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 44, textDecoration: 'none' }}>
-            <div className="logo-icon" style={{ width: 44, height: 44, fontSize: '1.2rem', background: '#111827', color: '#fff', borderRadius: 10 }}>A</div>
+            <div className="logo-icon" style={{ width: 44, height: 44, fontSize: '1.2rem', background: '#111827', color: '#fff', borderRadius: 10 }}><BrandMark size={28} /></div>
             <div>
               <span style={{ fontSize: '1.6rem', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
                 Axly Studio
@@ -130,7 +131,7 @@ export default function LoginPage() {
         {/* Mobile Header */}
         <div style={{ marginBottom: 32 }} className="show-mobile">
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <div className="logo-icon" style={{ width: 36, height: 36 }}>A</div>
+            <div className="logo-icon" style={{ width: 36, height: 36 }}><BrandMark size={23} /></div>
             <span style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)' }}>Axly Studio</span>
           </Link>
         </div>
