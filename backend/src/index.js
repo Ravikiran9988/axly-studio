@@ -17,6 +17,7 @@ import apiKeyRoutes from './routes/apiKeys.js';
 import webhookRoutes from './routes/webhooks.js';
 import workspaceRoutes from './routes/workspaces.js';
 import domainRoutes from './routes/domains.js';
+import pageRoutes from './routes/pages.js';
 import privacyRoutes from './routes/privacy.js';
 import notificationRoutes from './routes/notifications.js';
 import { redirect, unlockPasswordProtectedLink } from './controllers/redirectController.js';
@@ -142,6 +143,7 @@ app.use('/api/keys', apiKeyRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/domains', domainRoutes);
+app.use('/api/pages', pageRoutes);
 app.use('/api/user', privacyRoutes);
 app.use('/api/notifications', notificationRoutes);
 
