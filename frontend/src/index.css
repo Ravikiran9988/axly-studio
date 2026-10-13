@@ -5493,7 +5493,8 @@ tbody tr:hover {
 .pages-checklist strong { color: var(--text-primary); font-size: .82rem; }
 .pages-checklist small { color: var(--text-muted); font-size: .75rem; line-height: 1.45; }
 .pages-editor-side { align-self: start; }
-.pages-editor-side .pages-side-card:first-child { position: sticky; top: 82px; }
+/* Keep the publish panel in normal flow; a sticky first card lets later sidebar cards scroll underneath it. */
+.pages-editor-side .pages-side-card:first-child { position: static; }
 .public-page-divider-space { min-height: 24px; margin: 5px 0; border-top: 0 !important; }
 @media (max-width: 768px) {
   .pages-editor-shortcuts { position: relative; margin-bottom: 14px; padding: 10px; gap: 6px; }
