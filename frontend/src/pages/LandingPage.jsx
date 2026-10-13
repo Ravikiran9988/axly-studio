@@ -423,6 +423,55 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Public page builder showcase */}
+      <section className="pages-showcase-section" id="pages">
+        <div className="pages-showcase-container">
+          <div className="pages-showcase-copy">
+            <span className="pages-showcase-eyebrow"><PanelsTopLeft size={14} /> PUBLIC LINK & BIO SUITE</span>
+            <h2>One link can tell your whole story.</h2>
+            <p>
+              Build a shareable page for your portfolio, creator profile, business, or contact card. Start from a template, add links and content blocks, then publish to an Axly URL or a verified custom domain.
+            </p>
+            <div className="pages-showcase-checklist">
+              <span><CheckCircle2 size={17} /> Five starter templates</span>
+              <span><CheckCircle2 size={17} /> Links, social profiles, media and lead forms</span>
+              <span><CheckCircle2 size={17} /> SEO fields, analytics and revision history</span>
+            </div>
+            <div className="pages-showcase-actions">
+              <Link to={user ? '/app/pages' : '/register'} className="btn btn-primary">
+                Create a public page <ArrowRight size={16} />
+              </Link>
+              <Link to={user ? '/app/domains' : '/register'} className="btn btn-outline">
+                Connect a domain <Globe size={16} />
+              </Link>
+            </div>
+          </div>
+
+          <div className="pages-showcase-preview" aria-label="Example Axly public page preview">
+            <div className="pages-preview-browser-bar">
+              <div className="pages-preview-dots"><i /><i /><i /></div>
+              <span className="pages-preview-host"><Globe size={13} /> yourname.axly.in</span>
+              <span className="pages-preview-live">LIVE PREVIEW</span>
+            </div>
+            <div className="pages-preview-canvas">
+              <div className="pages-preview-avatar">A</div>
+              <p className="pages-preview-name">Alex Morgan</p>
+              <p className="pages-preview-bio">Designer · Builder · Creator</p>
+              <div className="pages-preview-tags"><span>Portfolio</span><span>Creator</span><span>Business</span></div>
+              <div className="pages-preview-links">
+                {['Featured work & projects', 'Latest video and updates', 'Book a call'].map((label) => (
+                  <div className="pages-preview-link" key={label}>
+                    <span>{label}</span><ArrowRight size={15} />
+                  </div>
+                ))}
+              </div>
+              <div className="pages-preview-socials"><span>GitHub</span><span>LinkedIn</span><span>Instagram</span></div>
+              <p className="pages-preview-powered">Made with Axly Studio</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Feature Highlights Section */}
       <section className="features-section" id="features">
         <div className="section-header">
@@ -585,55 +634,6 @@ export default function LandingPage() {
             <Link to={user ? '/app/pages' : '/register'} className="feature-card-link">
               Explore page tools <ArrowRight size={14} />
             </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Public page builder showcase */}
-      <section className="pages-showcase-section" id="pages">
-        <div className="pages-showcase-container">
-          <div className="pages-showcase-copy">
-            <span className="pages-showcase-eyebrow"><PanelsTopLeft size={14} /> PUBLIC LINK & BIO SUITE</span>
-            <h2>One link can tell your whole story.</h2>
-            <p>
-              Build a shareable page for your portfolio, creator profile, business, or contact card. Start from a template, add links and content blocks, then publish to an Axly URL or a verified custom domain.
-            </p>
-            <div className="pages-showcase-checklist">
-              <span><CheckCircle2 size={17} /> Five starter templates</span>
-              <span><CheckCircle2 size={17} /> Links, social profiles, media and lead forms</span>
-              <span><CheckCircle2 size={17} /> SEO fields, analytics and revision history</span>
-            </div>
-            <div className="pages-showcase-actions">
-              <Link to={user ? '/app/pages' : '/register'} className="btn btn-primary">
-                Create a public page <ArrowRight size={16} />
-              </Link>
-              <Link to={user ? '/app/domains' : '/register'} className="btn btn-outline">
-                Connect a domain <Globe size={16} />
-              </Link>
-            </div>
-          </div>
-
-          <div className="pages-showcase-preview" aria-label="Example Axly public page preview">
-            <div className="pages-preview-browser-bar">
-              <div className="pages-preview-dots"><i /><i /><i /></div>
-              <span className="pages-preview-host"><Globe size={13} /> yourname.axly.in</span>
-              <span className="pages-preview-live">LIVE PREVIEW</span>
-            </div>
-            <div className="pages-preview-canvas">
-              <div className="pages-preview-avatar">A</div>
-              <p className="pages-preview-name">Alex Morgan</p>
-              <p className="pages-preview-bio">Designer · Builder · Creator</p>
-              <div className="pages-preview-tags"><span>Portfolio</span><span>Creator</span><span>Business</span></div>
-              <div className="pages-preview-links">
-                {['Featured work & projects', 'Latest video and updates', 'Book a call'].map((label) => (
-                  <div className="pages-preview-link" key={label}>
-                    <span>{label}</span><ArrowRight size={15} />
-                  </div>
-                ))}
-              </div>
-              <div className="pages-preview-socials"><span>GitHub</span><span>LinkedIn</span><span>Instagram</span></div>
-              <p className="pages-preview-powered">Made with Axly Studio</p>
-            </div>
           </div>
         </div>
       </section>
