@@ -60,6 +60,8 @@ const socialIcon = (platform) => {
 export default function PublicPageView({ customDomainHost = null }) {
   const { slug: routeSlug } = useParams();
   const slug = routeSlug || null;
+  const queryParams = new URLSearchParams(window.location.search);
+  const previewPageId = queryParams.get('preview') === '1' ? queryParams.get('pageId') : null;
   const [page, setPage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
@@ -71,9 +73,11 @@ export default function PublicPageView({ customDomainHost = null }) {
     let active = true;
     setLoading(true);
     setErrorMessage('');
-    const request = slug
-      ? api.get('/pages/public/slug/' + encodeURIComponent(slug))
-      : api.get('/pages/public/resolve', { params: { host: customDomainHost || window.location.hostname } });
+    const request = previewPageId
+      ? api.get('/pages/' + encodeURIComponent(previewPageId))
+      : slug
+        ? api.get('/pages/public/slug/' + encodeURIComponent(slug))
+        : api.get('/pages/public/resolve', { params: { host: customDomainHost || window.location.hostname } });
     request.then(({ data }) => {
       if (!active) return;
       setPage(data.data);
@@ -83,13 +87,13 @@ export default function PublicPageView({ customDomainHost = null }) {
       setErrorMessage(error.response?.data?.message || 'This page could not be found.');
     }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [slug, customDomainHost]);
+  }, [slug, customDomainHost, previewPageId]);
 
   useEffect(() => {
-    if (!page?.slug || trackedPageView.current === page.slug) return;
+    if (previewPageId || !page?.slug || trackedPageView.current === page.slug) return;
     trackedPageView.current = page.slug;
     api.post('/pages/public/slug/' + encodeURIComponent(page.slug) + '/events', { eventType: 'page_view' }).catch(() => {});
-  }, [page?.slug]);
+  }, [page?.slug, previewPageId]);
 
   useEffect(() => {
     if (!page) return;
@@ -117,7 +121,7 @@ export default function PublicPageView({ customDomainHost = null }) {
   }, [page]);
 
   const trackClick = (blockId) => {
-    if (!page?.slug) return;
+    if (previewPageId || !page?.slug) return;
     api.post('/pages/public/slug/' + encodeURIComponent(page.slug) + '/events', {
       eventType: 'link_click', blockId,
     }).catch(() => {});
@@ -134,6 +138,7 @@ export default function PublicPageView({ customDomainHost = null }) {
 
   const sendLead = async (blockId, event) => {
     event.preventDefault();
+    if (previewPageId) return toast('Lead capture is disabled in preview.');
     const form = leadForms[blockId] || {};
     try {
       const response = await api.post('/pages/public/slug/' + encodeURIComponent(page.slug) + '/leads', form);
