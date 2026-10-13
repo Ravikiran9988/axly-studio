@@ -4931,3 +4931,89 @@ tbody tr:hover {
     white-space: normal;
   }
 }
+
+
+/* ============================================
+   PUBLIC PAGES SHOWCASE — ANCHOR SPACING FIX
+   Keep the Pages anchor close to its content and
+   align the intro with the preview card.
+   ============================================ */
+.landing-page > .pages-showcase-section {
+  padding-top: 42px;
+  padding-bottom: 60px;
+  scroll-margin-top: 82px;
+}
+
+.landing-page > .pages-showcase-section .pages-showcase-container {
+  align-items: start;
+}
+
+.landing-page > .pages-showcase-section .pages-showcase-copy {
+  padding-top: 20px;
+}
+
+@media (max-width: 760px) {
+  .landing-page > .pages-showcase-section {
+    padding-top: 32px;
+    padding-bottom: 44px;
+    scroll-margin-top: 72px;
+  }
+
+  .landing-page > .pages-showcase-section .pages-showcase-copy {
+    padding-top: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .landing-page > .pages-showcase-section {
+    padding: 26px 16px 36px;
+    scroll-margin-top: 68px;
+  }
+
+  .landing-page > .pages-showcase-section .pages-showcase-container {
+    gap: 22px;
+  }
+
+  .landing-page > .pages-showcase-section .pages-showcase-copy h2 {
+    margin-top: 10px;
+  }
+}
+
+
+/* ============================================
+   PUBLIC QR GENERATOR — ANCHOR SPACING FIX
+   Prevent the intro from being vertically centered
+   beside the tall generator panel on desktop.
+   ============================================ */
+.landing-page > .qr-generator-section {
+  padding-top: 38px;
+  padding-bottom: 58px;
+  scroll-margin-top: 82px;
+}
+
+.landing-page > .qr-generator-section .qr-generator-container {
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .landing-page > .qr-generator-section {
+    padding-top: 32px;
+    padding-bottom: 44px;
+    scroll-margin-top: 72px;
+  }
+
+  .landing-page > .qr-generator-section .qr-generator-container {
+    gap: 22px;
+  }
+}
+
+@media (max-width: 480px) {
+  .landing-page > .qr-generator-section {
+    padding: 26px 16px 36px;
+    scroll-margin-top: 68px;
+  }
+
+  .landing-page > .qr-generator-section .qr-generator-container {
+    gap: 20px;
+  }
+}
