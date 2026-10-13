@@ -63,7 +63,7 @@ const fromApi = (page) => ({
   profileImageUrl: page.profile_image_url || '',
   pageType: page.page_type || 'link-in-bio',
   templateKey: page.template_key || 'minimal',
-  theme: page.theme || { mode: 'light', accent: '#2563eb', background: '#f8fafc', buttonStyle: 'rounded', font: 'inter', layout: 'centered' },
+  theme: { mode: 'light', accent: '#2563eb', background: '#f8fafc', buttonStyle: 'rounded', font: 'inter', layout: 'centered', ...(page.theme || {}) },
   blocks: Array.isArray(page.blocks) ? page.blocks : [],
   seoTitle: page.seo_title || '',
   seoDescription: page.seo_description || '',
@@ -184,6 +184,10 @@ export default function PagesPage() {
   const savePage = async (event) => {
     if (event) event.preventDefault();
     if (!form || !selected) return;
+    if (form.publishAt && form.unpublishAt && new Date(form.unpublishAt).getTime() <= new Date(form.publishAt).getTime()) {
+      toast.error('The unpublish time must be later than the publish time.');
+      return;
+    }
     setSaving(true);
     try {
       const res = await api.patch('/pages/' + selected, toApi(form));
@@ -324,9 +328,10 @@ export default function PagesPage() {
     if (!confirm('Replace your current blocks with the starter blocks for "' + template.name + '"?')) return;
     setForm(prev => ({ ...prev, blocks: starterBlocks(template.key), pageType: template.pageType }));
   };
-  const copyPageUrl = async (slug) => {
+  const copyPageUrl = async (slug, customDomain = '') => {
     try {
-      await navigator.clipboard.writeText(publicUrl(slug));
+      const url = customDomain ? 'https://' + customDomain : publicUrl(slug);
+      await navigator.clipboard.writeText(url);
       toast.success('Page URL copied.');
     } catch {
       toast.error('Could not copy the URL.');
@@ -473,8 +478,9 @@ export default function PagesPage() {
           <p className="page-subtitle">{form.status === 'published' ? 'Published page · changes are saved as you edit only when you press Save.' : 'Draft page · visitors cannot see it until you publish.'}</p>
         </div>
         <div className="pages-header-actions">
-          <button className="btn btn-secondary btn-sm" onClick={() => window.open(publicUrl(form.slug) + '?preview=1&pageId=' + selected, '_blank', 'noopener,noreferrer')}><Eye size={15} /> Preview</button>
-          <button className="btn btn-primary" onClick={savePage} disabled={saving}><Save size={15} /> {saving ? 'Saving…' : 'Save changes'}</button>
+          <button className="btn btn-secondary btn-sm" type="button" onClick={() => window.open(publicUrl(form.slug) + '?preview=1&pageId=' + selected, '_blank', 'noopener,noreferrer')}><Eye size={15} /> Preview</button>
+          <button className="btn btn-secondary btn-sm" type="button" onClick={() => copyPageUrl(form.slug, domains.find(d => d.id === form.customDomainId)?.domain || '')}><Copy size={14} /> Copy URL</button>
+          <button className="btn btn-primary" type="button" onClick={savePage} disabled={saving}><Save size={15} /> {saving ? 'Saving…' : 'Save changes'}</button>
         </div>
       </div>
 
@@ -534,61 +540,123 @@ export default function PagesPage() {
       {panel === 'editor' && (
         <form className="pages-editor-grid" onSubmit={savePage}>
           <div className="pages-editor-main">
-            <section className="card pages-form-card">
+            <nav className="pages-editor-shortcuts" aria-label="Jump to editor section">
+              <span>Jump to</span>
+              {[
+                ['Identity', 'pages-identity'],
+                ['Content', 'pages-content'],
+                ['Design', 'pages-design'],
+                ['Contact', 'pages-contact'],
+                ['Publishing & SEO', 'pages-publishing'],
+              ].map(([label, id]) => <a href={'#' + id} key={id}>{label}</a>)}
+            </nav>
+            <section id="pages-identity" className="card pages-form-card">
               <div className="pages-section-title"><div className="pages-section-icon"><UserIcon /></div><div><h2>Page identity</h2><p>How visitors recognize you or your brand.</p></div></div>
               <div className="pages-form-two">
-                <div className="form-group"><label className="form-label">Page title</label><input className="form-input" value={form.title} onChange={e => updateForm('title', e.target.value)} maxLength={160} required /></div>
-                <div className="form-group"><label className="form-label">Page URL</label><div className="pages-slug-field"><span>/p/</span><input className="form-input" value={form.slug} onChange={e => updateForm('slug', e.target.value.toLowerCase().trim())} minLength={3} maxLength={64} required /></div></div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="page-title-input">Page title</label>
+                  <input id="page-title-input" className="form-input" value={form.title} onChange={e => updateForm('title', e.target.value)} maxLength={160} required placeholder="e.g. Kiran · Developer & Creator" />
+                  <small className="pages-field-hint">{(form.title || '').length}/160 characters</small>
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="page-slug-input">Page URL</label>
+                  <div className="pages-slug-field"><span>/p/</span><input id="page-slug-input" className="form-input" value={form.slug} onChange={e => updateForm('slug', e.target.value.toLowerCase().trim())} minLength={3} maxLength={64} pattern="[a-z0-9][a-z0-9-]{1,62}[a-z0-9]" title="Use 3–64 lowercase letters, numbers, and interior hyphens." required /></div>
+                  <small className="pages-field-hint">Shareable URL: {publicUrl(form.slug || 'your-page')}</small>
+                </div>
               </div>
-              <div className="form-group"><label className="form-label">Short bio</label><textarea className="form-input" rows={3} value={form.bio} onChange={e => updateForm('bio', e.target.value)} maxLength={600} placeholder="Tell people who you are and what you do." /></div>
-              <div className="form-group"><label className="form-label">Profile image URL</label><input className="form-input" type="url" value={form.profileImageUrl} onChange={e => updateForm('profileImageUrl', e.target.value)} placeholder="https://… (optional)" /></div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="page-bio-input">Short bio</label>
+                <textarea id="page-bio-input" className="form-input" rows={3} value={form.bio} onChange={e => updateForm('bio', e.target.value)} maxLength={600} placeholder="Tell people who you are, what you do, and how you can help." />
+                <small className="pages-field-hint">{(form.bio || '').length}/600 characters</small>
+              </div>
+              <div className="form-group">
+                <label className="form-label" htmlFor="page-profile-image-input">Profile image URL</label>
+                <input id="page-profile-image-input" className="form-input" type="url" value={form.profileImageUrl} onChange={e => updateForm('profileImageUrl', e.target.value)} placeholder="https://example.com/profile.jpg (optional)" />
+                <small className="pages-field-hint">Use an image hosted at a public HTTPS URL. Direct file uploads are not supported in this editor yet.</small>
+                {form.profileImageUrl && (
+                  <div className="pages-profile-image-preview">
+                    <img src={form.profileImageUrl} alt="Profile image preview" loading="lazy" onError={e => { e.currentTarget.hidden = true; }} />
+                    <span>Profile image preview</span>
+                  </div>
+                )}
+              </div>
               <div className="pages-form-two">
                 <div className="form-group"><label className="form-label">Page type</label><select className="form-input" value={form.pageType} onChange={e => updateForm('pageType', e.target.value)}><option value="link-in-bio">Link in bio</option><option value="portfolio">Portfolio</option><option value="creator">Creator</option><option value="business-card">Digital business card</option></select></div>
                 <div className="form-group"><label className="form-label">Template</label><div className="pages-template-select-row"><select className="form-input" value={form.templateKey} onChange={e => updateForm('templateKey', e.target.value)}>{TEMPLATES.map(t => <option key={t.key} value={t.key}>{t.name}</option>)}</select><button type="button" className="btn btn-secondary btn-sm" onClick={applyTemplate}>Apply</button></div></div>
               </div>
             </section>
 
-            <section className="card pages-form-card">
-              <div className="pages-section-title"><div className="pages-section-icon"><Link2 size={17} /></div><div><h2>Content blocks</h2><p>Add links, text, social profiles, images, videos and lead forms. Drag ordering is represented by the up/down controls.</p></div></div>
+            <section id="pages-content" className="card pages-form-card">
+              <div className="pages-section-title"><div className="pages-section-icon"><Link2 size={17} /></div><div><h2>Content blocks</h2><p>Build your page section by section. Use arrows to reorder, hide blocks without deleting them, or duplicate a block to reuse its settings.</p></div></div>
               <div className="pages-add-blocks">
                 {[['link','Link',Link2],['heading','Heading',Type],['text','Text',Type],['social','Social',Globe],['image','Image',Image],['video','Video',Video],['lead_form','Lead form',Mail],['divider','Divider',Minus],['file','File link',ExternalLink]].map(([key,label,Icon]) => <button type="button" key={key} onClick={() => addBlock(key)}><Icon size={14} /> {label}</button>)}
               </div>
               {form.blocks.length === 0 ? <div className="pages-empty-inline">This page has no blocks yet. Add your first link or content block.</div> : <div className="pages-block-list">
                 {form.blocks.map((block,index) => (
                   <div className="pages-block-editor" key={block.id || index}>
-                    <div className="pages-block-editor-header"><span className="pages-block-type">{block.type.replace('_',' ')}</span><div className="pages-block-order"><button type="button" title="Move up" disabled={index===0} onClick={() => moveBlock(index,-1)}><ArrowUp size={14}/></button><button type="button" title="Move down" disabled={index===form.blocks.length-1} onClick={() => moveBlock(index,1)}><ArrowDown size={14}/></button><button type="button" title="Remove block" onClick={() => setForm(prev => ({...prev,blocks:prev.blocks.filter((_,i) => i!==index)}))}><Trash2 size={14}/></button></div></div>
+                    <div className="pages-block-editor-header">
+                      <span className="pages-block-type">{index + 1}. {block.type.replace('_',' ')}</span>
+                      <div className="pages-block-order">
+                        <button type="button" title="Move up" aria-label={'Move ' + block.type + ' up'} disabled={index===0} onClick={() => moveBlock(index,-1)}><ArrowUp size={14}/></button>
+                        <button type="button" title="Move down" aria-label={'Move ' + block.type + ' down'} disabled={index===form.blocks.length-1} onClick={() => moveBlock(index,1)}><ArrowDown size={14}/></button>
+                        <button type="button" title="Duplicate block" aria-label={'Duplicate ' + block.type} disabled={form.blocks.length >= quota.blocks} onClick={() => {
+                          if (form.blocks.length >= quota.blocks) return toast.error('Your current plan supports up to ' + quota.blocks + ' blocks per page.');
+                          const copy = { ...block, id: 'block-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8) };
+                          setForm(prev => ({ ...prev, blocks: [...prev.blocks.slice(0, index + 1), copy, ...prev.blocks.slice(index + 1)] }));
+                        }}><Copy size={14}/></button>
+                        <button type="button" title="Remove block" aria-label={'Remove ' + block.type} onClick={() => setForm(prev => ({...prev,blocks:prev.blocks.filter((_,i) => i!==index)}))}><Trash2 size={14}/></button>
+                      </div>
+                    </div>
                     <label className="pages-visible-toggle"><input type="checkbox" checked={block.visible !== false} onChange={e => updateBlock(index,'visible',e.target.checked)} /> Show on public page</label>
                     {['link','social','file'].includes(block.type) && <div className="pages-form-two"><div className="form-group"><label className="form-label">Label</label><input className="form-input" value={block.label || ''} onChange={e => updateBlock(index,'label',e.target.value)} required maxLength={120}/></div><div className="form-group"><label className="form-label">Destination URL</label><input className="form-input" type="url" value={block.url || ''} onChange={e => updateBlock(index,'url',e.target.value)} required/></div></div>}
-                    {block.type==='link' && <><div className="form-group"><label className="form-label">Description (optional)</label><input className="form-input" value={block.description || ''} onChange={e => updateBlock(index,'description',e.target.value)} maxLength={240}/></div><label className="pages-visible-toggle"><input type="checkbox" checked={block.featured===true} onChange={e=>updateBlock(index,'featured',e.target.checked)}/> Feature this link</label></>}
+                    {block.type==='link' && <>
+                      <div className="pages-form-two">
+                        <div className="form-group"><label className="form-label">Description (optional)</label><input className="form-input" value={block.description || ''} onChange={e => updateBlock(index,'description',e.target.value)} maxLength={240} placeholder="A few words about this link"/></div>
+                        <div className="form-group"><label className="form-label">Icon</label><select className="form-input" value={block.icon || 'link'} onChange={e=>updateBlock(index,'icon',e.target.value)}><option value="link">Link</option><option value="website">Website</option><option value="github">GitHub / Code</option><option value="linkedin">LinkedIn / Work</option><option value="instagram">Instagram / Camera</option><option value="youtube">YouTube / Video</option><option value="email">Email</option><option value="download">Download</option><option value="external">External link</option></select></div>
+                      </div>
+                      <label className="pages-visible-toggle"><input type="checkbox" checked={block.featured===true} onChange={e=>updateBlock(index,'featured',e.target.checked)}/> Highlight this link</label>
+                    </>}
                     {['heading','text'].includes(block.type) && <div className="form-group"><label className="form-label">Text</label><textarea className="form-input" rows={block.type==='heading'?2:3} value={block.text || ''} onChange={e=>updateBlock(index,'text',e.target.value)} maxLength={1600} required/></div>}
                     {block.type==='social' && <div className="form-group"><label className="form-label">Platform</label><select className="form-input" value={block.platform || 'website'} onChange={e=>updateBlock(index,'platform',e.target.value)}>{['website','github','linkedin','instagram','youtube','tiktok','x','facebook','email'].map(v=><option key={v} value={v}>{v}</option>)}</select></div>}
-                    {block.type==='image' && <><div className="form-group"><label className="form-label">Image URL (HTTPS)</label><input className="form-input" type="url" value={block.url || ''} onChange={e=>updateBlock(index,'url',e.target.value)} required/></div><div className="form-group"><label className="form-label">Alt text</label><input className="form-input" value={block.alt || ''} onChange={e=>updateBlock(index,'alt',e.target.value)} maxLength={180}/></div></>}
-                    {block.type==='video' && <><div className="form-group"><label className="form-label">YouTube or Vimeo URL</label><input className="form-input" type="url" value={block.url || ''} onChange={e=>updateBlock(index,'url',e.target.value)} required/></div><div className="form-group"><label className="form-label">Video title</label><input className="form-input" value={block.title || ''} onChange={e=>updateBlock(index,'title',e.target.value)} maxLength={180}/></div></>}
+                    {block.type==='image' && <>
+                      <div className="form-group"><label className="form-label">Image URL (HTTPS)</label><input className="form-input" type="url" value={block.url || ''} onChange={e=>updateBlock(index,'url',e.target.value)} placeholder="https://example.com/image.jpg" required/></div>
+                      {block.url && <div className="pages-block-image-preview"><img src={block.url} alt="" loading="lazy" onError={e => { e.currentTarget.hidden = true; }}/><span>Image preview</span></div>}
+                      <div className="form-group"><label className="form-label">Alternative text</label><input className="form-input" value={block.alt || ''} onChange={e=>updateBlock(index,'alt',e.target.value)} maxLength={180} placeholder="Describe the image for screen readers"/></div>
+                      <div className="form-group"><label className="form-label">Caption (optional)</label><input className="form-input" value={block.caption || ''} onChange={e=>updateBlock(index,'caption',e.target.value)} maxLength={240} placeholder="A short caption shown below the image"/></div>
+                    </>}
+                    {block.type==='video' && <>
+                      <div className="form-group"><label className="form-label">YouTube or Vimeo URL</label><input className="form-input" type="url" value={block.url || ''} onChange={e=>updateBlock(index,'url',e.target.value)} placeholder="https://youtu.be/..." required/><small className="pages-field-hint">Video embeds currently support YouTube and Vimeo links.</small></div>
+                      <div className="form-group"><label className="form-label">Video title (for accessibility)</label><input className="form-input" value={block.title || ''} onChange={e=>updateBlock(index,'title',e.target.value)} maxLength={180} placeholder="What is this video about?"/></div>
+                    </>}
                     {block.type==='lead_form' && <><div className="form-group"><label className="form-label">Form title</label><input className="form-input" value={block.title || ''} onChange={e=>updateBlock(index,'title',e.target.value)} maxLength={120}/></div><div className="form-group"><label className="form-label">Description</label><input className="form-input" value={block.description || ''} onChange={e=>updateBlock(index,'description',e.target.value)} maxLength={240}/></div><div className="form-group"><label className="form-label">Button label</label><input className="form-input" value={block.buttonLabel || ''} onChange={e=>updateBlock(index,'buttonLabel',e.target.value)} maxLength={40}/></div></>}
-                    {block.type==='divider' && <p className="pages-muted">A visual separator will appear between blocks.</p>}
+                    {block.type==='divider' && <div className="form-group"><label className="form-label">Divider style</label><select className="form-input" value={block.style || 'line'} onChange={e=>updateBlock(index,'style',e.target.value)}><option value="line">Thin separator line</option><option value="space">Extra vertical space</option></select><small className="pages-field-hint">Choose a visible line or just add breathing room.</small></div>}
                   </div>
                 ))}
               </div>}
               <p className="pages-muted">{form.blocks.length} / {quota.blocks} blocks allowed by your current plan.</p>
             </section>
 
-            <section className="card pages-form-card">
+            <section id="pages-design" className="card pages-form-card">
               <div className="pages-section-title"><div className="pages-section-icon"><Palette size={17}/></div><div><h2>Design and theme</h2><p>Choose the visual treatment for your public page.</p></div></div>
               <div className="pages-theme-swatches">{[
                 ['Cobalt','#2563eb','#f8fafc'],['Violet','#7c3aed','#faf5ff'],['Forest','#047857','#f0fdf4'],['Graphite','#334155','#f8fafc'],['Rose','#e11d48','#fff1f2']
-              ].map(([label,accent,background])=><button type="button" key={label} className={'pages-theme-swatch ' + (form.theme.accent===accent?'selected':'')} onClick={()=>setForm(prev=>({...prev,theme:{...prev.theme,accent,background,mode:'light'}}))}><span style={{background:accent}}/><strong>{label}</strong></button>)}</div>
+              ].map(([label,accent,background])=><button type="button" key={label} className={'pages-theme-swatch ' + (form.theme.accent===accent?'selected':'')} onClick={()=>setForm(prev=>({...prev,theme:{...prev.theme,accent,background}}))}><span style={{background:accent}}/><strong>{label}</strong></button>)}</div>
               <div className="pages-form-two">
                 <div className="form-group"><label className="form-label">Mode</label><select className="form-input" value={form.theme.mode} onChange={e=>updateTheme('mode',e.target.value)}><option value="light">Light</option><option value="dark">Dark</option></select></div>
                 <div className="form-group"><label className="form-label">Button shape</label><select className="form-input" value={form.theme.buttonStyle} onChange={e=>updateTheme('buttonStyle',e.target.value)}><option value="rounded">Rounded</option><option value="pill">Pill</option><option value="square">Square</option></select></div>
               </div>
               <div className="pages-form-two">
-                <div className="form-group"><label className="form-label">Accent color</label><input className="form-input pages-color-input" type="color" value={form.theme.accent} onChange={e=>updateTheme('accent',e.target.value)}/></div>
+                <div className="form-group"><label className="form-label">Font family</label><select className="form-input" value={form.theme.font || 'inter'} onChange={e=>updateTheme('font',e.target.value)}><option value="inter">Inter — modern and clean</option><option value="space-grotesk">Space Grotesk — bold and geometric</option><option value="system">System — use visitor's device font</option></select></div>
+                <div className="form-group"><label className="form-label">Content alignment</label><select className="form-input" value={form.theme.layout || 'centered'} onChange={e=>updateTheme('layout',e.target.value)}><option value="centered">Centered</option><option value="left">Left aligned</option></select></div>
+              </div>
+              <div className="pages-form-two">
+                <div className="form-group"><label className="form-label">Accent color</label><input className="form-input pages-color-input" type="color" value={form.theme.accent} onChange={e=>updateTheme('accent',e.target.value)}/>
                 <div className="form-group"><label className="form-label">Background color</label><input className="form-input pages-color-input" type="color" value={form.theme.background} onChange={e=>updateTheme('background',e.target.value)}/></div>
               </div>
             </section>
 
-            <section className="card pages-form-card">
-              <div className="pages-section-title"><div className="pages-section-icon"><Users size={17}/></div><div><h2>Business card contact</h2><p>Optional contact fields and vCard download for digital business-card pages.</p></div></div>
+            <section id="pages-contact" className="card pages-form-card">
+              <div className="pages-section-title"><div className="pages-section-icon"><Users size={17}/></div><div><h2>Contact details &amp; business card</h2><p>Email and phone can appear on your page. Company and job title are included in the downloadable contact card.</p></div></div>
               <div className="pages-form-two">
                 <div className="form-group"><label className="form-label">Contact email</label><input className="form-input" type="email" value={form.contactEmail} onChange={e=>updateForm('contactEmail',e.target.value)}/></div>
                 <div className="form-group"><label className="form-label">Phone</label><input className="form-input" value={form.contactPhone} onChange={e=>updateForm('contactPhone',e.target.value)} maxLength={80}/></div>
@@ -597,7 +665,7 @@ export default function PagesPage() {
               </div>
             </section>
 
-            <section className="card pages-form-card">
+            <section id="pages-publishing" className="card pages-form-card">
               <div className="pages-section-title"><div className="pages-section-icon"><CalendarClock size={17}/></div><div><h2>Publishing and SEO</h2><p>Schedule visibility and control how the page appears in search/social previews.</p></div></div>
               <div className="pages-form-two">
                 <div className="form-group"><label className="form-label">Status</label><select className="form-input" value={form.status} onChange={e=>updateForm('status',e.target.value)}><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option></select></div>
@@ -609,7 +677,13 @@ export default function PagesPage() {
               </div>
               <div className="form-group"><label className="form-label">SEO title</label><input className="form-input" value={form.seoTitle} onChange={e=>updateForm('seoTitle',e.target.value)} maxLength={180}/></div>
               <div className="form-group"><label className="form-label">SEO description</label><textarea className="form-input" rows={2} value={form.seoDescription} onChange={e=>updateForm('seoDescription',e.target.value)} maxLength={320}/></div>
-              <div className="form-group"><label className="form-label">Social sharing image URL (optional)</label><input type="url" className="form-input" value={form.ogImageUrl} onChange={e=>updateForm('ogImageUrl',e.target.value)} placeholder="https://…"/></div>
+              <div className="form-group"><label className="form-label">Social sharing image URL (optional)</label><input type="url" className="form-input" value={form.ogImageUrl} onChange={e=>updateForm('ogImageUrl',e.target.value)} placeholder="https://example.com/social-preview.jpg"/></div>
+              <div className="pages-seo-preview" aria-live="polite">
+                <span className="pages-seo-preview-label">Search result preview</span>
+                <strong>{form.seoTitle || form.title || 'Your page title'}</strong>
+                <span className="pages-seo-preview-url">{domains.find(d => d.id === form.customDomainId)?.domain || 'url.axly.in'}/p/{form.slug || 'your-page'}</span>
+                <p>{form.seoDescription || form.bio || 'Add an SEO description or short bio to give visitors a useful summary before they open your page.'}</p>
+              </div>
             </section>
           </div>
 
@@ -625,6 +699,15 @@ export default function PagesPage() {
               <div className="pages-section-title"><div className="pages-section-icon"><PenTool size={17}/></div><div><h2>Copy suggestion helper</h2><p>Optional server-configured provider. Review any copy before saving.</p></div></div>
               <input className="form-input" placeholder="What is this page about?" value={aiTopic} onChange={e=>setAiTopic(e.target.value)}/>
               <button type="button" className="btn btn-secondary" style={{width:'100%',marginTop:10}} onClick={suggestCopy} disabled={aiLoading}>{aiLoading?'Generating…':'Suggest title and bio'}</button>
+            </section>
+            <section className="card pages-side-card pages-checklist-card">
+              <div className="pages-section-title"><div className="pages-section-icon"><Eye size={17}/></div><div><h2>Pre-publish checklist</h2><p>Optional recommendations for a polished page.</p></div></div>
+              <ul className="pages-checklist">
+                <li className={form.title.trim() ? 'complete' : ''}><span>{form.title.trim() ? '✓' : '○'}</span><div><strong>Add a page title</strong><small>Help visitors know whose page this is.</small></div></li>
+                <li className={form.bio.trim() ? 'complete' : ''}><span>{form.bio.trim() ? '✓' : '○'}</span><div><strong>Write a short bio</strong><small>A sentence or two gives context.</small></div></li>
+                <li className={form.blocks.some(block => block.visible !== false) ? 'complete' : ''}><span>{form.blocks.some(block => block.visible !== false) ? '✓' : '○'}</span><div><strong>Add visible content</strong><small>At least one visible block is recommended.</small></div></li>
+                <li className={form.seoTitle.trim() && form.seoDescription.trim() ? 'complete' : ''}><span>{form.seoTitle.trim() && form.seoDescription.trim() ? '✓' : '○'}</span><div><strong>Improve search previews</strong><small>Add both an SEO title and description.</small></div></li>
+              </ul>
             </section>
             <section className="card pages-side-card">
               <div className="pages-section-title"><div className="pages-section-icon"><Globe size={17}/></div><div><h2>Custom domain</h2><p>Use a domain you own for this page.</p></div></div>
