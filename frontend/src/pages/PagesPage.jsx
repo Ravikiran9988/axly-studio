@@ -99,6 +99,8 @@ const toApi = (form) => ({
 });
 
 const publicUrl = (slug) => window.location.origin + '/p/' + slug;
+const pagePublicUrl = (page) => page.custom_domain && page.domain_status === 'active' ? 'https://' + page.custom_domain : publicUrl(page.slug);
+const displayPageStatus = (page) => page.status === 'published' && page.publish_at && new Date(page.publish_at) > new Date() ? 'scheduled' : page.status === 'published' && page.unpublish_at && new Date(page.unpublish_at) <= new Date() ? 'expired' : page.status;
 
 export default function PagesPage() {
   const [pages, setPages] = useState([]);
@@ -264,6 +266,22 @@ export default function PagesPage() {
     }
   };
 
+  const exportLeadsCsv = () => {
+    if (!leads.length) return toast.error('There are no leads to export.');
+    const cell = (value) => '"' + String(value ?? '').replaceAll('"', '""').replaceAll('\r', ' ').replaceAll('\n', ' ') + '"';
+    const rows = [
+      ['Name','Email','Message','Consent','Received at'],
+      ...leads.map(lead => [lead.name, lead.email, lead.message || '', lead.consent ? 'yes' : 'no', new Date(lead.created_at).toISOString()]),
+    ];
+    const blob = new Blob([rows.map(row => row.map(cell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'axly-page-leads-' + new Date().toISOString().slice(0,10) + '.csv';
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
   const suggestCopy = async () => {
     if (!selected) return;
     setAiLoading(true);
@@ -349,7 +367,7 @@ export default function PagesPage() {
               <article className="card page-list-card" key={page.id}>
                 <div className="page-card-cover" style={{ background: page.template_key === 'business-card' ? 'linear-gradient(135deg,#0f172a,#334155)' : 'linear-gradient(135deg,' + ((page.id.charCodeAt(0) % 2) ? '#dbeafe,#ede9fe' : '#cffafe,#dbeafe') + ')' }}>
                   <div className="page-card-cover-icon"><PanelsTopLeft size={23} /></div>
-                  <span className={'badge ' + (page.status === 'published' ? 'badge-active' : 'badge-warning')}>{page.status}</span>
+                  <span className={'badge ' + (page.status === 'published' ? 'badge-active' : 'badge-warning')}>{displayPageStatus(page)}</span>
                 </div>
                 <div className="page-list-card-body">
                   <h3>{page.title}</h3>
@@ -362,7 +380,7 @@ export default function PagesPage() {
                   {page.custom_domain && <div className="page-domain-chip"><Globe size={13} /> {page.custom_domain}</div>}
                   <div className="page-card-actions">
                     <button className="btn btn-primary btn-sm" onClick={() => openEditor(page)}><Edit3 size={14} /> Edit</button>
-                    {page.status === 'published' && <a className="btn btn-secondary btn-sm" href={publicUrl(page.slug)} target="_blank" rel="noreferrer"><ExternalLink size={14} /> Open</a>}
+                    {page.status === 'published' && <a className="btn btn-secondary btn-sm" href={pagePublicUrl(page)} target="_blank" rel="noreferrer"><ExternalLink size={14} /> Open</a>}
                     <button className="btn btn-secondary btn-sm" onClick={() => duplicate(page)} title="Duplicate page"><Copy size={14} /></button>
                     <button className="btn btn-secondary btn-sm" onClick={() => deletePage(page)} title="Delete page"><Trash2 size={14} /></button>
                   </div>
@@ -470,7 +488,7 @@ export default function PagesPage() {
 
       {panel === 'leads' && (
         <div className="card">
-          <div className="pages-leads-heading"><div><h2>Contact form submissions</h2><p>Only you can see leads collected from your public page.</p></div><span className="badge">{leads.length} loaded</span></div>
+          <div className="pages-leads-heading"><div><h2>Contact form submissions</h2><p>Only you can see leads collected from your public page.</p></div><div style={{display:'flex',alignItems:'center',gap:8}}><span className="badge">{leads.length} loaded</span><button className="btn btn-secondary btn-sm" onClick={exportLeadsCsv} disabled={!leads.length}><Download size={14}/> Export CSV</button></div></div>
           {leads.length === 0 ? <div className="pages-empty-inline"><Mail size={26} /><strong>No leads yet</strong><p>Add a Lead capture block and publish your page to collect consented messages.</p></div> :
             <div className="pages-analytics-table"><table><thead><tr><th>Name</th><th>Email</th><th>Message</th><th>Received</th></tr></thead><tbody>{leads.map(lead => <tr key={lead.id}><td>{lead.name}</td><td><a href={'mailto:' + lead.email}>{lead.email}</a></td><td>{lead.message || '—'}</td><td>{new Date(lead.created_at).toLocaleString()}</td></tr>)}</tbody></table></div>}
         </div>
