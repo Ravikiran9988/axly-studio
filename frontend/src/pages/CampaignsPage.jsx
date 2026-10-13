@@ -139,7 +139,10 @@ export default function CampaignsPage() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Campaigns & UTM Intelligence</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h1 className="page-title">Campaigns & UTM Intelligence</h1>
+            <FeatureHelp featureKey="campaigns" title="Campaigns & UTM Intelligence" />
+          </div>
           <p className="page-subtitle">
             Track multi-channel initiatives with automatic UTM attribution and source comparisons
           </p>

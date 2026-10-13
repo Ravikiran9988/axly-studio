@@ -5,6 +5,7 @@ import {
   ExternalLink, AlertTriangle, ShieldCheck, RefreshCw, Send,
   Clock, CheckCircle2, XCircle
 } from 'lucide-react';
+import FeatureHelp from '../components/FeatureHelp';
 import toast from 'react-hot-toast';
 
 const SCOPES_OPTIONS = [
@@ -31,6 +32,12 @@ const WEBHOOK_EVENTS = [
 export default function DeveloperPage({ initialTab = 'keys' }) {
   const [tab, setTab] = useState(initialTab); // 'keys' | 'webhooks' | 'domains'
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (initialTab) {
+      setTab(initialTab);
+    }
+  }, [initialTab]);
 
   // API Keys State
   const [apiKeys, setApiKeys] = useState([]);
@@ -233,8 +240,18 @@ export default function DeveloperPage({ initialTab = 'keys' }) {
     <div className="page-container">
       <div className="page-header" style={{ marginBottom: 24 }}>
         <div>
-          <h1 className="page-title">Developer Platform</h1>
-          <p className="page-subtitle">Programmatic API keys, signed event webhooks, and branded domains</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h1 className="page-title">{tab === 'domains' ? 'Custom Branded Domains' : 'Developer Platform'}</h1>
+            <FeatureHelp
+              featureKey={tab === 'domains' ? 'domains' : 'developer'}
+              title={tab === 'domains' ? 'Custom Branded Domains' : 'Developer Tools & API'}
+            />
+          </div>
+          <p className="page-subtitle">
+            {tab === 'domains'
+              ? 'Connect and verify custom domains you own for short links and public pages'
+              : 'Programmatic API keys, signed event webhooks, and branded domains'}
+          </p>
         </div>
       </div>
 

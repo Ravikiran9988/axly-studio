@@ -110,6 +110,18 @@ export const FEATURE_EXPLANATIONS = {
     ],
     example: 'curl -H "Authorization: Bearer axly_..." -d \'{"url":"https://example.com"}\' https://api.axly.in/api/urls',
     helpAnchor: 'developer-tools'
+  },
+  bulk: {
+    title: 'Bulk Import & Export Tools',
+    what: 'Generate dozens or hundreds of short links simultaneously by uploading a CSV spreadsheet, or export your entire link library.',
+    why: 'Save hours of manual data entry when migrating from another shortening service, launching catalog links, or conducting audits.',
+    how: [
+      'Download our official sample CSV template.',
+      'Fill in destination original_url, optional title, custom_alias, and tags.',
+      'Upload your CSV, review the preview and validation warnings, then click Import.'
+    ],
+    example: 'Upload a 100-row catalog CSV to instantly generate short links for your entire product catalog.',
+    helpAnchor: 'bulk-import'
   }
 };
 

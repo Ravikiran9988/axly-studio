@@ -278,6 +278,25 @@ const HELP_CATEGORIES = [
         ],
         actionLink: '/app/developer',
         actionLabel: 'Developer Tools'
+      },
+      {
+        id: 'bulk-import',
+        title: 'Bulk CSV Link Import & Library Export',
+        what: 'Import hundreds of destination URLs at once using a CSV spreadsheet, or download your entire link history.',
+        when: 'Ideal for migrating link databases, launching marketing campaigns with dozens of products, or taking backups.',
+        steps: [
+          'Navigate to "Bulk Import/Export" under Workspace in the sidebar.',
+          'Download the sample CSV file to verify columns (original_url, title, custom_alias, tags).',
+          'Upload your CSV file; Axly validates protocols and flags private/SSRF restricted hosts.',
+          'Click "Import Links" to generate your short links atomically.'
+        ],
+        example: 'Upload a 50-row CSV of campaign links and receive shortened URLs and QR codes immediately.',
+        mistakes: [
+          { error: 'Omitting http:// or https:// in destination URLs', solution: 'Ensure every destination URL begins with https:// or http://.' },
+          { error: 'Using commas inside tag values without quotes', solution: 'Wrap fields containing commas in standard CSV double quotes.' }
+        ],
+        actionLink: '/app/bulk',
+        actionLabel: 'Open Bulk Import'
       }
     ]
   },

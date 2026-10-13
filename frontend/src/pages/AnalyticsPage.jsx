@@ -10,6 +10,7 @@ import {
   Clock, Download, Shield, Laptop, Layers,
 } from 'lucide-react';
 import { api } from '../context/AuthContext';
+import FeatureHelp from '../components/FeatureHelp';
 import QRModal from '../components/QRModal';
 import toast from 'react-hot-toast';
 
@@ -153,10 +154,13 @@ export default function AnalyticsPage() {
 
               {isAccountMode ? (
                 <>
-                  <h1 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: 4 }}>
-                    Portfolio Traffic Intelligence
-                  </h1>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                    <h1 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                      Portfolio Traffic Intelligence
+                    </h1>
+                    <FeatureHelp featureKey="analytics" title="Link & Page Analytics" />
+                  </div>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 4 }}>
                     Aggregated analytics across all short links in your workspace.
                   </p>
                 </>
