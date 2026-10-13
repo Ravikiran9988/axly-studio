@@ -267,7 +267,7 @@ export const createPage = async (req, res) => {
     const value = input.value;
     if (!value.slug || !value.title) return res.status(400).json({ success: false, message: 'Page title and URL slug are required.' });
 
-    const quota = countPageQuota(req.user.plan);
+    const quota = await getUserQuota(req.user.id);
     const count = await query('SELECT COUNT(*)::int AS count FROM public_pages WHERE user_id = $1', [req.user.id]);
     if (count.rows[0].count >= quota.pages) {
       return res.status(403).json({ success: false, code: 'PAGE_QUOTA_REACHED', message: `Your current plan allows ${quota.pages} pages. Upgrade your plan to create more.`, quota });
@@ -309,7 +309,7 @@ export const getPage = async (req, res) => {
   try {
     const page = await getOwnedPage(req.params.id, req.user.id);
     if (!page) return res.status(404).json({ success: false, message: 'Page not found.' });
-    res.json({ success: true, data: page, quota: countPageQuota(req.user.plan) });
+    res.json({ success: true, data: page, quota: await getUserQuota(req.user.id) });
   } catch (err) {
     console.error('getPage error:', err);
     res.status(500).json({ success: false, message: 'Failed to load page.' });
@@ -324,7 +324,7 @@ export const updatePage = async (req, res) => {
     const input = pageInput(req.body || {}, current);
     if (!input.valid) return res.status(400).json({ success: false, message: input.message });
     const value = input.value;
-    const quota = countPageQuota(req.user.plan);
+    const quota = await getUserQuota(req.user.id);
     if (Array.isArray(value.blocks) && value.blocks.length > quota.blocks) {
       return res.status(403).json({ success: false, message: `Your current plan allows up to ${quota.blocks} blocks per page.` });
     }
@@ -395,7 +395,7 @@ export const duplicatePage = async (req, res) => {
   try {
     const source = await getOwnedPage(req.params.id, req.user.id);
     if (!source) return res.status(404).json({ success: false, message: 'Page not found.' });
-    const quota = countPageQuota(req.user.plan);
+    const quota = await getUserQuota(req.user.id);
     const count = await query('SELECT COUNT(*)::int AS count FROM public_pages WHERE user_id = $1', [req.user.id]);
     if (count.rows[0].count >= quota.pages) return res.status(403).json({ success: false, message: 'Page limit reached for your current plan.' });
 
