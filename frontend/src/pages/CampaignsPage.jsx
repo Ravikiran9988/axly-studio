@@ -359,10 +359,10 @@ export default function CampaignsPage() {
 
                     {/* UTM Badges */}
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
-                      <span className="badge" style={{ background: 'rgba(37,99,235,0.08)', color: 'var(--brand-primary)' }}>
+                      <span className="badge badge-info-subtle">
                         source: {camp.utm_source || 'any'}
                       </span>
-                      <span className="badge" style={{ background: 'rgba(16,185,129,0.08)', color: '#059669' }}>
+                      <span className="badge badge-success-subtle">
                         medium: {camp.utm_medium || 'any'}
                       </span>
                       {camp.utm_campaign && (

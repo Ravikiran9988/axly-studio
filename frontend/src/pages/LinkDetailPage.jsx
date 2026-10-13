@@ -315,21 +315,17 @@ export default function LinkDetailPage() {
                 </span>
               )}
               {url.has_password && (
-                <span className="badge" style={{ background: 'rgba(234,88,12,0.1)', color: '#ea580c', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <span className="badge badge-warning-subtle" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <Lock size={11} /> Password Protected
                 </span>
               )}
               {url.is_preview_enabled && (
-                <span className="badge" style={{ background: 'rgba(16,185,129,0.1)', color: '#059669', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <span className="badge badge-success-subtle" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <ShieldCheck size={11} /> Preview Interstitial
                 </span>
               )}
               {url.health_status && url.health_status !== 'unknown' && (
-                <span className="badge" style={{
-                  background: url.health_status === 'healthy' ? '#ecfdf5' : '#fef2f2',
-                  color: url.health_status === 'healthy' ? '#059669' : '#dc2626',
-                  display: 'inline-flex', alignItems: 'center', gap: 4
-                }}>
+                <span className={`badge ${url.health_status === 'healthy' ? 'badge-active' : 'badge-inactive'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <HeartPulse size={11} /> {url.health_status.toUpperCase()}
                 </span>
               )}

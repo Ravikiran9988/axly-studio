@@ -446,20 +446,20 @@ export default function AdminPage() {
           {/* Top KPI Cards Grid */}
           <div className="admin-stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
             <div className="admin-stat-card">
-              <div className="admin-stat-icon" style={{ background: '#eff6ff', color: '#2563eb' }}>
+              <div className="admin-stat-icon admin-stat-icon-blue">
                 <Users size={24} />
               </div>
               <div className="admin-stat-info">
                 <span className="admin-stat-val">{stats?.totalUsers ?? 0}</span>
                 <span className="admin-stat-lbl">Registered Accounts</span>
-                <span style={{ fontSize: '0.75rem', color: '#16a34a', marginTop: 4 }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--success)', marginTop: 4 }}>
                   {stats?.activeUsers ?? 0} active · {stats?.suspendedUsers ?? 0} suspended
                 </span>
               </div>
             </div>
 
             <div className="admin-stat-card">
-              <div className="admin-stat-icon" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
+              <div className="admin-stat-icon admin-stat-icon-purple">
                 <Link2 size={24} />
               </div>
               <div className="admin-stat-info">
@@ -472,20 +472,20 @@ export default function AdminPage() {
             </div>
 
             <div className="admin-stat-card">
-              <div className="admin-stat-icon" style={{ background: '#ecfdf5', color: '#059669' }}>
+              <div className="admin-stat-icon admin-stat-icon-emerald">
                 <MousePointerClick size={24} />
               </div>
               <div className="admin-stat-info">
                 <span className="admin-stat-val">{(stats?.totalClicks ?? 0).toLocaleString()}</span>
                 <span className="admin-stat-lbl">Lifetime Clicks Tracked</span>
-                <span style={{ fontSize: '0.75rem', color: '#059669', marginTop: 4 }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--success)', marginTop: 4 }}>
                   +{stats?.clicks24h ?? 0} in 24h · +{stats?.clicks7d ?? 0} in 7d
                 </span>
               </div>
             </div>
 
             <div className="admin-stat-card">
-              <div className="admin-stat-icon" style={{ background: '#fef2f2', color: '#dc2626' }}>
+              <div className="admin-stat-icon admin-stat-icon-red">
                 <ShieldAlert size={24} />
               </div>
               <div className="admin-stat-info">
@@ -498,13 +498,13 @@ export default function AdminPage() {
             </div>
 
             <div className="admin-stat-card">
-              <div className="admin-stat-icon" style={{ background: '#fffbeb', color: '#d97706' }}>
+              <div className="admin-stat-icon admin-stat-icon-amber">
                 <HeartPulse size={24} />
               </div>
               <div className="admin-stat-info">
                 <span className="admin-stat-val">{stats?.healthyLinks ?? 0}</span>
                 <span className="admin-stat-lbl">Healthy Destinations</span>
-                <span style={{ fontSize: '0.75rem', color: '#dc2626', marginTop: 4 }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--danger)', marginTop: 4 }}>
                   {stats?.unreachableLinks ?? 0} unreachable · {stats?.degradedLinks ?? 0} degraded
                 </span>
               </div>
@@ -1121,7 +1121,7 @@ export default function AdminPage() {
           {/* Health Stats */}
           <div className="admin-stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
             <div className="admin-stat-card">
-              <div className="admin-stat-icon" style={{ background: '#ecfdf5', color: '#059669' }}>
+              <div className="admin-stat-icon admin-stat-icon-emerald">
                 <CheckCircle2 size={24} />
               </div>
               <div className="admin-stat-info">
@@ -1131,7 +1131,7 @@ export default function AdminPage() {
             </div>
 
             <div className="admin-stat-card">
-              <div className="admin-stat-icon" style={{ background: '#fffbeb', color: '#d97706' }}>
+              <div className="admin-stat-icon admin-stat-icon-amber">
                 <Clock size={24} />
               </div>
               <div className="admin-stat-info">
@@ -1141,7 +1141,7 @@ export default function AdminPage() {
             </div>
 
             <div className="admin-stat-card">
-              <div className="admin-stat-icon" style={{ background: '#fef2f2', color: '#dc2626' }}>
+              <div className="admin-stat-icon admin-stat-icon-red">
                 <AlertOctagon size={24} />
               </div>
               <div className="admin-stat-info">

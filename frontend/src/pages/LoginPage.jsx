@@ -93,9 +93,9 @@ export default function LoginPage() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {[
-              { icon: <Zap size={16} />, iconColor: '#f59e0b', title: 'Lakebase Postgres Engine', desc: 'Real-time click streams with pooled high-throughput latency' },
-              { icon: <ShieldCheck size={16} />, iconColor: '#2563eb', title: 'Role-Based Access Control', desc: 'Isolated personal workspaces and comprehensive administrator oversight' },
-              { icon: <Lock size={16} />, iconColor: '#059669', title: 'Zero Public Admin Vector', desc: 'Secure backend credential verification with no public entrypoints' },
+              { icon: <Zap size={16} />, iconColor: 'var(--warning)', title: 'Lakebase Postgres Engine', desc: 'Real-time click streams with pooled high-throughput latency' },
+              { icon: <ShieldCheck size={16} />, iconColor: 'var(--brand-primary)', title: 'Role-Based Access Control', desc: 'Isolated personal workspaces and comprehensive administrator oversight' },
+              { icon: <Lock size={16} />, iconColor: 'var(--success)', title: 'Zero Public Admin Vector', desc: 'Secure backend credential verification with no public entrypoints' },
             ].map((item) => (
               <div key={item.title} style={{
                 display: 'flex', alignItems: 'flex-start', gap: 14,

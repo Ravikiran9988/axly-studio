@@ -216,7 +216,7 @@ export default function Sidebar({ isOpen, onClose, onOpenCreateLink, isCollapsed
                 onClick={handleClose}
                 id="nav-admin-operations"
                 title="Admin Console"
-                style={{ color: '#2563eb', justifyContent: isCollapsed ? 'center' : 'flex-start' }}
+                style={{ color: 'var(--brand-primary)', justifyContent: isCollapsed ? 'center' : 'flex-start' }}
               >
                 <ShieldAlert size={18} />
                 {!isCollapsed && (

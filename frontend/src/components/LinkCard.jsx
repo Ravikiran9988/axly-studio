@@ -105,19 +105,19 @@ export default function LinkCard({
                 <span className={`badge ${statusBadgeClass}`}>{statusLabel}</span>
 
                 {url.custom_alias && (
-                  <span className="badge" style={{ background: 'rgba(37,99,235,0.08)', color: 'var(--brand-primary)' }}>
+                  <span className="badge badge-info-subtle">
                     Custom
                   </span>
                 )}
 
                 {url.has_password && (
-                  <span className="badge" style={{ background: 'rgba(234,88,12,0.1)', color: '#ea580c', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                  <span className="badge badge-warning-subtle" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                     <Lock size={10} /> Protected
                   </span>
                 )}
 
                 {url.is_preview_enabled && (
-                  <span className="badge" style={{ background: 'rgba(16,185,129,0.1)', color: '#059669', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                  <span className="badge badge-success-subtle" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                     <ShieldCheck size={10} /> Preview
                   </span>
                 )}
