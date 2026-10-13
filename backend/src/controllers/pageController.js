@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { query } from '../db/pool.js';
+import { validateSafeDestinationUrl } from '../utils/ssrf.js';
 
 const RESERVED_SLUGS = new Set([
   'api', 'admin', 'app', 'login', 'register', 'settings', 'profile', 'links',
@@ -28,7 +29,9 @@ const safeUrl = (value, optional = true) => {
   try {
     const parsed = new URL(value.trim());
     if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname || parsed.username || parsed.password) return null;
-    return parsed.toString();
+    const safeDestination = validateSafeDestinationUrl(parsed.toString());
+    if (!safeDestination.valid) return null;
+    return safeDestination.url;
   } catch {
     return null;
   }
@@ -524,7 +527,34 @@ export const submitPageLead = async (req, res) => {
       'INSERT INTO page_leads (page_id, name, email, message, consent, visitor_hash) VALUES ($1,$2,$3,$4,$5,$6)',
       [page.id, name, email, message || null, consent, hashVisitor(req, page.id)]
     );
-    res.status(201).json({ success: true, message: 'Thanks — your message has been sent to the page owner.' });
+
+    // Email notifications are optional and only sent when a server-side Resend key/from address is configured.
+    if (process.env.RESEND_API_KEY && process.env.LEAD_NOTIFICATION_FROM) {
+      try {
+        const owner = await query(
+          'SELECT u.email, u.name, p.title FROM public_pages p JOIN users u ON u.id = p.user_id WHERE p.id = $1',
+          [page.id]
+        );
+        if (owner.rows[0]?.email) {
+          const mailResponse = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', authorization: 'Bearer ' + process.env.RESEND_API_KEY },
+            body: JSON.stringify({
+              from: process.env.LEAD_NOTIFICATION_FROM,
+              to: [owner.rows[0].email],
+              subject: 'New message for ' + (owner.rows[0].title || page.title),
+              text: 'You received a new public-page message.\nName: ' + name + '\nEmail: ' + email + '\nMessage: ' + (message || '(none)') + '\n\nReview submissions in your Axly Studio page dashboard.',
+            }),
+            signal: AbortSignal.timeout(8000),
+          });
+          if (!mailResponse.ok) console.error('Lead notification provider returned status', mailResponse.status);
+        }
+      } catch (mailError) {
+        // Do not discard a saved lead when email delivery is temporarily unavailable.
+        console.error('Lead notification email failed:', mailError.message);
+      }
+    }
+    res.status(201).json({ success: true, message: 'Thanks — your message has been received. The page owner can review it in Axly Studio.' });
   } catch (err) {
     console.error('submitPageLead error:', err);
     res.status(500).json({ success: false, message: 'Could not submit your message.' });
