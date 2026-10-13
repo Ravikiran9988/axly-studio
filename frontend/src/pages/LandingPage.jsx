@@ -212,25 +212,18 @@ export default function LandingPage() {
         <div className="hero-container">
           <div className="hero-badge">
             <span className="hero-badge-dot"></span>
-            <span className="hero-badge-tag">ENTERPRISE SUITE</span>
+            <span className="hero-badge-tag">LINKS MADE SIMPLE</span>
             <span className="hero-badge-divider">/</span>
-            <span>Smart link infrastructure & public pages</span>
+            <span>Short links, QR codes & public pages</span>
           </div>
 
           <h1 className="hero-title">
-            Your links, pages, and <span className="gradient-text">digital presence</span> in one place.
+            Shorten links. <span className="gradient-text">Share smarter.</span>
           </h1>
 
           <p className="hero-subtitle">
-            Shorten links in seconds, publish a polished link-in-bio page, connect your brand domain, and understand what works with campaign and visitor insights.
+            Create a short link in seconds. Generate QR codes for free, publish a public page, and see how your links perform.
           </p>
-
-          <div className="hero-capability-pills" aria-label="Axly platform capabilities">
-            <span className="hero-capability-pill"><Link2 size={15} /> Short links</span>
-            <span className="hero-capability-pill"><PanelsTopLeft size={15} /> Public pages</span>
-            <span className="hero-capability-pill"><Globe size={15} /> Custom domains</span>
-            <span className="hero-capability-pill"><BarChart2 size={15} /> Campaign insights</span>
-          </div>
 
           {/* Real URL Shortening Form */}
           <div className="shorten-card">
@@ -243,7 +236,7 @@ export default function LandingPage() {
                   id="landing-url-input"
                   type="url"
                   className="shorten-main-input"
-                  placeholder="Paste a long destination URL (e.g. https://example.com/campaign/launch)..."
+                  placeholder="Paste your long URL (https://example.com)"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   required
@@ -324,7 +317,7 @@ export default function LandingPage() {
                     <div>
                       <strong><Link2 size={13} style={{ marginRight: 4, verticalAlign: 'middle', color: 'var(--brand-primary)' }} /> Want custom aliases &amp; click analytics for this link?</strong>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: 2 }}>
-                        Create a free Axly Studio account to track clicks, download high-res QR codes, and customize links.
+                        Create a free Axly Studio account to manage saved links, customize aliases, and review analytics.
                       </div>
                     </div>
                     <Link to="/register" className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem', flexShrink: 0 }}>
@@ -335,6 +328,13 @@ export default function LandingPage() {
               </div>
             )}
           </div>
+          <div className="hero-capability-pills" aria-label="Axly platform capabilities">
+            <span className="hero-capability-pill"><Link2 size={15} /> Short links</span>
+            <span className="hero-capability-pill"><PanelsTopLeft size={15} /> Public pages</span>
+            <span className="hero-capability-pill"><Globe size={15} /> Custom domains</span>
+            <span className="hero-capability-pill"><BarChart2 size={15} /> Campaign insights</span>
+          </div>
+
         </div>
       </section>
 
