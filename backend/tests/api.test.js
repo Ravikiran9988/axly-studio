@@ -9,6 +9,50 @@ import { validateSafeDestinationUrl } from '../src/utils/ssrf.js';
 import { generateApiKey, hashApiKey } from '../src/utils/apiKey.js';
 import { signWebhookPayload } from '../src/utils/webhookDispatcher.js';
 import { validateDomainSyntax } from '../src/utils/dnsVerifier.js';
+import { normalizePageSlug, sanitizePageBlocks } from '../src/controllers/pageController.js';
+
+describe('Custom Page Builder validation', () => {
+  test('accepts valid public page slugs and normalizes case', () => {
+    assert.deepEqual(normalizePageSlug('Ravi-Kiran'), { valid: true, slug: 'ravi-kiran' });
+  });
+
+  test('rejects reserved or malformed public page slugs', () => {
+    assert.equal(normalizePageSlug('api').valid, false);
+    assert.equal(normalizePageSlug('ab').valid, false);
+    assert.equal(normalizePageSlug('-bad-slug').valid, false);
+    assert.equal(normalizePageSlug('has spaces').valid, false);
+  });
+
+  test('accepts safe link blocks and preserves explicit ordering', () => {
+    const result = sanitizePageBlocks([
+      { id: 'portfolio', type: 'link', label: 'Portfolio', url: 'https://example.org', visible: true },
+      { id: 'about', type: 'text', text: 'Developer and builder', visible: true },
+    ]);
+    assert.equal(result.valid, true);
+    assert.equal(result.blocks.length, 2);
+    assert.equal(result.blocks[0].url, 'https://example.org/');
+    assert.equal(result.blocks[1].text, 'Developer and builder');
+  });
+
+  test('rejects unsafe URLs and unsupported public block types', () => {
+    assert.equal(sanitizePageBlocks([
+      { id: 'bad-link', type: 'link', label: 'Unsafe', url: 'javascript:alert(1)' },
+    ]).valid, false);
+    assert.equal(sanitizePageBlocks([
+      { id: 'bad-block', type: 'raw-html', html: '<script>alert(1)</script>' },
+    ]).valid, false);
+  });
+
+  test('rejects duplicate block IDs and oversized block collections', () => {
+    assert.equal(sanitizePageBlocks([
+      { id: 'same', type: 'text', text: 'First' },
+      { id: 'same', type: 'text', text: 'Second' },
+    ]).valid, false);
+    assert.equal(sanitizePageBlocks(Array.from({ length: 41 }, (_, i) => ({
+      id: 'text-' + i, type: 'text', text: 'Content',
+    }))).valid, false);
+  });
+});
 
 describe('Axly URL Shortener API Tests', () => {
   const testUserId = '11111111-1111-1111-1111-111111111111';
