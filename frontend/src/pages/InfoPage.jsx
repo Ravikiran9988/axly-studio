@@ -1,16 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowLeft, ArrowRight, BookOpen, CheckCircle2, CircleHelp, ExternalLink,
-  FileText, Globe, LifeBuoy, Mail, MessageCircle, Search, ShieldAlert,
-  ShieldCheck, Trash2, Link2, QrCode, PanelsTopLeft, BarChart3, LockKeyhole,
-  AlertTriangle, Send, Check, Scale, Menu,
+  ArrowLeft, ArrowRight, CheckCircle2, CircleHelp, FileText, Globe,
+  LifeBuoy, Mail, Search, ShieldAlert, ShieldCheck, Trash2, Link2, QrCode,
+  PanelsTopLeft, BarChart3, LockKeyhole, AlertTriangle, Send,
 } from 'lucide-react';
 import { api } from '../context/AuthContext';
 import BrandMark from '../components/BrandMark';
 import toast from 'react-hot-toast';
 
-const SUPPORT_EMAIL = 'support@axly.in';
 const LAST_UPDATED = 'October 13, 2026';
 
 const PAGE_META = {
@@ -254,7 +252,13 @@ const LEGAL_DOCUMENTS = {
         ],
       },
       {
-        title: '12. Contact',
+        title: '12. Disputes and applicable law',
+        paragraphs: [
+          'These Terms are subject to applicable law and any non-waivable rights you may have where you live. A dispute should first be raised with support@axly.in where appropriate so that the issue can be reviewed. Any formal dispute will be handled by a court or tribunal with competent jurisdiction under the law that applies to the parties and the dispute.',
+        ],
+      },
+      {
+        title: '13. Contact',
         paragraphs: [
           'Questions about these Terms can be sent to support@axly.in. Please include “Terms” in the email subject.',
         ],
@@ -300,7 +304,7 @@ const LEGAL_DOCUMENTS = {
         paragraphs: [
           'Short links redirect to the destination selected by their creator. Published public pages are intended to be accessible to visitors who reach their URL. Information shown publicly on a page may be copied, indexed, or shared by others.',
           'We use infrastructure and service providers to host the website, API, database, and supporting functions. Those providers process information as needed to deliver their services. We may disclose information when required by law or when reasonably necessary to investigate abuse, protect people, or secure the Service.',
-          'We do not sell personal information as a business model. We do not make a promise that data can never be accessed, copied, or disclosed; no internet service can provide that absolute guarantee.',
+          'We do not sell personal information. We may share information with service providers to operate the Service or when legally required, as described in this Policy. No internet service can guarantee that information will never be accessed, copied, or disclosed.',
         ],
       },
       {
@@ -518,7 +522,7 @@ function ContactContent() {
         <div className="info-guide-icon"><Mail size={23} /></div>
         <p className="info-section-eyebrow">GENERAL SUPPORT</p>
         <h2>Email the Axly team</h2>
-        <p>For product questions, login trouble, broken links, billing or account questions, and feedback, email our support address.</p>
+        <p>For product questions, login trouble, broken links, account questions, or feedback, email our support address.</p>
         <a className="info-email-address" href="mailto:support@axly.in">support@axly.in</a>
         <a className="btn btn-primary" href="mailto:support@axly.in?subject=Axly%20Studio%20Support">Email support <ArrowRight size={15} /></a>
       </article>
@@ -555,9 +559,22 @@ function ReportAbuseContent() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     const raw = reportedLink.trim();
-    const code = raw.includes('/')
-      ? raw.replace(/\/+$/, '').split('/').filter(Boolean).pop()
-      : raw;
+    let code = raw;
+
+    if (/^https?:\/\//i.test(raw) || raw.includes('/')) {
+      try {
+        const candidate = new URL(/^https?:\/\//i.test(raw) ? raw : 'https://' + raw);
+        const host = candidate.hostname.toLowerCase();
+        if (!(host === 'axly.in' || host.endsWith('.axly.in'))) {
+          toast.error('Use an Axly short URL or enter just its short code. For a custom domain, email support@axly.in.');
+          return;
+        }
+        code = candidate.pathname.replace(/\/+$/, '').split('/').filter(Boolean).pop() || '';
+      } catch {
+        toast.error('Enter an Axly short URL or a valid short code.');
+        return;
+      }
+    }
 
     if (!/^[A-Za-z0-9_-]{3,30}$/.test(code || '')) {
       toast.error('Enter an Axly short code or a short URL such as s.axly.in/abc123.');
