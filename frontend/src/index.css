@@ -5354,3 +5354,27 @@ tbody tr:hover {
   .footer-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px 18px; }
   .footer-bottom { align-items: flex-start; flex-direction: column; }
 }
+
+/* ============================================
+   COLLAPSIBLE SIDEBAR & DESKTOP WORKSPACE UTILITIES
+   ============================================ */
+@media (min-width: 1025px) {
+  .sidebar.collapsed {
+    width: 72px;
+  }
+  .sidebar.collapsed .sidebar-logo {
+    padding: 18px 8px;
+    justify-content: center;
+  }
+  .sidebar.collapsed .sidebar-nav {
+    padding: 12px 6px;
+  }
+  .sidebar.collapsed .nav-item {
+    justify-content: center;
+    padding: 10px;
+  }
+  .sidebar.collapsed .user-info {
+    justify-content: center;
+    padding: 8px 4px;
+  }
+}

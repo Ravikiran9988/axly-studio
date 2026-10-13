@@ -5,6 +5,7 @@ import {
   Copy, Check, Filter,
 } from 'lucide-react';
 import { api } from '../context/AuthContext';
+import FeatureHelp from '../components/FeatureHelp';
 import toast from 'react-hot-toast';
 
 export default function CampaignsPage() {
@@ -138,7 +139,10 @@ export default function CampaignsPage() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Campaigns & UTM Intelligence</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h1 className="page-title">Campaigns & UTM Intelligence</h1>
+            <FeatureHelp featureKey="campaigns" title="Campaigns & UTM Intelligence" />
+          </div>
           <p className="page-subtitle">
             Track multi-channel initiatives with automatic UTM attribution and source comparisons
           </p>

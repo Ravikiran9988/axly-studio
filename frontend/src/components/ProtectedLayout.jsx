@@ -4,11 +4,11 @@ import { useAuth, api } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import {
   Bell, Check, AlertCircle, Info, Menu, X, Sun, Moon,
-  LayoutDashboard, Link2, Plus, BarChart3, MoreHorizontal
+  LayoutDashboard, Link2, Plus, BarChart3, MoreHorizontal, HelpCircle
 } from 'lucide-react';
 import Sidebar from './Sidebar';
-import BrandMark from './BrandMark';
 import CreateLinkModal from './CreateLinkModal';
+import AxlyLogo from './AxlyLogo';
 import toast from 'react-hot-toast';
 
 export default function ProtectedLayout() {
@@ -18,8 +18,19 @@ export default function ProtectedLayout() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('axly_sidebar_collapsed') === 'true';
+  });
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  const toggleSidebarCollapse = () => {
+    setSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('axly_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
 
   const fetchNotifications = async () => {
     if (!user) return;
@@ -96,11 +107,17 @@ export default function ProtectedLayout() {
   if (!user) return <Navigate to="/login" replace />;
 
   return (
-    <div className="app-layout">
-      {/* Sidebar with mobile drawer state */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+    <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      {/* Sidebar with mobile drawer state & desktop collapse */}
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)} 
+        onOpenCreateLink={() => setQuickCreateOpen(true)}
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={toggleSidebarCollapse}
+      />
 
-      <div className="app-main-wrapper">
+      <div className="app-main-wrapper" style={{ marginLeft: sidebarCollapsed ? 72 : undefined }}>
         {/* Top Header Actions Bar */}
         <header className="app-topbar">
           {/* Left: Mobile Hamburger & Brand / Desktop Breadcrumb */}
@@ -120,9 +137,8 @@ export default function ProtectedLayout() {
               <Menu size={20} />
             </button>
 
-            <Link to="/app/dashboard" className="mobile-brand-title mobile-only">
-              <div className="logo-icon"><BrandMark size={20} /></div>
-              <span>Axly Studio</span>
+            <Link to="/app/dashboard" className="mobile-brand-title mobile-only" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
+              <AxlyLogo size="sm" />
             </Link>
 
             {/* Desktop Display Workspace Context */}
@@ -139,8 +155,23 @@ export default function ProtectedLayout() {
             </div>
           </div>
 
-          {/* Right: Theme Toggle & Notifications Center */}
+          {/* Right: Theme Toggle & Global Help & Notifications Center */}
           <div className="app-topbar-right">
+            {/* Global Help Button */}
+            <Link
+              to="/app/help"
+              className="btn btn-secondary btn-sm"
+              style={{
+                width: 38, height: 38, borderRadius: 10,
+                padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}
+              title="Help & Guides"
+              aria-label="Help & Guides"
+              id="global-help-btn"
+            >
+              <HelpCircle size={18} />
+            </Link>
+
             <button
               onClick={toggleTheme}
               className="theme-toggle"

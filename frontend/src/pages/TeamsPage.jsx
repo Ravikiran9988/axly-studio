@@ -4,6 +4,7 @@ import {
   Users, UserPlus, Shield, Crown, Edit3, Trash2, Copy,
   Check, ArrowRightLeft, Building2, Plus, Mail, CheckCircle2
 } from 'lucide-react';
+import FeatureHelp from '../components/FeatureHelp';
 import toast from 'react-hot-toast';
 
 export default function TeamsPage() {
@@ -153,7 +154,10 @@ export default function TeamsPage() {
     <div className="page-container">
       <div className="page-header" style={{ marginBottom: 24 }}>
         <div>
-          <h1 className="page-title">Teams & Workspaces</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h1 className="page-title">Teams &amp; Workspaces</h1>
+            <FeatureHelp featureKey="teams" title="Teams & Workspaces" />
+          </div>
           <p className="page-subtitle">Collaborate with teammates using role-based access control (RBAC)</p>
         </div>
         <button className="btn btn-primary btn-sm" onClick={() => setCreateWsModal(true)}>

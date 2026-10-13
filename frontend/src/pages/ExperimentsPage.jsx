@@ -5,6 +5,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { api } from '../context/AuthContext';
+import FeatureHelp from '../components/FeatureHelp';
 import toast from 'react-hot-toast';
 
 export default function ExperimentsPage() {
@@ -94,7 +95,10 @@ export default function ExperimentsPage() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">A/B Experiments & Conversion Engine</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h1 className="page-title">A/B Experiments &amp; Conversion Engine</h1>
+            <FeatureHelp featureKey="experiments" title="A/B Experiments" />
+          </div>
           <p className="page-subtitle">
             Deploy deterministic multi-variant traffic splits with real conversion tracking and statistical metrics
           </p>

@@ -1,35 +1,70 @@
-import { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Link2, Settings, LogOut,
   Moon, Sun, Menu, X, ChevronRight, ShieldAlert,
   Megaphone, GitCompare, FileSpreadsheet, BarChart3,
-  Users, Code2, UserRound, PanelsTopLeft, Globe,
+  Users, Code2, UserRound, PanelsTopLeft, Globe, QrCode,
+  HelpCircle, Plus, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
+import AxlyLogo from './AxlyLogo';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import BrandMark from './BrandMark';
 import toast from 'react-hot-toast';
 
-const NAV_ITEMS = [
-  { to: '/app/dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
-  { to: '/app/links', icon: <Link2 size={18} />, label: 'My Links' },
-  { to: '/app/pages', icon: <PanelsTopLeft size={18} />, label: 'My Pages' },
-  { to: '/app/domains', icon: <Globe size={18} />, label: 'Domains' },
-  { to: '/app/campaigns', icon: <Megaphone size={18} />, label: 'Campaigns & UTM' },
-  { to: '/app/experiments', icon: <GitCompare size={18} />, label: 'A/B Experiments' },
-  { to: '/app/teams', icon: <Users size={18} />, label: 'Teams & Workspaces' },
-  { to: '/app/developer', icon: <Code2 size={18} />, label: 'Developer Platform' },
-  { to: '/app/bulk', icon: <FileSpreadsheet size={18} />, label: 'Bulk Import/Export' },
-  { to: '/app/analytics', icon: <BarChart3 size={18} />, label: 'Account Analytics' },
-  { to: '/app/profile', icon: <UserRound size={18} />, label: 'My Profile' },
-  { to: '/app/settings', icon: <Settings size={18} />, label: 'Settings' },
+const NAV_GROUPS = [
+  {
+    title: 'Overview',
+    items: [
+      { to: '/app/dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
+    ]
+  },
+  {
+    title: 'Create',
+    items: [
+      { isAction: true, actionType: 'create-link', icon: <Plus size={18} />, label: 'Shorten a Link' },
+      { to: '/app/qr', icon: <QrCode size={18} />, label: 'QR Code Generator' },
+      { to: '/app/pages', icon: <PanelsTopLeft size={18} />, label: 'My Pages' },
+    ]
+  },
+  {
+    title: 'Manage',
+    items: [
+      { to: '/app/links', icon: <Link2 size={18} />, label: 'My Links' },
+      { to: '/app/domains', icon: <Globe size={18} />, label: 'Custom Domains' },
+      { to: '/app/campaigns', icon: <Megaphone size={18} />, label: 'Campaigns & UTM' },
+      { to: '/app/experiments', icon: <GitCompare size={18} />, label: 'A/B Experiments' },
+    ]
+  },
+  {
+    title: 'Insights',
+    items: [
+      { to: '/app/analytics', icon: <BarChart3 size={18} />, label: 'Link Analytics' },
+    ]
+  },
+  {
+    title: 'Workspace',
+    items: [
+      { to: '/app/teams', icon: <Users size={18} />, label: 'Teams & Workspaces' },
+      { to: '/app/developer', icon: <Code2 size={18} />, label: 'Developer Tools' },
+      { to: '/app/bulk', icon: <FileSpreadsheet size={18} />, label: 'Bulk Import/Export' },
+    ]
+  },
+  {
+    title: 'Account',
+    items: [
+      { to: '/app/profile', icon: <UserRound size={18} />, label: 'My Profile' },
+      { to: '/app/settings', icon: <Settings size={18} />, label: 'Settings' },
+      { to: '/app/help', icon: <HelpCircle size={18} />, label: 'Help & Guides' },
+    ]
+  }
 ];
 
-export default function Sidebar({ isOpen, onClose }) {
+export default function Sidebar({ isOpen, onClose, onOpenCreateLink, isCollapsed, onToggleCollapse }) {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const [internalOpen, setInternalOpen] = useState(false);
 
   const isSidebarOpen = isOpen !== undefined ? isOpen : internalOpen;
@@ -62,74 +97,152 @@ export default function Sidebar({ isOpen, onClose }) {
         />
       )}
 
-      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
         {/* Studio Branding */}
-        <div className="sidebar-logo">
-          <div className="logo-icon"><BrandMark size={25} /></div>
-          <div>
-            <div className="logo-text">Axly Studio</div>
-            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: -2, fontWeight: 500 }}>
-              Enterprise Link Suite
-            </div>
+        <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', padding: isCollapsed ? '20px 10px' : '20px 16px' }}>
+          <NavLink to="/app/dashboard" onClick={handleClose} style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
+            {isCollapsed ? <AxlyLogo size="sm" variant="icon" /> : <AxlyLogo size="md" />}
+          </NavLink>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {/* Desktop Collapse Toggle */}
+            {onToggleCollapse && (
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                className="desktop-only"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: 4,
+                  borderRadius: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+              </button>
+            )}
+
+            {/* Mobile Close Button */}
+            <button
+              onClick={handleClose}
+              className="mobile-only"
+              style={{
+                width: 32, height: 32, borderRadius: 8,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'var(--text-muted)', background: 'var(--bg-glass)',
+                border: '1px solid var(--border-color)', cursor: 'pointer',
+              }}
+              aria-label="Close Sidebar"
+            >
+              <X size={16} />
+            </button>
           </div>
-          <button
-            onClick={handleClose}
-            className="mobile-only"
-            style={{
-              marginLeft: 'auto', width: 32, height: 32, borderRadius: 8,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--text-muted)', background: 'var(--bg-glass)',
-              border: '1px solid var(--border-color)', cursor: 'pointer',
-            }}
-            aria-label="Close Sidebar"
-          >
-            <X size={16} />
-          </button>
         </div>
 
-        {/* Navigation Items */}
-        <nav className="sidebar-nav">
-          <div className="nav-section-label">Studio App</div>
-          {NAV_ITEMS.map(item => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-              onClick={handleClose}
-              id={`nav-${item.label.toLowerCase().replace(' ', '-')}`}
-            >
-              {item.icon}
-              {item.label}
-              <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.35 }} />
-            </NavLink>
+        {/* Navigation Items Grouped */}
+        <nav className="sidebar-nav" style={{ padding: isCollapsed ? '12px 6px' : '16px 12px' }}>
+          {NAV_GROUPS.map((group, gIdx) => (
+            <div key={group.title} style={{ marginBottom: isCollapsed ? 6 : 10 }}>
+              {!isCollapsed && (
+                <div className="nav-section-label" style={{ marginTop: gIdx > 0 ? 6 : 0, padding: '8px 8px 4px' }}>
+                  {group.title}
+                </div>
+              )}
+              {group.items.map(item => {
+                if (item.isAction) {
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      className="nav-item"
+                      onClick={() => {
+                        handleClose();
+                        if (onOpenCreateLink) onOpenCreateLink();
+                      }}
+                      title={item.label}
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        justifyContent: isCollapsed ? 'center' : 'flex-start',
+                        color: 'var(--brand-primary)',
+                        fontWeight: 600,
+                      }}
+                      id={`nav-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
+                    >
+                      {item.icon}
+                      {!isCollapsed && <span>{item.label}</span>}
+                    </button>
+                  );
+                }
+
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                    onClick={handleClose}
+                    title={item.label}
+                    style={{ justifyContent: isCollapsed ? 'center' : 'flex-start' }}
+                    id={`nav-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
+                  >
+                    {item.icon}
+                    {!isCollapsed && (
+                      <>
+                        <span>{item.label}</span>
+                        <ChevronRight size={13} style={{ marginLeft: 'auto', opacity: 0.35 }} />
+                      </>
+                    )}
+                  </NavLink>
+                );
+              })}
+            </div>
           ))}
 
-          {/* Role-Gated Admin Navigation: Only visible when server verified role === 'admin' */}
+          {/* Role-Gated Admin Navigation: Strictly visible only when role === 'admin' */}
           {isAdmin && (
-            <>
-              <div className="nav-section-label" style={{ marginTop: 12 }}>Governance</div>
+            <div style={{ marginBottom: 10 }}>
+              {!isCollapsed && <div className="nav-section-label" style={{ marginTop: 6, padding: '8px 8px 4px' }}>Governance</div>}
               <NavLink
                 to="/admin"
                 className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
                 onClick={handleClose}
                 id="nav-admin-operations"
-                style={{ color: '#2563eb' }}
+                title="Admin Console"
+                style={{ color: '#2563eb', justifyContent: isCollapsed ? 'center' : 'flex-start' }}
               >
                 <ShieldAlert size={18} />
-                <span>Admin Console</span>
-                <span className="badge badge-admin" style={{ marginLeft: 'auto', fontSize: '0.65rem', padding: '1px 6px' }}>
-                  ADMIN
-                </span>
+                {!isCollapsed && (
+                  <>
+                    <span>Admin Console</span>
+                    <span className="badge badge-admin" style={{ marginLeft: 'auto', fontSize: '0.62rem', padding: '1px 5px' }}>
+                      ADMIN
+                    </span>
+                  </>
+                )}
               </NavLink>
-            </>
+            </div>
           )}
 
-          <div className="nav-section-label" style={{ marginTop: 12 }}>Preferences</div>
+          {!isCollapsed && <div className="nav-section-label" style={{ marginTop: 6, padding: '8px 8px 4px' }}>Preferences</div>}
 
           {/* Theme Toggle */}
-          <button className="nav-item" onClick={toggleTheme} id="theme-toggle-sidebar" style={{ width: '100%', textAlign: 'left' }}>
+          <button 
+            className="nav-item" 
+            onClick={toggleTheme} 
+            id="theme-toggle-sidebar" 
+            title={theme === 'dark' ? 'Light Theme' : 'Dark Theme'}
+            style={{ width: '100%', textAlign: 'left', justifyContent: isCollapsed ? 'center' : 'flex-start' }}
+          >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            {theme === 'dark' ? 'Light Theme' : 'Dark Theme'}
+            {!isCollapsed && <span>{theme === 'dark' ? 'Light Theme' : 'Dark Theme'}</span>}
           </button>
 
           {/* Sign Out */}
@@ -137,33 +250,38 @@ export default function Sidebar({ isOpen, onClose }) {
             className="nav-item"
             onClick={handleLogout}
             id="logout-btn"
-            style={{ color: 'var(--danger)', marginTop: 'auto', width: '100%', textAlign: 'left' }}
+            title="Sign Out"
+            style={{ color: 'var(--danger)', marginTop: 6, width: '100%', textAlign: 'left', justifyContent: isCollapsed ? 'center' : 'flex-start' }}
           >
             <LogOut size={18} />
-            Sign Out
+            {!isCollapsed && <span>Sign Out</span>}
           </button>
         </nav>
 
         {/* User Info Footer */}
-        <div className="sidebar-footer">
-          <div className="user-info" style={{ cursor: 'default' }}>
-            <div className="user-avatar">{initials}</div>
-            <div className="user-details" style={{ overflow: 'hidden' }}>
-              <div className="user-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {user?.name}
-              </div>
-              <div className="user-email" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {user?.email}
-              </div>
-            </div>
-            {isAdmin ? (
-              <span className="badge badge-admin" style={{ fontSize: '0.62rem', padding: '2px 6px', flexShrink: 0 }}>
-                ADMIN
-              </span>
-            ) : (
-              <span className="badge" style={{ fontSize: '0.62rem', padding: '2px 6px', flexShrink: 0, background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
-                MEMBER
-              </span>
+        <div className="sidebar-footer" style={{ padding: isCollapsed ? '12px 6px' : '14px 16px' }}>
+          <div className="user-info" style={{ cursor: 'default', justifyContent: isCollapsed ? 'center' : 'flex-start' }}>
+            <div className="user-avatar" style={{ width: 32, height: 32, fontSize: '0.8rem' }}>{initials}</div>
+            {!isCollapsed && (
+              <>
+                <div className="user-details" style={{ overflow: 'hidden' }}>
+                  <div className="user-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.85rem' }}>
+                    {user?.name}
+                  </div>
+                  <div className="user-email" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.72rem' }}>
+                    {user?.email}
+                  </div>
+                </div>
+                {isAdmin ? (
+                  <span className="badge badge-admin" style={{ fontSize: '0.6rem', padding: '1px 5px', flexShrink: 0 }}>
+                    ADMIN
+                  </span>
+                ) : (
+                  <span className="badge" style={{ fontSize: '0.6rem', padding: '1px 5px', flexShrink: 0, background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>
+                    MEMBER
+                  </span>
+                )}
+              </>
             )}
           </div>
         </div>

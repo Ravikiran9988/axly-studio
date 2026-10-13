@@ -20,6 +20,8 @@ import DeveloperPage from './pages/DeveloperPage';
 import TeamsPage from './pages/TeamsPage';
 import PagesPage from './pages/PagesPage';
 import PublicPageView from './pages/PublicPageView';
+import QrCodePage from './pages/QrCodePage';
+import HelpPage from './pages/HelpPage';
 import AdminPage from './pages/AdminPage';
 import InfoPage from './pages/InfoPage';
 import './index.css';
@@ -56,6 +58,7 @@ export default function App() {
               <Route index element={<Navigate to="/app/dashboard" replace />} />
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="links" element={<LinksPage />} />
+              <Route path="qr" element={<QrCodePage />} />
               <Route path="pages" element={<PagesPage />} />
               <Route path="domains" element={<DeveloperPage initialTab="domains" />} />
               <Route path="links/:id" element={<LinkDetailPage />} />
@@ -68,6 +71,7 @@ export default function App() {
               <Route path="analytics/:id" element={<AnalyticsPage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="help" element={<HelpPage />} />
             </Route>
 
             {/* Administrative console route guarded by AdminRoute */}
