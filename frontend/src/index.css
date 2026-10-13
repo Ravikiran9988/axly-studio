@@ -4190,3 +4190,28 @@ tbody tr:hover {
 @media (max-width: 520px) {
   .landing-nav-links.mobile-open { padding: 10px 14px 14px; }
 }
+
+/* ============================================
+   COLLAPSIBLE SIDEBAR & DESKTOP WORKSPACE UTILITIES
+   ============================================ */
+@media (min-width: 1025px) {
+  .sidebar.collapsed {
+    width: 72px;
+  }
+  .sidebar.collapsed .sidebar-logo {
+    padding: 18px 8px;
+    justify-content: center;
+  }
+  .sidebar.collapsed .sidebar-nav {
+    padding: 12px 6px;
+  }
+  .sidebar.collapsed .nav-item {
+    justify-content: center;
+    padding: 10px;
+  }
+  .sidebar.collapsed .user-info {
+    justify-content: center;
+    padding: 8px 4px;
+  }
+}
+
