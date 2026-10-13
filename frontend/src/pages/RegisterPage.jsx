@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, User, ArrowRight, Check, ShieldCheck, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import BrandMark from '../components/BrandMark';
 import toast from 'react-hot-toast';
 
 const PERKS = [
@@ -92,7 +93,7 @@ export default function RegisterPage() {
         background: 'var(--bg-card)',
       }}>
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 36, textDecoration: 'none' }}>
-          <div className="logo-icon" style={{ width: 36, height: 36 }}>A</div>
+          <div className="logo-icon" style={{ width: 36, height: 36 }}><BrandMark size={23} /></div>
           <span style={{ fontSize: '1.4rem', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
             Axly Studio
           </span>
