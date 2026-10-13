@@ -142,8 +142,10 @@ export default function LandingPage() {
       <section className="hero-section" id="shorten">
         <div className="hero-container">
           <div className="hero-badge">
-            <Zap size={14} style={{ color: 'var(--brand-primary)' }} />
-            <span>One workspace for every destination</span>
+            <span className="hero-badge-dot"></span>
+            <span className="hero-badge-tag">ENTERPRISE SUITE</span>
+            <span className="hero-badge-divider">/</span>
+            <span>Smart link infrastructure & public pages</span>
           </div>
 
           <h1 className="hero-title">
@@ -434,7 +436,7 @@ export default function LandingPage() {
       <section className="pages-showcase-section" id="pages">
         <div className="pages-showcase-container">
           <div className="pages-showcase-copy">
-            <span className="pages-showcase-eyebrow"><Sparkles size={14} /> CREATE YOUR OWN SPACE</span>
+            <span className="pages-showcase-eyebrow"><PanelsTopLeft size={14} /> PUBLIC LINK & BIO SUITE</span>
             <h2>One link can tell your whole story.</h2>
             <p>
               Build a shareable page for your portfolio, creator profile, business, or contact card. Start from a template, add links and content blocks, then publish to an Axly URL or a verified custom domain.
@@ -522,29 +524,69 @@ export default function LandingPage() {
       <section className="security-section" id="security">
         <div className="security-container">
           <div className="security-header">
-            <ShieldCheck size={32} style={{ color: 'var(--brand-primary)', marginBottom: 12 }} />
-            <h2 className="section-title" style={{ fontSize: '2rem' }}>Engineered for Enterprise-Grade Security</h2>
-            <p className="section-subtitle">
-              Every redirect and API request is protected by modern defensive engineering standards.
+            <div className="security-header-badge">
+              <ShieldCheck size={16} />
+              <span>DEFENSIVE ARCHITECTURE</span>
+            </div>
+            <h2 className="section-title" style={{ fontSize: '2.25rem', marginTop: 14 }}>
+              Engineered for Enterprise-Grade Security
+            </h2>
+            <p className="section-subtitle" style={{ maxWidth: 640, margin: '8px auto 0' }}>
+              Every redirect, API payload, and database transaction is strictly verified by modern defensive engineering standards.
             </p>
           </div>
 
           <div className="security-grid">
             <div className="security-card">
-              <h4><Shield size={16} style={{ marginRight: 6, verticalAlign: 'middle', color: 'var(--brand-primary)' }} />Strict Protocol Validation</h4>
-              <p>Rejects unsafe schemes (such as javascript: or data: URIs) and validates fully qualified hostnames.</p>
+              <div className="security-card-top">
+                <div className="security-icon-box">
+                  <Shield size={20} />
+                </div>
+                <span className="security-card-pill">RFC 3986</span>
+              </div>
+              <h3 className="security-card-title">Strict Protocol Validation</h3>
+              <p className="security-card-desc">
+                Automated filtering rejects dangerous pseudo-schemes (javascript:, data:) with recursive loop prevention and SSRF protection.
+              </p>
             </div>
+
             <div className="security-card">
-              <h4><Lock size={16} style={{ marginRight: 6, verticalAlign: 'middle', color: 'var(--brand-primary)' }} />Role-Based Access Control</h4>
-              <p>Database-enforced separation between standard users and system administrators on every protected endpoint.</p>
+              <div className="security-card-top">
+                <div className="security-icon-box">
+                  <Lock size={20} />
+                </div>
+                <span className="security-card-pill">Zero Trust</span>
+              </div>
+              <h3 className="security-card-title">Role-Based Access Control</h3>
+              <p className="security-card-desc">
+                Database-level policy separation strictly isolates system administration, workspace team roles, and public traffic.
+              </p>
             </div>
+
             <div className="security-card">
-              <h4><Zap size={16} style={{ marginRight: 6, verticalAlign: 'middle', color: 'var(--brand-primary)' }} />Intelligent Rate Limiting</h4>
-              <p>Independent rate limit tiers protect public endpoints and prevent credential abuse or denial of service.</p>
+              <div className="security-card-top">
+                <div className="security-icon-box">
+                  <Zap size={20} />
+                </div>
+                <span className="security-card-pill">Token Bucket</span>
+              </div>
+              <h3 className="security-card-title">Intelligent Rate Limiting</h3>
+              <p className="security-card-desc">
+                Independent sliding-window rate limit tiers shield public endpoints, API tokens, and authentication against brute-force abuse.
+              </p>
             </div>
+
             <div className="security-card">
-              <h4><Database size={16} style={{ marginRight: 6, verticalAlign: 'middle', color: 'var(--brand-primary)' }} />PostgreSQL Persistence</h4>
-              <p>ACID-compliant storage powered by Lakebase Postgres on Neon with encrypted TLS 1.3 database connections.</p>
+              <div className="security-card-top">
+                <div className="security-icon-box">
+                  <Database size={20} />
+                </div>
+                <span className="security-card-pill">TLS 1.3 / ACID</span>
+              </div>
+              <h3 className="security-card-title">PostgreSQL Persistence</h3>
+              <p className="security-card-desc">
+                Enterprise ACID durability powered by Lakebase Postgres on Neon with encrypted TLS 1.3 database connections.
+              </p>
             </div>
           </div>
         </div>

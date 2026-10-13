@@ -827,21 +827,51 @@ tbody tr:hover {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 18px;
+  padding: 6px 16px;
   border-radius: var(--radius-full);
-  background: rgba(124, 58, 237, 0.08);
-  border: 1px solid rgba(124, 58, 237, 0.22);
-  color: var(--brand-primary);
-  font-size: 0.84rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
   font-weight: 600;
   margin-bottom: 28px;
   letter-spacing: 0.01em;
+  transition: all var(--transition-fast);
+}
+
+.hero-badge:hover {
+  border-color: rgba(37, 99, 235, 0.35);
+  box-shadow: 0 4px 14px -2px rgba(37, 99, 235, 0.12);
+}
+
+.hero-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.hero-badge-tag {
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--brand-primary);
+}
+
+.hero-badge-divider {
+  color: var(--border-color);
+  font-weight: 300;
+  user-select: none;
 }
 
 [data-theme="dark"] .hero-badge {
-  background: rgba(124, 58, 237, 0.16);
-  border-color: rgba(168, 85, 247, 0.38);
-  color: #c084fc;
+  background: var(--bg-card);
+  border-color: var(--border-color);
+  color: var(--text-secondary);
 }
 
 .hero-title {
@@ -1021,51 +1051,106 @@ tbody tr:hover {
 
 /* Security Section */
 .security-section {
-  padding: 70px 24px;
+  padding: 84px 24px;
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-color);
   border-bottom: 1px solid var(--border-color);
 }
 
 .security-container {
-  max-width: 1100px;
+  max-width: 1160px;
   margin: 0 auto;
   text-align: center;
 }
 
+.security-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  color: var(--brand-primary);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
 .security-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px;
-  margin-top: 40px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 22px;
+  margin-top: 48px;
   text-align: left;
 }
 
 .security-card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 24px;
+  border-radius: 18px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
   transition: all var(--transition-base);
+  box-shadow: var(--shadow-sm);
+  position: relative;
 }
 
 .security-card:hover {
-  border-color: rgba(124, 58, 237, 0.25);
-  box-shadow: var(--shadow-glow);
-  transform: translateY(-2px);
+  border-color: rgba(37, 99, 235, 0.35);
+  box-shadow: 0 16px 36px -10px rgba(37, 99, 235, 0.12);
+  transform: translateY(-3px);
 }
 
-.security-card h4 {
-  font-size: 1rem;
+.security-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.security-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  color: var(--brand-primary);
+  display: grid;
+  place-items: center;
+  transition: all var(--transition-fast);
+}
+
+.security-card:hover .security-icon-box {
+  background: var(--brand-primary);
+  color: #fff;
+  border-color: var(--brand-primary);
+}
+
+.security-card-pill {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.security-card-title {
+  font-size: 1.08rem;
   font-weight: 700;
-  margin-bottom: 8px;
+  margin: 0 0 10px 0;
   color: var(--text-primary);
 }
 
-.security-card p {
+.security-card-desc {
   font-size: 0.88rem;
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: 1.6;
+  margin: 0;
 }
 
 /* CTA Section */

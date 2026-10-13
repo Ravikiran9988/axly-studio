@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import { api } from '../context/AuthContext';
 import {
   PanelsTopLeft, Plus, Edit3, Trash2, Copy, ExternalLink, Eye,
-  Globe, BarChart3, Users, Sparkles, Save, ArrowLeft, ArrowUp, ArrowDown,
-  Link2, Type, Image, Video, Minus, Mail, CalendarClock, Palette, Send, WandSparkles
+  Globe, BarChart3, Users, LayoutTemplate, Save, ArrowLeft, ArrowUp, ArrowDown,
+  Link2, Type, Image, Video, Minus, Mail, CalendarClock, Palette, Send, PenTool
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const TEMPLATES = [
   { key: 'minimal', name: 'Minimal', summary: 'A clean personal link page', icon: Link2, pageType: 'link-in-bio' },
-  { key: 'creator', name: 'Creator', summary: 'Socials and featured content', icon: Sparkles, pageType: 'creator' },
+  { key: 'creator', name: 'Creator', summary: 'Socials and featured content', icon: LayoutTemplate, pageType: 'creator' },
   { key: 'developer', name: 'Developer portfolio', summary: 'Projects and professional profiles', icon: PanelsTopLeft, pageType: 'portfolio' },
   { key: 'business', name: 'Business', summary: 'Contact info and lead capture', icon: Globe, pageType: 'link-in-bio' },
   { key: 'business-card', name: 'Digital business card', summary: 'Contact information and vCard download', icon: Users, pageType: 'business-card' },
@@ -585,7 +585,7 @@ export default function PagesPage() {
               {form.status === 'published' && <a className="btn btn-secondary" style={{width:'100%',marginTop:8}} href={publicUrl(form.slug)} target="_blank" rel="noreferrer"><ExternalLink size={15}/> Open live page</a>}
             </section>
             <section className="card pages-side-card">
-              <div className="pages-section-title"><div className="pages-section-icon"><WandSparkles size={17}/></div><div><h2>AI copy helper</h2><p>Optional server-configured provider. Review any copy before saving.</p></div></div>
+              <div className="pages-section-title"><div className="pages-section-icon"><PenTool size={17}/></div><div><h2>Copy suggestion helper</h2><p>Optional server-configured provider. Review any copy before saving.</p></div></div>
               <input className="form-input" placeholder="What is this page about?" value={aiTopic} onChange={e=>setAiTopic(e.target.value)}/>
               <button type="button" className="btn btn-secondary" style={{width:'100%',marginTop:10}} onClick={suggestCopy} disabled={aiLoading}>{aiLoading?'Generating…':'Suggest title and bio'}</button>
             </section>
