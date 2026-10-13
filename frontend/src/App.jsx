@@ -18,8 +18,18 @@ import SettingsPage from './pages/SettingsPage';
 import ProfilePage from './pages/ProfilePage';
 import DeveloperPage from './pages/DeveloperPage';
 import TeamsPage from './pages/TeamsPage';
+import PagesPage from './pages/PagesPage';
+import PublicPageView from './pages/PublicPageView';
 import AdminPage from './pages/AdminPage';
 import './index.css';
+
+function HomeRoute() {
+  const host = window.location.hostname.toLowerCase();
+  const axlyHost = host === 'url.axly.in' || host === 'axly.in' || host === 'localhost' ||
+    host === '127.0.0.1' || host === 's.axly.in' || host === 'api.axly.in' ||
+    host.endsWith('.vercel.app');
+  return axlyHost ? <LandingPage /> : <PublicPageView customDomainHost={host} />;
+}
 
 export default function App() {
   return (
@@ -28,15 +38,18 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             {/* Public routes */}
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<HomeRoute />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/p/:slug" element={<PublicPageView />} />
 
             {/* Standard user application workspace */}
             <Route path="/app" element={<ProtectedLayout />}>
               <Route index element={<Navigate to="/app/dashboard" replace />} />
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="links" element={<LinksPage />} />
+              <Route path="pages" element={<PagesPage />} />
+              <Route path="domains" element={<DeveloperPage initialTab="domains" />} />
               <Route path="links/:id" element={<LinkDetailPage />} />
               <Route path="campaigns" element={<CampaignsPage />} />
               <Route path="experiments" element={<ExperimentsPage />} />
