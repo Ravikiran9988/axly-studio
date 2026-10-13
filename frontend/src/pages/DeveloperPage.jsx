@@ -58,7 +58,7 @@ export default function DeveloperPage() {
   // Domains State
   const [domains, setDomains] = useState([]);
   const [domainModalOpen, setDomainModalOpen] = useState(false);
-  const [newDomainForm, setNewDomainForm] = useState({ domain: '' });
+  const [newDomainForm, setNewDomainForm] = useState({ domain: '', domainType: 'shortlinks' });
   const [verifyingDomainId, setVerifyingDomainId] = useState(null);
 
   const [copiedText, setCopiedText] = useState('');
@@ -195,7 +195,7 @@ export default function DeveloperPage() {
     try {
       await api.post('/domains', newDomainForm);
       setDomainModalOpen(false);
-      setNewDomainForm({ domain: '' });
+      setNewDomainForm({ domain: '', domainType: 'shortlinks' });
       loadData();
       toast.success('Custom domain registered. Configure DNS to verify ownership.');
     } catch (err) {
@@ -219,7 +219,7 @@ export default function DeveloperPage() {
 
   // Delete Domain
   const handleDeleteDomain = async (id, domainName) => {
-    if (!confirm(`Remove custom domain "${domainName}"? Short links using this domain will fall back to default short domain.`)) return;
+    if (!confirm(`Remove custom domain "${domainName}"? Pages or short links using this domain will no longer use it.`)) return;
     try {
       await api.delete(`/domains/${id}`);
       toast.success('Domain removed.');
@@ -470,7 +470,7 @@ export default function DeveloperPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 600 }}>Custom Branded Domains</h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Shorten links using your own branded root domain or subdomain</p>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Connect a domain for published profile pages or branded short links</p>
             </div>
             <button className="btn btn-primary btn-sm" onClick={() => setDomainModalOpen(true)} id="btn-add-custom-domain">
               <Plus size={16} /> Add Custom Domain
@@ -483,7 +483,7 @@ export default function DeveloperPage() {
             <div className="card" style={{ textAlign: 'center', padding: 48 }}>
               <Globe size={32} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
               <h4>No custom domains configured</h4>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 16 }}>Add a domain (like <code>links.mybrand.com</code>) to replace the default <code>s.axly.in</code> domain.</p>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 16 }}>Add a subdomain like <code>links.mybrand.com</code> for a page or <code>go.mybrand.com</code> for branded short links.</p>
               <button className="btn btn-primary btn-sm" onClick={() => setDomainModalOpen(true)}>Add Domain</button>
             </div>
           ) : (
@@ -494,12 +494,13 @@ export default function DeveloperPage() {
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <h4 style={{ fontSize: '1.05rem', margin: 0 }}>{d.domain}</h4>
+                        <span className="badge" style={{ background: 'var(--bg-secondary)', marginLeft: 4 }}>{d.domain_type === 'page' ? 'Page hosting' : 'Short links'}</span>
                         <span className={`badge ${d.status === 'active' ? 'badge-active' : 'badge-warning'}`}>
                           {d.status === 'active' ? '✓ Verified & Active' : '⏳ Pending DNS'}
                         </span>
                       </div>
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                        {d.status === 'active' ? `Verified on ${new Date(d.verified_at).toLocaleDateString()}` : 'Awaiting DNS configuration'}
+                        {d.status === 'active' ? `DNS verified on ${new Date(d.verified_at).toLocaleDateString()} · HTTPS: ${d.ssl_status || 'pending'}` : 'Awaiting correct CNAME configuration'}
                       </p>
                     </div>
 
@@ -535,7 +536,7 @@ export default function DeveloperPage() {
                           <tr>
                             <td style={{ fontWeight: 600, color: 'var(--brand-primary)' }}>CNAME</td>
                             <td><code>{d.domain}</code></td>
-                            <td><code>cname.axly.in</code></td>
+                            <td><code>{d.dns_expected_value || (d.domain_type === 'page' ? 'url.axly.in' : 'axly-api.onrender.com')}</code></td>
                           </tr>
                           <tr>
                             <td style={{ fontWeight: 600, color: 'var(--brand-primary)' }}>TXT</td>
@@ -693,20 +694,28 @@ export default function DeveloperPage() {
       {domainModalOpen && (
         <div className="modal-backdrop">
           <div className="modal-card" style={{ maxWidth: 480 }}>
-            <h3 style={{ marginBottom: 16 }}>Add Custom Short Domain</h3>
+            <h3 style={{ marginBottom: 16 }}>Connect a Custom Domain</h3>
             <form onSubmit={handleCreateDomain} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div className="form-group">
+                <label className="form-label">Domain purpose</label>
+                <select className="form-input" value={newDomainForm.domainType}
+                  onChange={e => setNewDomainForm(prev => ({ ...prev, domainType: e.target.value }))}>
+                  <option value="shortlinks">Branded short links (go.example.com)</option>
+                  <option value="page">Published page (links.example.com)</option>
+                </select>
+              </div>
               <div className="form-group">
                 <label className="form-label">Domain Name</label>
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="e.g. links.mybrand.com"
+                  placeholder={newDomainForm.domainType === 'page' ? 'e.g. links.mybrand.com' : 'e.g. go.mybrand.com'}
                   value={newDomainForm.domain}
-                  onChange={e => setNewDomainForm({ domain: e.target.value })}
+                  onChange={e => setNewDomainForm(prev => ({ ...prev, domain: e.target.value }))}
                   required
                 />
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                  Enter the exact FQDN you wish to use for branded short links.
+                  Enter a hostname you control. Configure the CNAME, then add this domain to the matching hosting provider before expecting HTTPS traffic.
                 </span>
               </div>
 
