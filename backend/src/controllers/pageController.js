@@ -222,7 +222,7 @@ const hashVisitor = (req, pageId) => crypto
   .update(`${pageId}:${req.ip || req.socket?.remoteAddress || 'unknown'}:${req.headers['user-agent'] || ''}`)
   .digest('hex');
 
-const getOwnedPage = async (id, userId) => {
+const getUserQuota = async (userId) => {\n  const result = await query('SELECT plan FROM users WHERE id = $1', [userId]);\n  return countPageQuota(result.rows[0]?.plan || 'free');\n};\n\nconst getOwnedPage = async (id, userId) => {
   const result = await query('SELECT * FROM public_pages WHERE id = $1 AND user_id = $2', [id, userId]);
   return result.rows[0] || null;
 };
@@ -252,7 +252,7 @@ export const listPages = async (req, res) => {
       WHERE p.user_id = $1
       ORDER BY p.updated_at DESC
     `, [req.user.id]);
-    const quota = countPageQuota(req.user.plan);
+    const quota = await getUserQuota(req.user.id);
     res.json({ success: true, data: result.rows, quota });
   } catch (err) {
     console.error('listPages error:', err);
@@ -357,13 +357,14 @@ export const updatePage = async (req, res) => {
     const set = [];
     const params = [];
     for (const key of keys) {
-      if (key in req.body || ({
+      const aliases = {
         profile_image_url:'profileImageUrl', page_type:'pageType', template_key:'templateKey',
         seo_title:'seoTitle', seo_description:'seoDescription', og_image_url:'ogImageUrl',
         publish_at:'publishAt', unpublish_at:'unpublishAt', contact_email:'contactEmail',
         contact_phone:'contactPhone', contact_company:'contactCompany', contact_job_title:'contactJobTitle',
         custom_domain_id:'customDomainId',
-      }[key] in req.body)) {
+      };
+      if (key in req.body || (aliases[key] && aliases[key] in req.body)) {
         let fieldValue = values[key];
         if (key === 'theme' || key === 'blocks') fieldValue = JSON.stringify(fieldValue);
         params.push(fieldValue ?? null);
