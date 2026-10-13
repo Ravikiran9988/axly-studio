@@ -89,6 +89,12 @@ export default function LandingPage() {
           <a href="#pages" className="nav-link" onClick={() => setMobileNavOpen(false)}>Pages</a>
           <a href="#features" className="nav-link" onClick={() => setMobileNavOpen(false)}>Platform</a>
           <a href="#security" className="nav-link" onClick={() => setMobileNavOpen(false)}>Security</a>
+          {!user && (
+            <>
+              <Link to="/login" className="nav-link landing-mobile-auth-link" onClick={() => setMobileNavOpen(false)}>Sign in</Link>
+              <Link to="/register" className="nav-link landing-mobile-auth-link landing-mobile-auth-primary" onClick={() => setMobileNavOpen(false)}>Create a free account</Link>
+            </>
+          )}
         </nav>
 
         <div className="nav-actions landing-nav-actions">
