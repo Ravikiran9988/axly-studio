@@ -804,6 +804,19 @@ export const runMigrations = async () => {
       CREATE INDEX IF NOT EXISTS idx_page_leads_page_date ON page_leads(page_id, created_at DESC);
     `);
 
+    // Page revision history for safe edits and restore operations.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS page_revisions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        page_id UUID REFERENCES public_pages(id) ON DELETE CASCADE NOT NULL,
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+        revision_label VARCHAR(160) NOT NULL DEFAULT 'Saved version',
+        snapshot JSONB NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_page_revisions_page_date ON page_revisions(page_id, created_at DESC);
+    `);
+
     await client.query('COMMIT');
     console.log('✅ Phase 2, 3 & Phase 4 database schema, tables, and indexes migrated successfully');
   } catch (err) {
