@@ -111,6 +111,7 @@ export default function LandingPage() {
           <Link to="/qr" className="nav-link" onClick={() => setMobileNavOpen(false)}>QR Codes</Link>
           <a href="#pages" className="nav-link" onClick={() => setMobileNavOpen(false)}>Public Pages</a>
           <a href="#features" className="nav-link" onClick={() => setMobileNavOpen(false)}>Features</a>
+          <Link to="/help" className="nav-link" onClick={() => setMobileNavOpen(false)}>Help &amp; Guides</Link>
           <a href="#security" className="nav-link" onClick={() => setMobileNavOpen(false)}>Security</a>
         </nav>
 
@@ -173,11 +174,11 @@ export default function LandingPage() {
           </div>
 
           <h1 className="hero-title">
-            Shorten links. <span className="gradient-text">Share smarter.</span>
+            Shorten links. Build pages. <span className="gradient-text">Grow your reach.</span>
           </h1>
 
           <p className="hero-subtitle">
-            Create short links, build branded pages, generate QR codes, and understand how your audience engages—all in one place.
+            Create shareable short links, generate QR codes, publish public profile pages, and understand your audience with Axly Studio.
           </p>
 
           {/* Primary URL Shortening Form */}
@@ -512,6 +513,53 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* How Axly Works Section */}
+      <section className="how-it-works-section" style={{ padding: '64px 20px', background: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--brand-primary)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+            <Sparkles size={14} /> Intuitive 3-Step Flow
+          </div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '2.1rem', fontWeight: 800, margin: '0 0 10px' }}>
+            How Axly Works
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', maxWidth: 600, margin: '0 auto 40px' }}>
+            No steep learning curves or complicated configurations. Start achieving more in minutes.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 24, textAlign: 'left' }}>
+            <div className="card" style={{ padding: 28, background: 'var(--bg-card)' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(37,99,235,0.1)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem', marginBottom: 16 }}>
+                1
+              </div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px' }}>Create</h3>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                Shorten a link with an optional custom alias, generate a customized QR code, or build a public profile page.
+              </p>
+            </div>
+
+            <div className="card" style={{ padding: 28, background: 'var(--bg-card)' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(16,185,129,0.1)', color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem', marginBottom: 16 }}>
+                2
+              </div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px' }}>Share</h3>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                Share your short link or QR code across social media bios, email campaigns, printed business cards, and ad promotions.
+              </p>
+            </div>
+
+            <div className="card" style={{ padding: 28, background: 'var(--bg-card)' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(124,58,237,0.1)', color: '#7c3aed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem', marginBottom: 16 }}>
+                3
+              </div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px' }}>Understand</h3>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                Review real-time clicks, unique visitors, top geographic referrers, and device breakdowns in your clean analytics dashboard.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Public Page Builder Showcase */}
       <section className="pages-showcase-section" id="pages">
         <div className="pages-showcase-container">
@@ -704,6 +752,7 @@ export default function LandingPage() {
             <Link to="/qr" className="nav-link">QR Codes</Link>
             <a href="#pages" className="nav-link">Public Pages</a>
             <a href="#features" className="nav-link">Features</a>
+            <Link to="/help" className="nav-link">Help &amp; Guides</Link>
             <a href="#security" className="nav-link">Security</a>
             <button 
               className="nav-link" 

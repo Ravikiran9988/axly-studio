@@ -6,6 +6,7 @@ import {
   Sparkles, Palette, Sliders, ArrowRight, ShieldCheck, Link2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import FeatureHelp from '../components/FeatureHelp';
 
 const COLOR_PRESETS = [
   { label: 'Classic Slate', fg: '#0f172a', bg: '#ffffff' },
@@ -141,6 +142,7 @@ export default function QrCodePage() {
               <QrCode size={20} />
             </span>
             QR Code Generator
+            <FeatureHelp featureKey="qr" title="QR Code Generator" />
           </h1>
           <p className="page-subtitle">
             Turn any website, page, or short link into a high-contrast scannable QR code you can download and share.

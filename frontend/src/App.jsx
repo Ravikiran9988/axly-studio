@@ -22,6 +22,7 @@ import TeamsPage from './pages/TeamsPage';
 import PagesPage from './pages/PagesPage';
 import PublicPageView from './pages/PublicPageView';
 import QrCodePage from './pages/QrCodePage';
+import HelpPage from './pages/HelpPage';
 import AdminPage from './pages/AdminPage';
 import './index.css';
 
@@ -48,6 +49,7 @@ function PublicQrPage() {
           <Link to="/" className="nav-link">Home</Link>
           <Link to="/#shorten" className="nav-link">URL Shortener</Link>
           <Link to="/qr" className="nav-link active">QR Codes</Link>
+          <Link to="/help" className="nav-link">Help</Link>
         </nav>
         <div className="nav-actions landing-nav-actions">
           <Link to="/login" className="btn btn-ghost">Sign in</Link>
@@ -56,6 +58,41 @@ function PublicQrPage() {
       </header>
       <main style={{ flex: 1, padding: '32px 16px' }}>
         <QrCodePage />
+      </main>
+      <footer className="landing-footer">
+        <div className="footer-content">
+          <div className="footer-brand"><AxlyLogo size="sm" /></div>
+          <p className="footer-copy">© 2026 Axly Studio. Built for speed, security, and privacy.</p>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function PublicHelpPage() {
+  const { user } = useAuth();
+  if (user) {
+    return <Navigate to="/app/help" replace />;
+  }
+  return (
+    <div className="landing-page" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <header className="landing-nav">
+        <Link to="/" className="nav-logo" aria-label="Axly Studio Home" style={{ display: 'inline-flex', alignItems: 'center' }}>
+          <AxlyLogo size="md" />
+        </Link>
+        <nav className="nav-links landing-nav-links">
+          <Link to="/" className="nav-link">Home</Link>
+          <Link to="/#shorten" className="nav-link">URL Shortener</Link>
+          <Link to="/qr" className="nav-link">QR Codes</Link>
+          <Link to="/help" className="nav-link active">Help &amp; Guides</Link>
+        </nav>
+        <div className="nav-actions landing-nav-actions">
+          <Link to="/login" className="btn btn-ghost">Sign in</Link>
+          <Link to="/register" className="btn btn-primary">Get Started</Link>
+        </div>
+      </header>
+      <main style={{ flex: 1, padding: '32px 16px' }}>
+        <HelpPage />
       </main>
       <footer className="landing-footer">
         <div className="footer-content">
@@ -78,6 +115,7 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/qr" element={<PublicQrPage />} />
+            <Route path="/help" element={<PublicHelpPage />} />
             <Route path="/p/:slug" element={<PublicPageView />} />
 
             {/* Standard user application workspace */}
@@ -98,6 +136,7 @@ export default function App() {
               <Route path="analytics/:id" element={<AnalyticsPage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="help" element={<HelpPage />} />
             </Route>
 
             {/* Administrative console route guarded by AdminRoute */}

@@ -6,6 +6,7 @@ import {
   Link2, Type, Image, Video, Minus, Mail, CalendarClock, Palette, Send, PenTool
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import FeatureHelp from '../components/FeatureHelp';
 
 const TEMPLATES = [
   { key: 'minimal', name: 'Link in Bio', summary: 'A clean single page for your top links and socials', icon: Link2, pageType: 'link-in-bio' },
@@ -339,7 +340,10 @@ export default function PagesPage() {
       <div className="page-container pages-studio">
         <div className="page-header">
           <div>
-            <h1 className="page-title">My Pages</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h1 className="page-title">My Pages</h1>
+              <FeatureHelp featureKey="pages" title="Public Profile Pages" />
+            </div>
             <p className="page-subtitle">Create a single page where people can find your links, social profiles, work, and contact information.</p>
           </div>
           <button className="btn btn-primary" onClick={() => setCreating(true)} disabled={pages.length >= quota.pages}>

@@ -5,6 +5,7 @@ import {
   Copy, Check, Filter,
 } from 'lucide-react';
 import { api } from '../context/AuthContext';
+import FeatureHelp from '../components/FeatureHelp';
 import toast from 'react-hot-toast';
 
 export default function CampaignsPage() {

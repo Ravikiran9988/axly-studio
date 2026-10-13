@@ -6,6 +6,7 @@ import {
 import { api } from '../context/AuthContext';
 import CreateLinkModal from '../components/CreateLinkModal';
 import LinkCard from '../components/LinkCard';
+import FeatureHelp from '../components/FeatureHelp';
 import toast from 'react-hot-toast';
 
 export default function LinksPage() {
@@ -158,7 +159,10 @@ export default function LinksPage() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Links Workspace</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h1 className="page-title">My Links</h1>
+            <FeatureHelp featureKey="shorten" title="My Links" />
+          </div>
           <p className="page-subtitle">
             {pagination.total} link{pagination.total !== 1 ? 's' : ''} total · Smart routing, analytics, and custom aliases
           </p>
