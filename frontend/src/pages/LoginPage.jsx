@@ -225,30 +225,6 @@ export default function LoginPage() {
           </Link>
         </div>
 
-        {/* Demo Credentials Box */}
-        <div style={{
-          marginTop: 28,
-          padding: '16px 18px',
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 'var(--radius-md)',
-          fontSize: '0.82rem',
-          color: 'var(--text-secondary)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 6,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, color: 'var(--text-primary)' }}>
-            <Zap size={15} style={{ color: 'var(--brand-primary)', flexShrink: 0 }} />
-            <span>Pre-Seeded Demo Credentials</span>
-          </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-            • <strong style={{ color: 'var(--text-primary)' }}>Admin:</strong> demo@axly.in / demo1234 (Routes to <code>/admin</code>)
-          </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-            • <strong style={{ color: 'var(--text-primary)' }}>Standard Member:</strong> user@axly.in / user1234 (Routes to <code>/app/dashboard</code>)
-          </div>
-        </div>
       </div>
     </div>
   );
