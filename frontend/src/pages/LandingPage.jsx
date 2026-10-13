@@ -4,7 +4,7 @@ import {
   Link2, ArrowRight, Moon, Sun, Copy, Check, ExternalLink, 
   ShieldCheck, Zap, BarChart2, Globe, Sparkles, QrCode, Lock,
   CheckCircle2, XCircle, ShieldAlert, UserRound, PanelsTopLeft, Megaphone,
-  GitCompare, Users, Code2, CalendarClock, Mail
+  GitCompare, Users, Code2, Mail
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth, api } from '../context/AuthContext';
