@@ -650,7 +650,7 @@ export default function PagesPage() {
                 <div className="form-group"><label className="form-label">Content alignment</label><select className="form-input" value={form.theme.layout || 'centered'} onChange={e=>updateTheme('layout',e.target.value)}><option value="centered">Centered</option><option value="left">Left aligned</option></select></div>
               </div>
               <div className="pages-form-two">
-                <div className="form-group"><label className="form-label">Accent color</label><input className="form-input pages-color-input" type="color" value={form.theme.accent} onChange={e=>updateTheme('accent',e.target.value)}/>
+                <div className="form-group"><label className="form-label">Accent color</label><input className="form-input pages-color-input" type="color" value={form.theme.accent} onChange={e=>updateTheme('accent',e.target.value)}/></div>
                 <div className="form-group"><label className="form-label">Background color</label><input className="form-input pages-color-input" type="color" value={form.theme.background} onChange={e=>updateTheme('background',e.target.value)}/></div>
               </div>
             </section>
