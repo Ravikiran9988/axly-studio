@@ -57,6 +57,19 @@ const socialIcon = (platform) => {
   return <Globe size={17} />;
 };
 
+const linkIcon = (icon) => {
+  const key = String(icon || 'link').toLowerCase();
+  if (key === 'website' || key === 'globe') return <Globe size={17} />;
+  if (key === 'github' || key === 'code') return <Code2 size={17} />;
+  if (key === 'linkedin' || key === 'work') return <Briefcase size={17} />;
+  if (key === 'instagram' || key === 'camera') return <Camera size={17} />;
+  if (key === 'youtube' || key === 'video') return <PlayCircle size={17} />;
+  if (key === 'email' || key === 'mail') return <Mail size={17} />;
+  if (key === 'download' || key === 'file') return <Download size={17} />;
+  if (key === 'external' || key === 'external-link') return <ExternalLink size={17} />;
+  return <Link2 size={17} />;
+};
+
 export default function PublicPageView({ customDomainHost = null }) {
   const { slug: routeSlug } = useParams();
   const slug = routeSlug || null;
@@ -169,7 +182,7 @@ export default function PublicPageView({ customDomainHost = null }) {
     <main className={'public-page-view ' + (dark ? 'public-page-dark' : 'public-page-light')}>
       <div className="public-page-orb public-page-orb-one" style={{ background: accent }} />
       <div className="public-page-orb public-page-orb-two" style={{ background: accent }} />
-      <article className="public-page-shell" style={{ background: bg, color: foreground, fontFamily: theme.font === 'space-grotesk' ? '"Space Grotesk", sans-serif' : 'Inter, system-ui, sans-serif' }}>
+      <article className="public-page-shell" style={{ background: bg, color: foreground, fontFamily: theme.font === 'space-grotesk' ? '"Space Grotesk", sans-serif' : theme.font === 'system' ? 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' : 'Inter, system-ui, sans-serif' }}>
         <div className={'public-page-content ' + (theme.layout === 'left' ? 'public-page-content-left' : '')}>
           <div className="public-page-toolbar">
             <span className="public-page-brand"><span className="public-page-brand-icon"><Link2 size={13}/></span> AXLY PAGE</span>
@@ -193,7 +206,7 @@ export default function PublicPageView({ customDomainHost = null }) {
             {visibleBlocks.map((block) => {
               if (block.type === 'heading') return <h2 className="public-page-heading-block" key={block.id}>{block.text}</h2>;
               if (block.type === 'text') return <p className="public-page-text-block" key={block.id} style={{ color: muted }}>{block.text}</p>;
-              if (block.type === 'divider') return <div className="public-page-divider" key={block.id} />;
+              if (block.type === 'divider') return <div className={'public-page-divider ' + (block.style === 'space' ? 'public-page-divider-space' : '')} key={block.id} />;
               if (block.type === 'image') return <figure className="public-page-image-block" key={block.id}><img src={block.url} alt={block.alt || ''} loading="lazy"/>{block.caption && <figcaption>{block.caption}</figcaption>}</figure>;
               if (block.type === 'video') {
                 const embed = getEmbedUrl(block.url);
@@ -215,7 +228,7 @@ export default function PublicPageView({ customDomainHost = null }) {
               if (['link','social','file'].includes(block.type) && block.url) {
                 const featured = block.featured === true;
                 return <a className={'public-page-link-block ' + (featured ? 'public-page-link-featured' : '')} key={block.id} href={block.url} target="_blank" rel="noopener noreferrer" style={{ borderRadius: radius, borderColor: featured ? accent : (dark ? '#334155' : '#e2e8f0'), background: featured ? accent : (dark ? 'rgba(255,255,255,0.045)' : 'rgba(255,255,255,0.78)'), color: featured ? '#fff' : foreground }} onClick={() => trackClick(block.id)}>
-                  <span className="public-page-link-icon">{block.type === 'social' ? socialIcon(block.platform) : block.type === 'file' ? <Download size={17}/> : <Link2 size={17}/>}</span>
+                  <span className="public-page-link-icon">{block.type === 'social' ? socialIcon(block.platform) : block.type === 'file' ? <Download size={17}/> : linkIcon(block.icon)}</span>
                   <span className="public-page-link-copy"><strong>{block.label}</strong>{block.description && <small style={{ color: featured ? 'rgba(255,255,255,.82)' : muted }}>{block.description}</small>}</span>
                   <ArrowUpRight size={17} className="public-page-link-arrow"/>
                 </a>;
