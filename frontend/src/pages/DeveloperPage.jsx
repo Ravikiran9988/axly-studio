@@ -523,7 +523,7 @@ export default function DeveloperPage({ initialTab = 'keys' }) {
 
                   {d.status !== 'active' && (
                     <div style={{ background: 'var(--bg-input)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)', fontSize: '0.82rem' }}>
-                      <div style={{ fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' }}>Required DNS Records:</div>
+                      <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--text-primary)' }}>DNS configuration:</div><p style={{ margin: '0 0 10px', color: 'var(--text-muted)', lineHeight: 1.5 }}>CNAME is required for routing. The TXT record is optional ownership evidence; it does not replace the CNAME.</p>
                       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
                           <tr style={{ color: 'var(--text-muted)' }}>
@@ -539,7 +539,7 @@ export default function DeveloperPage({ initialTab = 'keys' }) {
                             <td><code>{d.dns_expected_value || (d.domain_type === 'page' ? 'url.axly.in' : 'axly-api.onrender.com')}</code></td>
                           </tr>
                           <tr>
-                            <td style={{ fontWeight: 600, color: 'var(--brand-primary)' }}>TXT</td>
+                            <td style={{ fontWeight: 600, color: 'var(--text-muted)' }}>TXT (optional)</td>
                             <td><code>_axly-verify.{d.domain}</code></td>
                             <td><code>{d.verification_token}</code></td>
                           </tr>
