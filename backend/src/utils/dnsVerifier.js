@@ -8,6 +8,9 @@ const BLOCKED_DOMAINS = new Set([
   'api.axly.in',
   'app.axly.in',
   'admin.axly.in',
+  'url.axly.in',
+  'cname.axly.in',
+  'axly-api.onrender.com',
   'example.com',
   'test.com',
   'google.com',
@@ -41,7 +44,7 @@ export const validateDomainSyntax = (rawDomain) => {
     return { valid: false, reason: 'Invalid domain syntax. Must be a valid fully-qualified domain name (e.g. links.mybrand.com).' };
   }
 
-  if (BLOCKED_DOMAINS.has(clean)) {
+  if (BLOCKED_DOMAINS.has(clean) || clean === 'axly.in' || clean.endsWith('.axly.in')) {
     return { valid: false, reason: 'This domain is reserved by the platform and cannot be registered.' };
   }
 
