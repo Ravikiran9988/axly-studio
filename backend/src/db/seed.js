@@ -1,6 +1,7 @@
-import bcrypt from 'bcryptjs';
 import pool, { closePool } from './pool.js';
 import { config } from '../config/env.js';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const runSeed = async () => {
   if (config.NODE_ENV === 'production') {
@@ -8,32 +9,32 @@ export const runSeed = async () => {
     return;
   }
 
+  const targetEmail = (process.env.SEED_USER_EMAIL || '').trim().toLowerCase();
+  if (!targetEmail || !EMAIL_REGEX.test(targetEmail)) {
+    throw new Error(
+      'Set SEED_USER_EMAIL to an existing development account before seeding sample links.'
+    );
+  }
+
   const client = await pool.connect();
 
   try {
     await client.query('BEGIN');
 
-    // Create demo admin user
-    const adminPasswordHash = await bcrypt.hash('demo1234', 12);
-    const adminResult = await client.query(`
-      INSERT INTO users (name, email, password_hash, plan, role)
-      VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name, role = EXCLUDED.role
-      RETURNING id
-    `, ['Axly Admin', 'demo@axly.in', adminPasswordHash, 'pro', 'admin']);
+    const accountResult = await client.query(
+      'SELECT id, email, role FROM users WHERE email = $1 LIMIT 1',
+      [targetEmail]
+    );
 
-    const userId = adminResult.rows[0].id;
+    if (accountResult.rows.length === 0) {
+      throw new Error(
+        `No account found for ${targetEmail}. Register a normal account first, then run the seed command again.`
+      );
+    }
 
-    // Create standard member user
-    const userPasswordHash = await bcrypt.hash('user1234', 12);
-    await client.query(`
-      INSERT INTO users (name, email, password_hash, plan, role)
-      VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name, role = EXCLUDED.role
-      RETURNING id
-    `, ['Standard User', 'user@axly.in', userPasswordHash, 'free', 'user']);
+    const account = accountResult.rows[0];
 
-    // Create sample URLs
+    // Seed sample links for the explicitly selected account only.
     const sampleUrls = [
       { code: 'job2026', url: 'https://linkedin.com', title: 'LinkedIn Profile' },
       { code: 'resume', url: 'https://drive.google.com', title: 'My Resume' },
@@ -41,17 +42,18 @@ export const runSeed = async () => {
     ];
 
     for (const item of sampleUrls) {
-      await client.query(`
-        INSERT INTO urls (short_code, original_url, title, user_id, click_count, unique_clicks)
-        VALUES ($1, $2, $3, $4, 0, 0)
-        ON CONFLICT (short_code) DO NOTHING
-      `, [item.code, item.url, item.title, userId]);
+      await client.query(
+        `INSERT INTO urls (short_code, original_url, title, user_id, click_count, unique_clicks)
+         VALUES ($1, $2, $3, $4, 0, 0)
+         ON CONFLICT (short_code) DO NOTHING`,
+        [item.code, item.url, item.title, account.id]
+      );
     }
 
     await client.query('COMMIT');
-    console.log('[OK] Seed demo data created successfully.');
-    console.log('[ADMIN] Admin login: demo@axly.in / demo1234');
-    console.log('[MEMBER] Member login: user@axly.in / user1234');
+    console.log(
+      `[OK] Sample links seeded for ${account.email} (role: ${account.role}). No demo accounts were created.`
+    );
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('[ERROR] Seed failed:', err.message);
