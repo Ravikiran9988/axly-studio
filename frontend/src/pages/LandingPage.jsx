@@ -767,33 +767,52 @@ export default function LandingPage() {
 
       {/* Public Footer */}
       <footer className="landing-footer">
-        <div className="footer-content">
-          <div className="footer-brand">
-            <div className="logo-icon">
-              <BrandMark size={19} />
+        <div className="footer-shell">
+          <div className="footer-grid">
+            <div className="footer-about">
+              <div className="footer-brand">
+                <div className="logo-icon">
+                  <BrandMark size={19} />
+                </div>
+                <span>Axly Studio</span>
+              </div>
+              <p className="footer-tagline">Simple links. Useful tools. Clear insights.</p>
+              <p className="footer-support-copy">Need a hand? Contact support:</p>
+              <a className="footer-support-email" href="mailto:support@axly.in">
+                <Mail size={15} /> support@axly.in
+              </a>
             </div>
-            <span>Axly Studio</span>
+
+            <div className="footer-column">
+              <h3>Product</h3>
+              <a href="#shorten">Shorten a link</a>
+              <a href="#qr-codes">QR Code Generator</a>
+              <a href="#pages">Public Pages</a>
+              <a href="#features">Platform features</a>
+              <a href="#security">Security overview</a>
+            </div>
+
+            <div className="footer-column">
+              <h3>Resources</h3>
+              <Link to="/help">Help Center</Link>
+              <Link to="/contact">Contact Support</Link>
+              <Link to="/report-abuse">Report Abuse</Link>
+              <Link to="/security">Security &amp; safety</Link>
+              <Link to="/login">Sign in</Link>
+            </div>
+
+            <div className="footer-column">
+              <h3>Legal</h3>
+              <Link to="/terms">Terms &amp; Conditions</Link>
+              <Link to="/privacy">Privacy Policy</Link>
+              <Link to="/acceptable-use">Acceptable Use Policy</Link>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 24, fontSize: '0.88rem', color: 'var(--text-secondary)', alignItems: 'center' }}>
-            <a href="#features" className="nav-link">Platform</a>
-            <a href="#qr-codes" className="nav-link">QR Codes</a>
-            <a href="#pages" className="nav-link">Public Pages</a>
-            <a href="#comparison" className="nav-link">Capabilities</a>
-            <a href="#security" className="nav-link">Security</a>
-            <button 
-              className="nav-link" 
-              onClick={() => { setReportShortCode(''); setReportModalOpen(true); }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: '#dc2626' }}
-            >
-              <ShieldAlert size={14} /> Report Abuse
-            </button>
-            <Link to="/login" className="nav-link">Sign In</Link>
+          <div className="footer-bottom">
+            <p>© {new Date().getFullYear()} Axly Studio. All rights reserved.</p>
+            <p>Use Axly responsibly. Review our <Link to="/acceptable-use">Acceptable Use Policy</Link>.</p>
           </div>
-
-          <p className="footer-copy">
-            © 2026 Axly Studio. Built for speed, security, and privacy.
-          </p>
         </div>
       </footer>
 
