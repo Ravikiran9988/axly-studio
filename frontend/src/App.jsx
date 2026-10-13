@@ -1,9 +1,10 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedLayout from './components/ProtectedLayout';
 import AdminRoute from './components/AdminRoute';
+import AxlyLogo from './components/AxlyLogo';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -20,6 +21,7 @@ import DeveloperPage from './pages/DeveloperPage';
 import TeamsPage from './pages/TeamsPage';
 import PagesPage from './pages/PagesPage';
 import PublicPageView from './pages/PublicPageView';
+import QrCodePage from './pages/QrCodePage';
 import AdminPage from './pages/AdminPage';
 import './index.css';
 
@@ -29,6 +31,40 @@ function HomeRoute() {
     host === '127.0.0.1' || host === 's.axly.in' || host === 'api.axly.in' ||
     host.endsWith('.vercel.app');
   return axlyHost ? <LandingPage /> : <PublicPageView customDomainHost={host} />;
+}
+
+function PublicQrPage() {
+  const { user } = useAuth();
+  if (user) {
+    return <Navigate to="/app/qr" replace />;
+  }
+  return (
+    <div className="landing-page" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <header className="landing-nav">
+        <Link to="/" className="nav-logo" aria-label="Axly Studio Home" style={{ display: 'inline-flex', alignItems: 'center' }}>
+          <AxlyLogo size="md" />
+        </Link>
+        <nav className="nav-links landing-nav-links">
+          <Link to="/" className="nav-link">Home</Link>
+          <Link to="/#shorten" className="nav-link">URL Shortener</Link>
+          <Link to="/qr" className="nav-link active">QR Codes</Link>
+        </nav>
+        <div className="nav-actions landing-nav-actions">
+          <Link to="/login" className="btn btn-ghost">Sign in</Link>
+          <Link to="/register" className="btn btn-primary">Get Started</Link>
+        </div>
+      </header>
+      <main style={{ flex: 1, padding: '32px 16px' }}>
+        <QrCodePage />
+      </main>
+      <footer className="landing-footer">
+        <div className="footer-content">
+          <div className="footer-brand"><AxlyLogo size="sm" /></div>
+          <p className="footer-copy">© 2026 Axly Studio. Built for speed, security, and privacy.</p>
+        </div>
+      </footer>
+    </div>
+  );
 }
 
 export default function App() {
@@ -41,6 +77,7 @@ export default function App() {
             <Route path="/" element={<HomeRoute />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/qr" element={<PublicQrPage />} />
             <Route path="/p/:slug" element={<PublicPageView />} />
 
             {/* Standard user application workspace */}
@@ -48,6 +85,7 @@ export default function App() {
               <Route index element={<Navigate to="/app/dashboard" replace />} />
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="links" element={<LinksPage />} />
+              <Route path="qr" element={<QrCodePage />} />
               <Route path="pages" element={<PagesPage />} />
               <Route path="domains" element={<DeveloperPage initialTab="domains" />} />
               <Route path="links/:id" element={<LinkDetailPage />} />

@@ -8,11 +8,11 @@ import {
 import toast from 'react-hot-toast';
 
 const TEMPLATES = [
-  { key: 'minimal', name: 'Minimal', summary: 'A clean personal link page', icon: Link2, pageType: 'link-in-bio' },
-  { key: 'creator', name: 'Creator', summary: 'Socials and featured content', icon: LayoutTemplate, pageType: 'creator' },
-  { key: 'developer', name: 'Developer portfolio', summary: 'Projects and professional profiles', icon: PanelsTopLeft, pageType: 'portfolio' },
-  { key: 'business', name: 'Business', summary: 'Contact info and lead capture', icon: Globe, pageType: 'link-in-bio' },
-  { key: 'business-card', name: 'Digital business card', summary: 'Contact information and vCard download', icon: Users, pageType: 'business-card' },
+  { key: 'minimal', name: 'Link in Bio', summary: 'A clean single page for your top links and socials', icon: Link2, pageType: 'link-in-bio' },
+  { key: 'creator', name: 'Creator Profile', summary: 'Highlight videos, featured work, and social channels', icon: LayoutTemplate, pageType: 'creator' },
+  { key: 'developer', name: 'Developer Portfolio', summary: 'Showcase projects, GitHub repos, and credentials', icon: PanelsTopLeft, pageType: 'portfolio' },
+  { key: 'business', name: 'Business Page', summary: 'Company introduction, services, and lead capture form', icon: Globe, pageType: 'link-in-bio' },
+  { key: 'business-card', name: 'Digital Business Card', summary: 'Direct contact info, phone, and vCard downloads', icon: Users, pageType: 'business-card' },
 ];
 
 const freshBlock = (type, n) => {
@@ -339,12 +339,11 @@ export default function PagesPage() {
       <div className="page-container pages-studio">
         <div className="page-header">
           <div>
-            <div className="profile-eyebrow">PUBLISH YOUR PRESENCE</div>
             <h1 className="page-title">My Pages</h1>
-            <p className="page-subtitle">Build a link-in-bio page, developer portfolio or digital business card under your own brand.</p>
+            <p className="page-subtitle">Create a single page where people can find your links, social profiles, work, and contact information.</p>
           </div>
           <button className="btn btn-primary" onClick={() => setCreating(true)} disabled={pages.length >= quota.pages}>
-            <Plus size={16} /> Create page
+            <Plus size={16} /> Create Page
           </button>
         </div>
 
@@ -392,17 +391,35 @@ export default function PagesPage() {
 
         {creating && (
           <div className="modal-backdrop">
-            <div className="modal-card pages-create-modal">
-              <h2>Create a page</h2>
-              <p>Choose a starting point. You can customize the content and design before publishing.</p>
+            <div className="modal-card pages-create-modal" style={{ maxWidth: 560 }}>
+              <h2>Create a Public Page</h2>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: 20 }}>
+                Choose a starting template. You can customize the content, links, themes, and lead forms before publishing.
+              </p>
               <form onSubmit={createPage} className="pages-create-form">
                 <div className="form-group">
-                  <label className="form-label">Page name</label>
-                  <input className="form-input" value={createForm.title} onChange={e => setCreateForm(prev => ({ ...prev, title: e.target.value, slug: prev.slug || e.target.value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') }))} placeholder="Ravi Kiran" maxLength={160} required />
+                  <label className="form-label">Page title *</label>
+                  <input className="form-input" value={createForm.title} onChange={e => setCreateForm(prev => ({ ...prev, title: e.target.value, slug: prev.slug || e.target.value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') }))} placeholder="Alex Morgan" maxLength={160} required />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Public URL name</label>
-                  <div className="pages-slug-field"><span>/p/</span><input className="form-input" value={createForm.slug} onChange={e => setCreateForm(prev => ({ ...prev, slug: e.target.value.toLowerCase().trim() }))} placeholder="ravikiran" minLength={3} maxLength={64} required /></div>
+                  <label className="form-label">Choose your page address *</label>
+                  <div className="pages-slug-field">
+                    <span>url.axly.in/p/</span>
+                    <input className="form-input" value={createForm.slug} onChange={e => setCreateForm(prev => ({ ...prev, slug: e.target.value.toLowerCase().trim() }))} placeholder="ravikiran" minLength={3} maxLength={64} required />
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                    This becomes the link you share with people. Choose a short, recognizable username.
+                  </div>
+                  <div style={{
+                    marginTop: 6,
+                    padding: '6px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--bg-secondary)',
+                    fontSize: '0.78rem',
+                    color: 'var(--text-secondary)',
+                  }}>
+                    Public address preview: <strong style={{ color: 'var(--brand-primary)' }}>url.axly.in/p/{createForm.slug.trim() || 'yourname'}</strong>
+                  </div>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Starting template</label>
@@ -415,9 +432,25 @@ export default function PagesPage() {
                     })}
                   </div>
                 </div>
+                <div style={{
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  fontSize: '0.76rem',
+                  color: 'var(--text-muted)',
+                  marginBottom: 16,
+                  display: 'flex',
+                  gap: 8,
+                }}>
+                  <Globe size={15} style={{ color: 'var(--brand-primary)', flexShrink: 0, marginTop: 2 }} />
+                  <span>
+                    <strong>Page username vs Custom domain:</strong> The username sets your public Axly link (e.g. url.axly.in/p/username). If you own a custom domain (e.g. yourbrand.com), you can connect and verify it separately in Domains.
+                  </span>
+                </div>
                 <div className="pages-modal-actions">
                   <button type="button" className="btn btn-secondary" onClick={() => setCreating(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Creating…' : 'Create draft'}</button>
+                  <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Creating…' : 'Create Draft'}</button>
                 </div>
               </form>
             </div>

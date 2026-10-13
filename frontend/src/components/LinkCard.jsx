@@ -187,7 +187,11 @@ export default function LinkCard({
               <button className="copy-btn" onClick={() => navigate(`/app/analytics/${url.id}`)} title="View link analytics">
                 <BarChart3 size={13} />
               </button>
-              <button className="copy-btn" onClick={() => setShowQr(true)} title="QR Code">
+              <button 
+                className="copy-btn" 
+                onClick={() => navigate(`/app/qr?url=${encodeURIComponent(url.short_url || url.original_url)}`)} 
+                title="Open in QR Code Generator"
+              >
                 <QrCode size={13} />
               </button>
               {showActions && onToggleStatus && (

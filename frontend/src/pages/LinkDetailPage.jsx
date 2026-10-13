@@ -360,7 +360,11 @@ export default function LinkDetailPage() {
             <a href={url.short_url} target="_blank" rel="noopener noreferrer" className="copy-btn">
               <ExternalLink size={13} /> Visit
             </a>
-            <button className="copy-btn" onClick={() => setShowQr(true)}>
+            <button 
+              className="copy-btn" 
+              onClick={() => navigate(`/app/qr?url=${encodeURIComponent(url.short_url || url.original_url)}`)}
+              title="Open in QR Code Generator"
+            >
               <QrCode size={13} /> QR Studio
             </button>
             <button className="copy-btn" onClick={() => navigate(`/app/analytics/${url.id}`)}>

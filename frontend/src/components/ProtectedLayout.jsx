@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import Sidebar from './Sidebar';
 import CreateLinkModal from './CreateLinkModal';
+import AxlyLogo from './AxlyLogo';
 import toast from 'react-hot-toast';
 
 export default function ProtectedLayout() {
@@ -119,9 +120,8 @@ export default function ProtectedLayout() {
               <Menu size={20} />
             </button>
 
-            <Link to="/app/dashboard" className="mobile-brand-title mobile-only">
-              <div className="logo-icon">A</div>
-              <span>Axly Studio</span>
+            <Link to="/app/dashboard" className="mobile-brand-title mobile-only" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
+              <AxlyLogo size="sm" />
             </Link>
 
             {/* Desktop Display Workspace Context */}

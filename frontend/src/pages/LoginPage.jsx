@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Zap, ShieldCheck, Database, AlertCircle } from 'lucide-react';
+import AxlyLogo from '../components/AxlyLogo';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
@@ -78,16 +79,8 @@ export default function LoginPage() {
         position: 'relative', zIndex: 1,
       }} className="hide-mobile">
         <div style={{ maxWidth: 460 }}>
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 44, textDecoration: 'none' }}>
-            <div className="logo-icon" style={{ width: 44, height: 44, fontSize: '1.2rem', background: '#111827', color: '#fff', borderRadius: 10 }}>A</div>
-            <div>
-              <span style={{ fontSize: '1.6rem', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                Axly Studio
-              </span>
-              <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 600 }}>
-                Enterprise Link Operations
-              </span>
-            </div>
+          <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', marginBottom: 44, textDecoration: 'none' }}>
+            <AxlyLogo size="lg" />
           </Link>
 
           <h2 style={{ fontSize: '2.1rem', fontWeight: 800, marginBottom: 16, lineHeight: 1.25, letterSpacing: '-0.02em' }}>
@@ -129,9 +122,8 @@ export default function LoginPage() {
       }}>
         {/* Mobile Header */}
         <div style={{ marginBottom: 32 }} className="show-mobile">
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-            <div className="logo-icon" style={{ width: 36, height: 36 }}>A</div>
-            <span style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--text-primary)' }}>Axly Studio</span>
+          <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
+            <AxlyLogo size="md" />
           </Link>
         </div>
 

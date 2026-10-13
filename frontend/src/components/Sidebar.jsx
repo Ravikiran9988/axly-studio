@@ -4,25 +4,47 @@ import {
   LayoutDashboard, Link2, Settings, LogOut,
   Moon, Sun, Menu, X, ChevronRight, ShieldAlert,
   Megaphone, GitCompare, FileSpreadsheet, BarChart3,
-  Users, Code2, UserRound, PanelsTopLeft, Globe,
+  Users, Code2, UserRound, PanelsTopLeft, Globe, QrCode,
 } from 'lucide-react';
+import AxlyLogo from './AxlyLogo';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 
-const NAV_ITEMS = [
-  { to: '/app/dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
-  { to: '/app/links', icon: <Link2 size={18} />, label: 'My Links' },
-  { to: '/app/pages', icon: <PanelsTopLeft size={18} />, label: 'My Pages' },
-  { to: '/app/domains', icon: <Globe size={18} />, label: 'Domains' },
-  { to: '/app/campaigns', icon: <Megaphone size={18} />, label: 'Campaigns & UTM' },
-  { to: '/app/experiments', icon: <GitCompare size={18} />, label: 'A/B Experiments' },
-  { to: '/app/teams', icon: <Users size={18} />, label: 'Teams & Workspaces' },
-  { to: '/app/developer', icon: <Code2 size={18} />, label: 'Developer Platform' },
-  { to: '/app/bulk', icon: <FileSpreadsheet size={18} />, label: 'Bulk Import/Export' },
-  { to: '/app/analytics', icon: <BarChart3 size={18} />, label: 'Account Analytics' },
-  { to: '/app/profile', icon: <UserRound size={18} />, label: 'My Profile' },
-  { to: '/app/settings', icon: <Settings size={18} />, label: 'Settings' },
+const NAV_GROUPS = [
+  {
+    title: 'Create',
+    items: [
+      { to: '/app/dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
+      { to: '/app/qr', icon: <QrCode size={18} />, label: 'QR Codes' },
+      { to: '/app/pages', icon: <PanelsTopLeft size={18} />, label: 'My Pages' },
+    ]
+  },
+  {
+    title: 'Manage',
+    items: [
+      { to: '/app/links', icon: <Link2 size={18} />, label: 'My Links' },
+      { to: '/app/domains', icon: <Globe size={18} />, label: 'Domains' },
+      { to: '/app/campaigns', icon: <Megaphone size={18} />, label: 'Campaigns & UTM' },
+      { to: '/app/experiments', icon: <GitCompare size={18} />, label: 'A/B Experiments' },
+      { to: '/app/analytics', icon: <BarChart3 size={18} />, label: 'Account Analytics' },
+    ]
+  },
+  {
+    title: 'Workspace',
+    items: [
+      { to: '/app/teams', icon: <Users size={18} />, label: 'Teams & Workspaces' },
+      { to: '/app/developer', icon: <Code2 size={18} />, label: 'Developer Platform' },
+      { to: '/app/bulk', icon: <FileSpreadsheet size={18} />, label: 'Bulk Import/Export' },
+    ]
+  },
+  {
+    title: 'Account',
+    items: [
+      { to: '/app/profile', icon: <UserRound size={18} />, label: 'My Account Profile' },
+      { to: '/app/settings', icon: <Settings size={18} />, label: 'Settings' },
+    ]
+  }
 ];
 
 export default function Sidebar({ isOpen, onClose }) {
@@ -64,13 +86,7 @@ export default function Sidebar({ isOpen, onClose }) {
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         {/* Studio Branding */}
         <div className="sidebar-logo">
-          <div className="logo-icon">A</div>
-          <div>
-            <div className="logo-text">Axly Studio</div>
-            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: -2, fontWeight: 500 }}>
-              Enterprise Link Suite
-            </div>
-          </div>
+          <AxlyLogo size="md" />
           <button
             onClick={handleClose}
             className="mobile-only"
@@ -86,27 +102,33 @@ export default function Sidebar({ isOpen, onClose }) {
           </button>
         </div>
 
-        {/* Navigation Items */}
+        {/* Navigation Items Grouped */}
         <nav className="sidebar-nav">
-          <div className="nav-section-label">Studio App</div>
-          {NAV_ITEMS.map(item => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-              onClick={handleClose}
-              id={`nav-${item.label.toLowerCase().replace(' ', '-')}`}
-            >
-              {item.icon}
-              {item.label}
-              <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.35 }} />
-            </NavLink>
+          {NAV_GROUPS.map((group, gIdx) => (
+            <div key={group.title} style={{ marginBottom: 12 }}>
+              <div className="nav-section-label" style={{ marginTop: gIdx > 0 ? 8 : 0 }}>
+                {group.title}
+              </div>
+              {group.items.map(item => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                  onClick={handleClose}
+                  id={`nav-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
+                >
+                  {item.icon}
+                  {item.label}
+                  <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.35 }} />
+                </NavLink>
+              ))}
+            </div>
           ))}
 
           {/* Role-Gated Admin Navigation: Only visible when server verified role === 'admin' */}
           {isAdmin && (
-            <>
-              <div className="nav-section-label" style={{ marginTop: 12 }}>Governance</div>
+            <div style={{ marginBottom: 12 }}>
+              <div className="nav-section-label" style={{ marginTop: 8 }}>Governance</div>
               <NavLink
                 to="/admin"
                 className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
@@ -120,10 +142,10 @@ export default function Sidebar({ isOpen, onClose }) {
                   ADMIN
                 </span>
               </NavLink>
-            </>
+            </div>
           )}
 
-          <div className="nav-section-label" style={{ marginTop: 12 }}>Preferences</div>
+          <div className="nav-section-label" style={{ marginTop: 8 }}>Preferences</div>
 
           {/* Theme Toggle */}
           <button className="nav-item" onClick={toggleTheme} id="theme-toggle-sidebar" style={{ width: '100%', textAlign: 'left' }}>
@@ -136,7 +158,7 @@ export default function Sidebar({ isOpen, onClose }) {
             className="nav-item"
             onClick={handleLogout}
             id="logout-btn"
-            style={{ color: 'var(--danger)', marginTop: 'auto', width: '100%', textAlign: 'left' }}
+            style={{ color: 'var(--danger)', marginTop: 8, width: '100%', textAlign: 'left' }}
           >
             <LogOut size={18} />
             Sign Out
