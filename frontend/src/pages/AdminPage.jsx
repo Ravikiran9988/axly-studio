@@ -512,7 +512,7 @@ export default function AdminPage() {
           </div>
 
           {/* Telemetry and Top Links Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(440px, 1fr))', gap: 24, marginTop: 12 }}>
+          <div className="admin-overview-grid" style={{ gap: 24, marginTop: 12 }}>
             {/* System Telemetry */}
             <div className="card" style={{ padding: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>

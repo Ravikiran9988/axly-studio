@@ -99,10 +99,10 @@ export default function ProtectedLayout() {
       {/* Sidebar with mobile drawer state */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, position: 'relative' }}>
+      <div className="app-main-wrapper">
         {/* Top Header Actions Bar */}
         <header className="app-topbar">
-          {/* Mobile Left: Hamburger + Brand */}
+          {/* Left: Mobile Hamburger & Brand / Desktop Breadcrumb */}
           <div className="app-topbar-left">
             <button
               onClick={() => setSidebarOpen(p => !p)}
@@ -119,10 +119,23 @@ export default function ProtectedLayout() {
               <Menu size={20} />
             </button>
 
-            <Link to="/app/dashboard" className="mobile-brand-title">
+            <Link to="/app/dashboard" className="mobile-brand-title mobile-only">
               <div className="logo-icon">A</div>
               <span>Axly Studio</span>
             </Link>
+
+            {/* Desktop Display Workspace Context */}
+            <div className="desktop-workspace-indicator desktop-only" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '4px 10px', borderRadius: 'var(--radius-full)',
+                background: 'var(--bg-secondary)', border: '1px solid var(--border-color)',
+                fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500,
+              }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981' }} />
+                <span>Live Studio</span>
+              </div>
+            </div>
           </div>
 
           {/* Right: Theme Toggle & Notifications Center */}
