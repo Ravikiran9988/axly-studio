@@ -704,6 +704,119 @@ export const runMigrations = async () => {
       CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
     `);
 
+    // 23. Custom public pages / Link-in-bio builder
+    await client.query(`
+      ALTER TABLE custom_domains
+        ADD COLUMN IF NOT EXISTS domain_type VARCHAR(30) NOT NULL DEFAULT 'shortlinks';
+      UPDATE custom_domains SET domain_type = 'shortlinks' WHERE domain_type IS NULL;
+      ALTER TABLE custom_domains DROP CONSTRAINT IF EXISTS custom_domains_domain_type_check;
+      ALTER TABLE custom_domains ADD CONSTRAINT custom_domains_domain_type_check
+        CHECK (domain_type IN ('shortlinks', 'page'));
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public_pages (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+        slug VARCHAR(64) NOT NULL,
+        title VARCHAR(160) NOT NULL,
+        bio VARCHAR(600) DEFAULT '',
+        profile_image_url TEXT,
+        page_type VARCHAR(40) NOT NULL DEFAULT 'link-in-bio',
+        template_key VARCHAR(40) NOT NULL DEFAULT 'minimal',
+        theme JSONB NOT NULL DEFAULT '{"mode":"light","accent":"#2563eb","background":"#f8fafc","buttonStyle":"rounded"}'::jsonb,
+        blocks JSONB NOT NULL DEFAULT '[]'::jsonb,
+        status VARCHAR(20) NOT NULL DEFAULT 'draft',
+        seo_title VARCHAR(180),
+        seo_description VARCHAR(320),
+        og_image_url TEXT,
+        publish_at TIMESTAMPTZ,
+        unpublish_at TIMESTAMPTZ,
+        custom_domain_id UUID REFERENCES custom_domains(id) ON DELETE SET NULL,
+        contact_email VARCHAR(320),
+        contact_phone VARCHAR(80),
+        contact_company VARCHAR(160),
+        contact_job_title VARCHAR(160),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        published_at TIMESTAMPTZ,
+        CONSTRAINT public_pages_status_check CHECK (status IN ('draft', 'published', 'archived')),
+        CONSTRAINT public_pages_type_check CHECK (page_type IN ('link-in-bio', 'business-card', 'portfolio', 'creator')),
+        CONSTRAINT public_pages_template_check CHECK (template_key IN ('minimal', 'creator', 'developer', 'business', 'business-card'))
+      );
+    `);
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_public_pages_slug_lower ON public_pages (LOWER(slug));
+      CREATE INDEX IF NOT EXISTS idx_public_pages_user_id ON public_pages(user_id, updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_public_pages_status_schedule ON public_pages(status, publish_at, unpublish_at);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_public_pages_custom_domain_unique
+        ON public_pages(custom_domain_id) WHERE custom_domain_id IS NOT NULL;
+    `);
+
+    // Additive guards for existing installations created before page publishing shipped.
+    await client.query(`
+      ALTER TABLE public_pages ADD COLUMN IF NOT EXISTS page_type VARCHAR(40) NOT NULL DEFAULT 'link-in-bio';
+      ALTER TABLE public_pages ADD COLUMN IF NOT EXISTS template_key VARCHAR(40) NOT NULL DEFAULT 'minimal';
+      ALTER TABLE public_pages ADD COLUMN IF NOT EXISTS theme JSONB NOT NULL DEFAULT '{"mode":"light","accent":"#2563eb","background":"#f8fafc","buttonStyle":"rounded"}'::jsonb;
+      ALTER TABLE public_pages ADD COLUMN IF NOT EXISTS blocks JSONB NOT NULL DEFAULT '[]'::jsonb;
+      ALTER TABLE public_pages ADD COLUMN IF NOT EXISTS seo_title VARCHAR(180);
+      ALTER TABLE public_pages ADD COLUMN IF NOT EXISTS seo_description VARCHAR(320);
+      ALTER TABLE public_pages ADD COLUMN IF NOT EXISTS og_image_url TEXT;
+      ALTER TABLE public_pages ADD COLUMN IF NOT EXISTS publish_at TIMESTAMPTZ;
+      ALTER TABLE public_pages ADD COLUMN IF NOT EXISTS unpublish_at TIMESTAMPTZ;
+      ALTER TABLE public_pages ADD COLUMN IF NOT EXISTS custom_domain_id UUID REFERENCES custom_domains(id) ON DELETE SET NULL;
+      ALTER TABLE public_pages ADD COLUMN IF NOT EXISTS contact_email VARCHAR(320);
+      ALTER TABLE public_pages ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(80);
+      ALTER TABLE public_pages ADD COLUMN IF NOT EXISTS contact_company VARCHAR(160);
+      ALTER TABLE public_pages ADD COLUMN IF NOT EXISTS contact_job_title VARCHAR(160);
+      ALTER TABLE public_pages ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ;
+    `);
+
+    // Privacy-preserving page views and per-block click events. Raw visitor IPs are never persisted.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS page_events (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        page_id UUID REFERENCES public_pages(id) ON DELETE CASCADE NOT NULL,
+        event_type VARCHAR(30) NOT NULL CHECK (event_type IN ('page_view', 'link_click')),
+        block_id VARCHAR(100),
+        visitor_hash VARCHAR(64),
+        referrer_host VARCHAR(255),
+        device_type VARCHAR(40),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_page_events_page_date ON page_events(page_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_page_events_page_type ON page_events(page_id, event_type, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_page_events_page_visitor ON page_events(page_id, visitor_hash);
+    `);
+
+    // Optional lead-capture blocks. Consent is required and leads are visible only to the page owner.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS page_leads (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        page_id UUID REFERENCES public_pages(id) ON DELETE CASCADE NOT NULL,
+        name VARCHAR(120) NOT NULL,
+        email VARCHAR(320) NOT NULL,
+        message VARCHAR(2000),
+        consent BOOLEAN NOT NULL DEFAULT false,
+        visitor_hash VARCHAR(64),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_page_leads_page_date ON page_leads(page_id, created_at DESC);
+    `);
+
+    // Page revision history for safe edits and restore operations.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS page_revisions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        page_id UUID REFERENCES public_pages(id) ON DELETE CASCADE NOT NULL,
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+        revision_label VARCHAR(160) NOT NULL DEFAULT 'Saved version',
+        snapshot JSONB NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_page_revisions_page_date ON page_revisions(page_id, created_at DESC);
+    `);
+
     await client.query('COMMIT');
     console.log('[OK] Phase 2, 3 & Phase 4 database schema, tables, and indexes migrated successfully');
   } catch (err) {

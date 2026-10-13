@@ -8,6 +8,9 @@ const BLOCKED_DOMAINS = new Set([
   'api.axly.in',
   'app.axly.in',
   'admin.axly.in',
+  'url.axly.in',
+  'cname.axly.in',
+  'axly-api.onrender.com',
   'example.com',
   'test.com',
   'google.com',
@@ -41,7 +44,7 @@ export const validateDomainSyntax = (rawDomain) => {
     return { valid: false, reason: 'Invalid domain syntax. Must be a valid fully-qualified domain name (e.g. links.mybrand.com).' };
   }
 
-  if (BLOCKED_DOMAINS.has(clean)) {
+  if (BLOCKED_DOMAINS.has(clean) || clean === 'axly.in' || clean.endsWith('.axly.in')) {
     return { valid: false, reason: 'This domain is reserved by the platform and cannot be registered.' };
   }
 
@@ -51,37 +54,37 @@ export const validateDomainSyntax = (rawDomain) => {
 /**
  * Perform DNS resolution check to verify custom domain ownership
  */
-export const verifyDomainDns = async (domain, expectedToken) => {
+export const verifyDomainDns = async (domain, expectedToken, expectedTarget = 'cname.axly.in') => {
+  const cleanTarget = String(expectedTarget || '').toLowerCase().replace(/\.$/, '');
   try {
-    // 1. Check TXT record on _axly-verify.<domain>
+    let cnameRecords = [];
     try {
-      const txtRecords = await dns.resolveTxt(`_axly-verify.${domain}`);
-      const flattened = txtRecords.flat();
-      if (flattened.some(r => r.includes(expectedToken))) {
-        return { verified: true, method: 'TXT', message: 'TXT ownership token verified.' };
-      }
+      cnameRecords = (await dns.resolveCname(domain)).map(record => record.toLowerCase().replace(/\.$/, ''));
     } catch {
-      // Continue to check CNAME
+      // No CNAME record or DNS not propagated.
     }
 
-    // 2. Check CNAME record on domain pointing to cname.axly.in
+    // A TXT ownership token alone must not mark a domain as routed: traffic also needs
+    // to arrive at the configured frontend/backend target.
+    if (cleanTarget && cnameRecords.includes(cleanTarget)) {
+      return { verified: true, method: 'CNAME', message: 'CNAME target exactly matches the configured Axly service.' };
+    }
+
+    let txtFound = false;
     try {
-      const cnameRecords = await dns.resolveCname(domain);
-      if (cnameRecords.some(c => c.toLowerCase().includes('axly.in') || c.toLowerCase().includes('cname.axly.in'))) {
-        return { verified: true, method: 'CNAME', message: 'CNAME target successfully routed to Axly.' };
-      }
+      const txtRecords = await dns.resolveTxt('_axly-verify.' + domain);
+      txtFound = txtRecords.flat().some(record => record.trim() === expectedToken);
     } catch {
-      // Continue
+      // Continue with a useful routing-specific error.
     }
 
     return {
       verified: false,
-      reason: `DNS records not detected. Configure a CNAME record pointing to 'cname.axly.in' or a TXT record at '_axly-verify.${domain}' with value '${expectedToken}'.`,
+      reason: txtFound
+        ? "Ownership TXT record is present, but the CNAME must point exactly to '" + cleanTarget + "' before traffic can be routed."
+        : "DNS record not detected. Configure a CNAME for '" + domain + "' pointing to '" + cleanTarget + "'. You may also add TXT '" + expectedToken + "' at '_axly-verify." + domain + "' for ownership evidence.",
     };
   } catch (err) {
-    return {
-      verified: false,
-      reason: `DNS verification probe encountered an error: ${err.message}`,
-    };
+    return { verified: false, reason: 'DNS verification probe encountered an error: ' + err.message };
   }
 };

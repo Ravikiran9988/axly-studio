@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 
 import { config, validateEnv } from './config/env.js';
 import { closePool, query } from './db/pool.js';
+import { runMigrations } from './db/migrate.js';
 import authRoutes from './routes/auth.js';
 import urlRoutes from './routes/urls.js';
 import adminRoutes from './routes/admin.js';
@@ -17,6 +18,7 @@ import apiKeyRoutes from './routes/apiKeys.js';
 import webhookRoutes from './routes/webhooks.js';
 import workspaceRoutes from './routes/workspaces.js';
 import domainRoutes from './routes/domains.js';
+import pageRoutes from './routes/pages.js';
 import privacyRoutes from './routes/privacy.js';
 import notificationRoutes from './routes/notifications.js';
 import { redirect, unlockPasswordProtectedLink } from './controllers/redirectController.js';
@@ -38,15 +40,34 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// CORS configuration
+// CORS configuration: fixed first-party origins plus verified custom page domains.
+// Domain registration does not grant API permissions; authenticated routes still require a session.
+const allowedOrigins = [
+  config.FRONTEND_URL,
+  'https://url.axly.in',
+  'https://axly.in',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:80',
+  'http://localhost',
+];
 app.use(cors({
-  origin: [
-    config.FRONTEND_URL,
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'http://localhost:80',
-    'http://localhost',
-  ],
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    let parsed;
+    try { parsed = new URL(origin); } catch { return callback(null, false); }
+    if (parsed.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(parsed.hostname)) {
+      return callback(null, false);
+    }
+    if (parsed.hostname === 'axly.in' || parsed.hostname.endsWith('.axly.in')) {
+      return callback(null, true);
+    }
+    query(
+      "SELECT 1 FROM custom_domains WHERE LOWER(domain) = LOWER($1) AND domain_type = 'page' AND status = 'active' LIMIT 1",
+      [parsed.hostname.toLowerCase()]
+    ).then(result => callback(null, result.rows.length > 0))
+      .catch(() => callback(null, false));
+  },
   credentials: true,
 }));
 
@@ -142,6 +163,7 @@ app.use('/api/keys', apiKeyRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/workspaces', workspaceRoutes);
 app.use('/api/domains', domainRoutes);
+app.use('/api/pages', pageRoutes);
 app.use('/api/user', privacyRoutes);
 app.use('/api/notifications', notificationRoutes);
 
@@ -170,6 +192,7 @@ let server;
 // Start server only when run directly (not when imported by tests)
 const isDirectEntry = process.argv[1]?.replace(/\\/g, '/').endsWith('src/index.js');
 if (process.env.NODE_ENV !== 'test' && isDirectEntry) {
+  runMigrations().catch(err => console.error('[WARN] Startup database migration attempt:', err.message));
   server = app.listen(PORT, () => {
     console.log(`
 ╔══════════════════════════════════════════════════╗

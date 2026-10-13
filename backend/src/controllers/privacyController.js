@@ -16,6 +16,10 @@ export const exportUserData = async (req, res) => {
       workspacesRes,
       domainsRes,
       webhooksRes,
+      pagesRes,
+      pageEventsRes,
+      pageLeadsRes,
+      pageRevisionsRes,
     ] = await Promise.all([
       query('SELECT id, name, email, plan, role, is_active, created_at, updated_at FROM users WHERE id = $1', [userId]),
       query(`
@@ -32,6 +36,28 @@ export const exportUserData = async (req, res) => {
       `, [userId]),
       query('SELECT id, domain, status, verified_at, created_at FROM custom_domains WHERE user_id = $1', [userId]),
       query('SELECT id, url, events, is_active, created_at FROM webhooks WHERE user_id = $1', [userId]),
+      query(`
+        SELECT id, slug, title, bio, profile_image_url, page_type, template_key, theme, blocks,
+               status, seo_title, seo_description, og_image_url, publish_at, unpublish_at,
+               custom_domain_id, contact_email, contact_phone, contact_company, contact_job_title,
+               created_at, updated_at, published_at
+        FROM public_pages WHERE user_id = $1 ORDER BY created_at DESC
+      `, [userId]),
+      query(`
+        SELECT e.id, e.event_type, e.block_id, e.visitor_hash, e.referrer_host, e.device_type, e.created_at
+        FROM page_events e JOIN public_pages p ON p.id = e.page_id
+        WHERE p.user_id = $1 ORDER BY e.created_at DESC LIMIT 10000
+      `, [userId]),
+      query(`
+        SELECT l.id, l.name, l.email, l.message, l.consent, l.visitor_hash, l.created_at
+        FROM page_leads l JOIN public_pages p ON p.id = l.page_id
+        WHERE p.user_id = $1 ORDER BY l.created_at DESC
+      `, [userId]),
+      query(`
+        SELECT r.id, r.page_id, r.revision_label, r.snapshot, r.created_at
+        FROM page_revisions r JOIN public_pages p ON p.id = r.page_id
+        WHERE p.user_id = $1 ORDER BY r.created_at DESC LIMIT 1000
+      `, [userId]),
     ]);
 
     const archive = {
@@ -48,6 +74,10 @@ export const exportUserData = async (req, res) => {
       workspaces: workspacesRes.rows,
       customDomains: domainsRes.rows,
       webhooks: webhooksRes.rows,
+      publicPages: pagesRes.rows,
+      pageAnalyticsEvents: pageEventsRes.rows,
+      pageLeads: pageLeadsRes.rows,
+      pageRevisions: pageRevisionsRes.rows,
     };
 
     await logAuditEvent({
@@ -56,7 +86,7 @@ export const exportUserData = async (req, res) => {
       action: 'privacy.data_export',
       targetType: 'user',
       targetId: userId,
-      details: { urlCount: urlsRes.rows.length },
+      details: { urlCount: urlsRes.rows.length, pageCount: pagesRes.rows.length },
       ip: req.ip,
     });
 

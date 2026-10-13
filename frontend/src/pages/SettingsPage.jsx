@@ -9,7 +9,7 @@ import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 
 export default function SettingsPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateProfile } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -25,9 +25,14 @@ export default function SettingsPage() {
   const handleSaveName = async (e) => {
     e.preventDefault();
     setSaving(true);
-    await new Promise(r => setTimeout(r, 600));
-    toast.success('Profile updated!');
-    setSaving(false);
+    try {
+      await updateProfile({ name: nameForm.name });
+      toast.success('Profile updated successfully.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update profile.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Download Machine-Readable User Data Export

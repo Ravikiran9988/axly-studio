@@ -260,36 +260,36 @@ export const getUserUrls = async (req, res) => {
     const sortBy = ['click_count', 'title', 'created_at'].includes(req.query.sortBy) ? req.query.sortBy : 'created_at';
     const sortOrder = req.query.order?.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
-    const conditions = ['user_id = $1'];
+    const conditions = ['u.user_id = $1'];
     const params = [userId];
 
     if (search) {
       params.push(`%${search}%`);
-      conditions.push(`(original_url ILIKE $${params.length} OR title ILIKE $${params.length} OR short_code ILIKE $${params.length} OR notes ILIKE $${params.length})`);
+      conditions.push(`(u.original_url ILIKE $${params.length} OR u.title ILIKE $${params.length} OR u.short_code ILIKE $${params.length} OR u.notes ILIKE $${params.length})`);
     }
 
     if (statusFilter === 'active') {
-      conditions.push(`status = 'active' AND (expires_at IS NULL OR expires_at > NOW())`);
+      conditions.push(`u.status = 'active' AND (u.expires_at IS NULL OR u.expires_at > NOW())`);
     } else if (statusFilter === 'inactive') {
-      conditions.push(`status = 'inactive'`);
+      conditions.push(`u.status = 'inactive'`);
     } else if (statusFilter === 'expired') {
-      conditions.push(`expires_at IS NOT NULL AND expires_at <= NOW()`);
+      conditions.push(`u.expires_at IS NOT NULL AND u.expires_at <= NOW()`);
     }
 
     if (tagFilter) {
       params.push(tagFilter);
-      conditions.push(`$${params.length} = ANY(tags)`);
+      conditions.push(`$${params.length} = ANY(u.tags)`);
     }
 
     if (campaignFilter) {
       params.push(campaignFilter);
-      conditions.push(`campaign_id = $${params.length}`);
+      conditions.push(`u.campaign_id = $${params.length}`);
     }
 
     const whereClause = conditions.join(' AND ');
 
     // Total count query
-    const countResult = await query(`SELECT COUNT(*) FROM urls WHERE ${whereClause}`, params);
+    const countResult = await query(`SELECT COUNT(*) FROM urls u WHERE ${whereClause}`, params);
     const totalCount = parseInt(countResult.rows[0].count, 10);
 
     // Data query with smart rule count and experiment status
