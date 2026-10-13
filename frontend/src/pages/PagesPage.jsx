@@ -681,7 +681,7 @@ export default function PagesPage() {
               <div className="pages-seo-preview" aria-live="polite">
                 <span className="pages-seo-preview-label">Search result preview</span>
                 <strong>{form.seoTitle || form.title || 'Your page title'}</strong>
-                <span className="pages-seo-preview-url">{domains.find(d => d.id === form.customDomainId)?.domain || 'url.axly.in'}/p/{form.slug || 'your-page'}</span>
+                <span className="pages-seo-preview-url">{domains.find(d => d.id === form.customDomainId)?.domain ? 'https://' + domains.find(d => d.id === form.customDomainId).domain : publicUrl(form.slug || 'your-page')}</span>
                 <p>{form.seoDescription || form.bio || 'Add an SEO description or short bio to give visitors a useful summary before they open your page.'}</p>
               </div>
             </section>
@@ -690,10 +690,10 @@ export default function PagesPage() {
           <aside className="pages-editor-side">
             <section className="card pages-side-card">
               <div className="pages-section-title"><div className="pages-section-icon"><Eye size={17}/></div><div><h2>Publish</h2><p>Changes are not saved until you save the page.</p></div></div>
-              <div className="pages-publish-preview"><strong>{form.title || 'Untitled page'}</strong><span>{publicUrl(form.slug || 'your-page')}</span><span className={'badge ' + (form.status==='published'?'badge-active':'badge-warning')}>{form.status}</span></div>
+              <div className="pages-publish-preview"><strong>{form.title || 'Untitled page'}</strong><span>{domains.find(d => d.id === form.customDomainId)?.domain ? 'https://' + domains.find(d => d.id === form.customDomainId).domain : publicUrl(form.slug || 'your-page')}</span><span className={'badge ' + (form.status==='published'?'badge-active':'badge-warning')}>{form.status}</span></div>
               <button type="button" className="btn btn-primary" style={{width:'100%'}} onClick={async()=>{updateForm('status','published');setSaving(true);try{const res=await api.patch('/pages/'+selected,{...toApi(form),status:'published'});setForm(fromApi(res.data.data));await loadPages();toast.success('Page published.');}catch(error){toast.error(error.response?.data?.message||'Could not publish page.');}finally{setSaving(false);}}} disabled={saving}><Send size={15}/> Publish page</button>
               <button type="button" className="btn btn-secondary" style={{width:'100%',marginTop:8}} onClick={savePage} disabled={saving}><Save size={15}/> Save draft changes</button>
-              {form.status === 'published' && <a className="btn btn-secondary" style={{width:'100%',marginTop:8}} href={publicUrl(form.slug)} target="_blank" rel="noreferrer"><ExternalLink size={15}/> Open live page</a>}
+              {form.status === 'published' && <a className="btn btn-secondary" style={{width:'100%',marginTop:8}} href={domains.find(d => d.id === form.customDomainId)?.domain ? 'https://' + domains.find(d => d.id === form.customDomainId).domain : publicUrl(form.slug)} target="_blank" rel="noreferrer"><ExternalLink size={15}/> Open live page</a>}
             </section>
             <section className="card pages-side-card">
               <div className="pages-section-title"><div className="pages-section-icon"><PenTool size={17}/></div><div><h2>Copy suggestion helper</h2><p>Optional server-configured provider. Review any copy before saving.</p></div></div>
