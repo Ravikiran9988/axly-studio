@@ -4190,3 +4190,319 @@ tbody tr:hover {
 @media (max-width: 520px) {
   .landing-nav-links.mobile-open { padding: 10px 14px 14px; }
 }
+
+
+/* ============================================
+   LANDING PAGE — MOBILE LAYOUT FIX
+   Keep every primary section full-width within
+   the flex-column page shell and prevent overflow.
+   ============================================ */
+.landing-page,
+.landing-page > section,
+.landing-page > footer {
+  min-width: 0;
+}
+
+.landing-mobile-auth-link {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  .landing-page {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  /*
+   * Explicit widths are important here: these sections use max-width
+   * plus auto margins inside a flex-column parent. Without a definite
+   * width, browsers can shrink them to their content width on phones.
+   */
+  .landing-page > .features-section,
+  .landing-page > .comparison-section,
+  .landing-page > .cta-section {
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+    align-self: stretch;
+    box-sizing: border-box;
+    padding-inline: 18px;
+  }
+
+  .landing-page > .features-section,
+  .landing-page > .comparison-section {
+    padding-block: 46px;
+  }
+
+  .features-section .section-header,
+  .comparison-section .section-header {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+  }
+
+  .features-grid {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .feature-card {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .hero-container,
+  .shorten-card,
+  .shorten-form-container,
+  .shorten-input-row {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .hero-title,
+  .hero-subtitle {
+    max-width: 100%;
+    overflow-wrap: break-word;
+  }
+
+  .pages-showcase-container {
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pages-showcase-copy,
+  .pages-showcase-preview {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .comparison-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .landing-footer {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 480px) {
+  .landing-nav {
+    min-height: 64px;
+    padding: 8px 10px !important;
+    gap: 6px;
+  }
+
+  .landing-nav .nav-logo {
+    gap: 6px;
+    font-size: 0.92rem;
+  }
+
+  .landing-nav .nav-logo .logo-icon {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+  }
+
+  .landing-nav-actions,
+  .landing-guest-actions,
+  .landing-signed-in-actions {
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .landing-mobile-menu-toggle,
+  .landing-nav-actions .theme-toggle {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+    border-radius: 10px;
+  }
+
+  /* Keep the header from crowding on narrow phones. Sign-in remains in
+     the expandable menu, while the main registration CTA stays visible. */
+  #nav-login-btn {
+    display: none;
+  }
+
+  .landing-signed-in-actions .landing-profile-shortcut {
+    display: none;
+  }
+
+  .landing-nav-actions .btn {
+    min-height: 34px;
+    padding: 7px 9px;
+    font-size: 0.74rem;
+  }
+
+  .landing-nav-links.mobile-open {
+    padding: 10px 14px 14px;
+  }
+
+  .landing-nav-links.mobile-open .landing-mobile-auth-link {
+    display: flex !important;
+    align-items: center;
+  }
+
+  .landing-nav-links.mobile-open .landing-mobile-auth-primary {
+    color: var(--brand-primary);
+    font-weight: 750;
+  }
+
+  .hero-section {
+    padding: 34px 16px 30px !important;
+  }
+
+  .hero-title {
+    width: 100%;
+    font-size: clamp(1.8rem, 8vw, 2.15rem) !important;
+    line-height: 1.14;
+    letter-spacing: -0.04em;
+    margin-bottom: 14px;
+  }
+
+  .hero-subtitle {
+    width: 100%;
+    font-size: 0.98rem;
+    line-height: 1.55;
+    margin-bottom: 22px;
+  }
+
+  .hero-badge {
+    max-width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px 7px;
+    padding: 8px 12px;
+    margin-bottom: 20px;
+    font-size: 0.74rem;
+    line-height: 1.35;
+    text-align: center;
+  }
+
+  .hero-badge > span:last-child {
+    flex-basis: 100%;
+  }
+
+  .hero-capability-pills {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 8px;
+    margin: 0 0 22px;
+  }
+
+  .hero-capability-pill {
+    min-width: 0;
+    justify-content: center;
+    padding: 8px 6px;
+    font-size: 0.72rem;
+    line-height: 1.25;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .hero-capability-pill svg {
+    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
+  }
+
+  .shorten-form-container {
+    padding: 8px;
+    border-radius: 16px;
+  }
+
+  .shorten-input-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 0;
+  }
+
+  .shorten-main-input {
+    width: 100%;
+    min-width: 0;
+    padding: 11px 12px !important;
+    font-size: 1rem;
+  }
+
+  .shorten-submit-btn {
+    width: 100%;
+    max-width: 100%;
+    justify-content: center;
+  }
+
+  .shorten-result-card {
+    min-width: 0;
+    padding: 16px 14px;
+  }
+
+  .result-actions-cluster {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .result-actions-cluster .btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .features-section .section-title,
+  .comparison-section .section-title {
+    font-size: 1.65rem;
+    line-height: 1.2;
+  }
+
+  .feature-card {
+    padding: 22px 18px;
+  }
+
+  .feature-desc {
+    overflow-wrap: anywhere;
+  }
+
+  .pages-showcase-section {
+    padding: 44px 18px;
+  }
+
+  .pages-showcase-copy h2 {
+    font-size: clamp(1.8rem, 7.5vw, 2.1rem);
+    line-height: 1.15;
+  }
+
+  .cta-section {
+    padding: 48px 18px;
+  }
+
+  .cta-section .cta-container h2 {
+    font-size: clamp(1.7rem, 7.2vw, 2.1rem) !important;
+    line-height: 1.18;
+  }
+
+  .landing-footer {
+    padding: 28px 18px;
+  }
+
+  .footer-content {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+  }
+
+  .footer-content > div:nth-child(2) {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 12px !important;
+  }
+
+  .footer-copy {
+    overflow-wrap: anywhere;
+  }
+}
