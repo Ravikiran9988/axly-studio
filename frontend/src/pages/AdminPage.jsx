@@ -2,15 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   ShieldAlert, Users, Link2, MousePointerClick, Activity, Search, 
-  Trash2, ArrowUpRight, CheckCircle2, XCircle, ArrowLeft, RefreshCw,
-  Sliders, ShieldCheck, KeyRound, AlertTriangle, AlertOctagon,
-  Clock, Shield, Eye, Lock, FileText, Settings, HeartPulse,
-  ExternalLink, UserX, UserCheck, ChevronLeft, ChevronRight, Check,
-  Database, Server, Cpu, HardDrive, Download, Globe, Flame, Radio,
-  Copy, CheckCheck, Play, Sparkles, Layers, Terminal, Ban, Bell
+  Trash2, CheckCircle2, XCircle, ArrowLeft, RefreshCw,
+  Sliders, ShieldCheck, KeyRound, AlertOctagon,
+  Clock, Shield, Eye, Lock, FileText, HeartPulse,
+  ExternalLink, ChevronLeft, ChevronRight, Check,
+  Database, Server, Cpu, Download, Globe, Flame, Radio,
+  Copy, CheckCheck, Play, Layers, Terminal, Ban, Bell, Plus
 } from 'lucide-react';
 import { api, useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 
 export default function AdminPage() {

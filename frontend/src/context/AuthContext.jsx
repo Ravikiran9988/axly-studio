@@ -68,6 +68,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const res = await api.post('/auth/login', { email, password });
     localStorage.setItem('axly_token', res.data.token);
+    localStorage.setItem('axly_user', JSON.stringify(res.data.user));
     setUser(res.data.user);
     return res.data;
   };
@@ -75,6 +76,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (name, email, password) => {
     const res = await api.post('/auth/register', { name, email, password });
     localStorage.setItem('axly_token', res.data.token);
+    localStorage.setItem('axly_user', JSON.stringify(res.data.user));
     setUser(res.data.user);
     return res.data;
   };

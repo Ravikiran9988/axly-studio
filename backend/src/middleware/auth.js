@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { config } from '../config/env.js';
 import { query } from '../db/pool.js';
+import { hashApiKey } from '../utils/apiKey.js';
 
 export const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -83,8 +84,6 @@ export const requireRole = (...allowedRoles) => {
 };
 
 export const requireAdmin = requireRole('admin');
-
-import { hashApiKey } from '../utils/apiKey.js';
 
 export const optionalAuth = async (req, res, next) => {
   const headerKey = req.headers['x-api-key'];

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   UserRound, Mail, ShieldCheck, CalendarDays, Save, Settings2,
   CreditCard, ArrowUpRight, BadgeCheck, Camera, Upload, Trash2,
-  Globe, Briefcase, Building2, Phone, MapPin, Copy, Check, Sparkles, Image as ImageIcon
+  Globe, Briefcase, Building2, Phone, MapPin, Copy, Check, Sparkles
 } from 'lucide-react';
 import { useAuth, api } from '../context/AuthContext';
 import toast from 'react-hot-toast';

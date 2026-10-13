@@ -202,9 +202,21 @@ app.use((err, req, res, next) => {
 
 let server;
 
+// Process-level unhandled exception safety
+process.on('unhandledRejection', (reason) => {
+  console.error('[CRITICAL] Unhandled Promise Rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[CRITICAL] Uncaught Exception:', err);
+});
+
 // Start server only when run directly (not when imported by tests)
-const isDirectEntry = process.argv[1]?.replace(/\\/g, '/').endsWith('src/index.js');
-if (process.env.NODE_ENV !== 'test' && isDirectEntry) {
+const isDirectEntry = process.env.NODE_ENV !== 'test' && 
+  !process.argv[1]?.includes('test') && 
+  Boolean(process.argv[1]?.replace(/\\/g, '/').endsWith('index.js'));
+
+if (isDirectEntry) {
   runMigrations().catch(err => console.error('[WARN] Startup database migration attempt:', err.message));
   server = app.listen(PORT, () => {
     console.log(`

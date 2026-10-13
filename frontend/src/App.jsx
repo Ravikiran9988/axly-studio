@@ -136,6 +136,7 @@ export default function App() {
             {/* Backward-compatibility legacy redirects */}
             <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
             <Route path="/links" element={<Navigate to="/app/links" replace />} />
+            <Route path="/analytics" element={<Navigate to="/app/analytics" replace />} />
             <Route path="/analytics/:id" element={<Navigate to="/app/links" replace />} />
             <Route path="/settings" element={<Navigate to="/app/settings" replace />} />
 

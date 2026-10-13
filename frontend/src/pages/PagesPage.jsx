@@ -3,7 +3,8 @@ import { api } from '../context/AuthContext';
 import {
   PanelsTopLeft, Plus, Edit3, Trash2, Copy, ExternalLink, Eye,
   Globe, BarChart3, Users, LayoutTemplate, Save, ArrowLeft, ArrowUp, ArrowDown,
-  Link2, Type, Image, Video, Minus, Mail, CalendarClock, Palette, Send, PenTool
+  Link2, Type, Image, Video, Minus, Mail, CalendarClock, Palette, Send, PenTool,
+  Download
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import FeatureHelp from '../components/FeatureHelp';

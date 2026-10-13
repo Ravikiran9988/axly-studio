@@ -1490,7 +1490,7 @@ export const getAdminPublicPages = async (req, res) => {
       SELECT 
         p.id, p.slug, p.title, p.bio, p.page_type, p.template_key, p.status,
         p.seo_title, p.publish_at, p.unpublish_at, p.published_at, p.created_at, p.updated_at,
-        jsonb_array_length(p.blocks) as blocks_count,
+        CASE WHEN jsonb_typeof(p.blocks) = 'array' THEN jsonb_array_length(p.blocks) ELSE 0 END as blocks_count,
         u.id as user_id, u.name as owner_name, u.email as owner_email
       FROM public_pages p
       LEFT JOIN users u ON p.user_id = u.id
