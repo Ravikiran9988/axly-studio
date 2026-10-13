@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   Link2, ArrowRight, Moon, Sun, Copy, Check, ExternalLink, 
   ShieldCheck, Zap, BarChart2, Globe, Sparkles, QrCode, Lock,
-  CheckCircle2, XCircle, ShieldAlert, UserRound
+  CheckCircle2, XCircle, ShieldAlert, UserRound, PanelsTopLeft, Megaphone,
+  GitCompare, Users, Code2, Mail, Menu, X
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth, api } from '../context/AuthContext';
@@ -12,13 +13,18 @@ import toast from 'react-hot-toast';
 
 const COMPARISON_FEATURES = [
   { feature: 'Instant URL Shortening', guest: true, account: true },
-  { feature: 'High-Speed HTTP 302 Redirects', guest: true, account: true },
-  { feature: 'Standard QR Code Preview', guest: true, account: true },
-  { feature: 'Custom Vanity Aliases (e.g. /launch)', guest: false, account: true },
-  { feature: 'Link Expiration Timers & Toggles', guest: false, account: true },
-  { feature: 'Real-Time Click & Visitor Analytics', guest: false, account: true },
-  { feature: 'Link Management Dashboard', guest: false, account: true },
-  { feature: 'Device, OS & Referrer Breakdown', guest: false, account: true },
+  { feature: 'Standard short links and QR preview', guest: true, account: true },
+  { feature: 'Custom aliases and expiring links', guest: false, account: true },
+  { feature: 'Link expiry and status controls', guest: false, account: true },
+  { feature: 'Click and visitor analytics', guest: false, account: true },
+  { feature: 'Public link-in-bio and portfolio pages', guest: false, account: true },
+  { feature: 'Custom domains for pages and links', guest: false, account: true },
+  { feature: 'Campaigns and UTM tracking', guest: false, account: true },
+  { feature: 'A/B link experiments', guest: false, account: true },
+  { feature: 'Lead forms and CSV export', guest: false, account: true },
+  { feature: 'Page revision history and restore', guest: false, account: true },
+  { feature: 'Teams and shared workspaces', guest: false, account: true },
+  { feature: 'Developer tools and API workflows', guest: false, account: true },
 ];
 
 export default function LandingPage() {
@@ -27,6 +33,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
 
   const [url, setUrl] = useState('');
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -76,13 +83,24 @@ export default function LandingPage() {
           </div>
         </Link>
 
-        <nav className="nav-links desktop-only landing-nav-links" aria-label="Main navigation">
-          <a href="#shorten" className="nav-link">Shorten</a>
-          <a href="#features" className="nav-link">Features</a>
-          <a href="#security" className="nav-link">Security</a>
+        <nav className={`nav-links landing-nav-links ${mobileNavOpen ? 'mobile-open' : ''}`} aria-label="Main navigation">
+          <a href="#shorten" className="nav-link" onClick={() => setMobileNavOpen(false)}>Shorten</a>
+          <a href="#pages" className="nav-link" onClick={() => setMobileNavOpen(false)}>Pages</a>
+          <a href="#features" className="nav-link" onClick={() => setMobileNavOpen(false)}>Platform</a>
+          <a href="#security" className="nav-link" onClick={() => setMobileNavOpen(false)}>Security</a>
         </nav>
 
         <div className="nav-actions landing-nav-actions">
+          <button
+            type="button"
+            className="landing-mobile-menu-toggle"
+            onClick={() => setMobileNavOpen((open) => !open)}
+            aria-expanded={mobileNavOpen}
+            aria-label={mobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            title={mobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          >
+            {mobileNavOpen ? <X size={19} /> : <Menu size={19} />}
+          </button>
           <button 
             className="theme-toggle" 
             onClick={toggleTheme} 
@@ -125,16 +143,23 @@ export default function LandingPage() {
         <div className="hero-container">
           <div className="hero-badge">
             <Sparkles size={14} style={{ color: 'var(--brand-primary)' }} />
-            <span>Next-Generation Link Management</span>
+            <span>One workspace for every destination</span>
           </div>
 
           <h1 className="hero-title">
-            Transform long links into <span className="gradient-text">fast, privacy-first</span> short URLs.
+            Your links, pages, and <span className="gradient-text">digital presence</span> in one place.
           </h1>
 
           <p className="hero-subtitle">
-            Generate clean, secure short links instantly as a guest. Create a free account to unlock custom vanity aliases, expiration schedules, and real-time visitor analytics.
+            Shorten links in seconds, publish a polished link-in-bio page, connect your brand domain, and understand what works with campaign and visitor insights.
           </p>
+
+          <div className="hero-capability-pills" aria-label="Axly platform capabilities">
+            <span className="hero-capability-pill"><Link2 size={15} /> Short links</span>
+            <span className="hero-capability-pill"><PanelsTopLeft size={15} /> Public pages</span>
+            <span className="hero-capability-pill"><Globe size={15} /> Custom domains</span>
+            <span className="hero-capability-pill"><BarChart2 size={15} /> Campaign insights</span>
+          </div>
 
           {/* Real URL Shortening Form */}
           <div className="shorten-card">
@@ -245,9 +270,9 @@ export default function LandingPage() {
       {/* Feature Highlights Section */}
       <section className="features-section" id="features">
         <div className="section-header">
-          <h2 className="section-title">Engineered for speed, branding, and insight</h2>
+          <h2 className="section-title">Everything you need to grow your digital presence</h2>
           <p className="section-subtitle">
-            A cohesive suite of link management tools built on reliable cloud PostgreSQL infrastructure.
+            Bring short links, landing pages, domain branding, experiments, and campaign measurement together in one workspace.
           </p>
         </div>
 
@@ -310,6 +335,146 @@ export default function LandingPage() {
             <p className="feature-desc">
               HMAC-SHA256 salted hashing identifies unique visitors accurately without storing invasive raw IP addresses or persistent tracking cookies.
             </p>
+          </div>
+
+          <div className="feature-card">
+            <div className="feature-icon" style={{ background: '#eef2ff', color: '#4f46e5' }}>
+              <PanelsTopLeft size={24} />
+            </div>
+            <h3 className="feature-title">Link-in-Bio & Public Pages</h3>
+            <p className="feature-desc">
+              Publish creator pages, portfolios, business pages, or a digital business card with flexible blocks and starter templates.
+            </p>
+            <Link to={user ? '/app/pages' : '/register'} className="feature-card-link">
+              Build a page <ArrowRight size={14} />
+            </Link>
+          </div>
+
+          <div className="feature-card">
+            <div className="feature-icon" style={{ background: '#ecfeff', color: '#0e7490' }}>
+              <Globe size={24} />
+            </div>
+            <h3 className="feature-title">Custom Domains</h3>
+            <p className="feature-desc">
+              Keep your brand front and center with your own domain for published pages or branded short links, after DNS and hosting verification.
+            </p>
+            <Link to={user ? '/app/domains' : '/register'} className="feature-card-link">
+              Explore domains <ArrowRight size={14} />
+            </Link>
+          </div>
+
+          <div className="feature-card">
+            <div className="feature-icon" style={{ background: '#fff7ed', color: '#c2410c' }}>
+              <Megaphone size={24} />
+            </div>
+            <h3 className="feature-title">Campaigns & UTM Builder</h3>
+            <p className="feature-desc">
+              Organize campaigns with consistent UTM parameters and share trackable links across marketing channels.
+            </p>
+            <Link to={user ? '/app/campaigns' : '/register'} className="feature-card-link">
+              Manage campaigns <ArrowRight size={14} />
+            </Link>
+          </div>
+
+          <div className="feature-card">
+            <div className="feature-icon" style={{ background: '#fdf2f8', color: '#be185d' }}>
+              <GitCompare size={24} />
+            </div>
+            <h3 className="feature-title">A/B Link Experiments</h3>
+            <p className="feature-desc">
+              Compare destination variants and review performance to learn which link experience is working better.
+            </p>
+            <Link to={user ? '/app/experiments' : '/register'} className="feature-card-link">
+              Explore experiments <ArrowRight size={14} />
+            </Link>
+          </div>
+
+          <div className="feature-card">
+            <div className="feature-icon" style={{ background: '#f0fdf4', color: '#15803d' }}>
+              <Users size={24} />
+            </div>
+            <h3 className="feature-title">Teams & Workspaces</h3>
+            <p className="feature-desc">
+              Keep collaboration organized with shared workspaces and team-oriented link workflows.
+            </p>
+            <Link to={user ? '/app/teams' : '/register'} className="feature-card-link">
+              Open workspaces <ArrowRight size={14} />
+            </Link>
+          </div>
+
+          <div className="feature-card">
+            <div className="feature-icon" style={{ background: '#eff6ff', color: '#1d4ed8' }}>
+              <Code2 size={24} />
+            </div>
+            <h3 className="feature-title">Developer Platform</h3>
+            <p className="feature-desc">
+              Find developer-facing tools and integration workflows from one place, with domain setup and API-oriented features.
+            </p>
+            <Link to={user ? '/app/developer' : '/register'} className="feature-card-link">
+              Open developer tools <ArrowRight size={14} />
+            </Link>
+          </div>
+
+          <div className="feature-card">
+            <div className="feature-icon" style={{ background: '#f5f3ff', color: '#6d28d9' }}>
+              <Mail size={24} />
+            </div>
+            <h3 className="feature-title">Lead Capture & Page Insights</h3>
+            <p className="feature-desc">
+              Add consent-based lead forms, review page views and link clicks, export leads, and restore earlier page revisions.
+            </p>
+            <Link to={user ? '/app/pages' : '/register'} className="feature-card-link">
+              Explore page tools <ArrowRight size={14} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Public page builder showcase */}
+      <section className="pages-showcase-section" id="pages">
+        <div className="pages-showcase-container">
+          <div className="pages-showcase-copy">
+            <span className="pages-showcase-eyebrow"><Sparkles size={14} /> CREATE YOUR OWN SPACE</span>
+            <h2>One link can tell your whole story.</h2>
+            <p>
+              Build a shareable page for your portfolio, creator profile, business, or contact card. Start from a template, add links and content blocks, then publish to an Axly URL or a verified custom domain.
+            </p>
+            <div className="pages-showcase-checklist">
+              <span><CheckCircle2 size={17} /> Five starter templates</span>
+              <span><CheckCircle2 size={17} /> Links, social profiles, media and lead forms</span>
+              <span><CheckCircle2 size={17} /> SEO fields, analytics and revision history</span>
+            </div>
+            <div className="pages-showcase-actions">
+              <Link to={user ? '/app/pages' : '/register'} className="btn btn-primary">
+                Create a public page <ArrowRight size={16} />
+              </Link>
+              <Link to={user ? '/app/domains' : '/register'} className="btn btn-outline">
+                Connect a domain <Globe size={16} />
+              </Link>
+            </div>
+          </div>
+
+          <div className="pages-showcase-preview" aria-label="Example Axly public page preview">
+            <div className="pages-preview-browser-bar">
+              <div className="pages-preview-dots"><i /><i /><i /></div>
+              <span className="pages-preview-host"><Globe size={13} /> yourname.axly.in</span>
+              <span className="pages-preview-live">LIVE PREVIEW</span>
+            </div>
+            <div className="pages-preview-canvas">
+              <div className="pages-preview-avatar">A</div>
+              <p className="pages-preview-name">Alex Morgan</p>
+              <p className="pages-preview-bio">Designer · Builder · Creator</p>
+              <div className="pages-preview-tags"><span>Portfolio</span><span>Creator</span><span>Business</span></div>
+              <div className="pages-preview-links">
+                {['Featured work & projects', 'Latest video and updates', 'Book a call'].map((label) => (
+                  <div className="pages-preview-link" key={label}>
+                    <span>{label}</span><ArrowRight size={15} />
+                  </div>
+                ))}
+              </div>
+              <div className="pages-preview-socials"><span>GitHub</span><span>LinkedIn</span><span>Instagram</span></div>
+              <p className="pages-preview-powered">Made with Axly Studio</p>
+            </div>
           </div>
         </div>
       </section>
@@ -379,7 +544,7 @@ export default function LandingPage() {
             </div>
             <div className="security-card">
               <h4>🐘 PostgreSQL Persistence</h4>
-              <p>ACID-compliant storage powered by Lakebase Postgres on Neon with encrypted TLS 1.3 database connections.</p>
+              <p>Persistent PostgreSQL storage on Neon with encrypted TLS database connections.</p>
             </div>
           </div>
         </div>
@@ -389,14 +554,14 @@ export default function LandingPage() {
       <section className="cta-section">
         <div className="cta-container">
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '2.4rem', fontWeight: 800, marginBottom: 14 }}>
-            Ready to take control of your links?
+            Your next destination starts with Axly.
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', maxWidth: 580, margin: '0 auto 32px' }}>
-            Start shortening links immediately, or create a free account to explore real-time analytics and branded vanity links.
+            Start with a free short link, then bring your public pages, branded domains, campaigns, and insights into one workspace.
           </p>
           <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/register" className="btn btn-primary" style={{ padding: '14px 32px', fontSize: '1rem' }}>
-              Create Free Account <ArrowRight size={16} style={{ marginLeft: 6 }} />
+            <Link to={user ? '/app/pages' : '/register'} className="btn btn-primary" style={{ padding: '14px 32px', fontSize: '1rem' }}>
+              {user ? 'Build a Public Page' : 'Create Free Account'} <ArrowRight size={16} style={{ marginLeft: 6 }} />
             </Link>
             <a href="#shorten" className="btn btn-outline" style={{ padding: '14px 28px', fontSize: '1rem' }}>
               Shorten a Link Now
@@ -416,7 +581,8 @@ export default function LandingPage() {
           </div>
 
           <div style={{ display: 'flex', gap: 24, fontSize: '0.88rem', color: 'var(--text-secondary)', alignItems: 'center' }}>
-            <a href="#features" className="nav-link">Features</a>
+            <a href="#features" className="nav-link">Platform</a>
+            <a href="#pages" className="nav-link">Public Pages</a>
             <a href="#comparison" className="nav-link">Capabilities</a>
             <a href="#security" className="nav-link">Security</a>
             <button 
