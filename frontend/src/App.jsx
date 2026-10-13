@@ -21,6 +21,7 @@ import TeamsPage from './pages/TeamsPage';
 import PagesPage from './pages/PagesPage';
 import PublicPageView from './pages/PublicPageView';
 import AdminPage from './pages/AdminPage';
+import InfoPage from './pages/InfoPage';
 import './index.css';
 
 function HomeRoute() {
@@ -42,6 +43,13 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/p/:slug" element={<PublicPageView />} />
+            <Route path="/help" element={<InfoPage page="help" />} />
+            <Route path="/contact" element={<InfoPage page="contact" />} />
+            <Route path="/report-abuse" element={<InfoPage page="report-abuse" />} />
+            <Route path="/security" element={<InfoPage page="security" />} />
+            <Route path="/terms" element={<InfoPage page="terms" />} />
+            <Route path="/privacy" element={<InfoPage page="privacy" />} />
+            <Route path="/acceptable-use" element={<InfoPage page="acceptable-use" />} />
 
             {/* Standard user application workspace */}
             <Route path="/app" element={<ProtectedLayout />}>
