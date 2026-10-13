@@ -31,7 +31,11 @@ cp .env.example .env
 # Edit .env with your local PostgreSQL credentials (or Supabase connection string)
 npm install
 npm run migrate
-npm run seed # Optional: inserts demo user (demo@axly.in / demo1234)
+# Optional: create your own administrator account; this prompts for credentials
+# npm run admin:create
+# Optional dev sample links: first register a normal account, then set SEED_USER_EMAIL
+# PowerShell: $env:SEED_USER_EMAIL="you@example.com"; npm run seed
+# macOS/Linux: SEED_USER_EMAIL="you@example.com" npm run seed
 npm run dev
 ``` ### 3. Configure & Start Frontend
 In a new terminal window:
