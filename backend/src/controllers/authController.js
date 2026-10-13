@@ -123,7 +123,7 @@ export const login = async (req, res) => {
     const normalizedEmail = email.trim().toLowerCase();
 
     const result = await query(
-      'SELECT id, name, email, password_hash, plan, role, is_active, token_version FROM users WHERE email = $1',
+      'SELECT id, name, email, password_hash, plan, role, avatar_url, is_active, token_version FROM users WHERE email = $1',
       [normalizedEmail]
     );
 
@@ -151,7 +151,14 @@ export const login = async (req, res) => {
       success: true,
       message: 'Login successful!',
       token,
-      user: { id: user.id, name: user.name, email: user.email, plan: user.plan, role: user.role || 'user' }
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        plan: user.plan,
+        role: user.role || 'user',
+        avatar_url: user.avatar_url || null,
+      }
     });
   } catch (err) {
     console.error('Login error:', err);
@@ -163,7 +170,8 @@ export const login = async (req, res) => {
 export const getMe = async (req, res) => {
   try {
     const result = await query(
-      'SELECT id, name, email, plan, role, avatar_url, created_at FROM users WHERE id = $1',
+      `SELECT id, name, email, plan, role, avatar_url, bio, company, website, phone, job_title, location, created_at 
+       FROM users WHERE id = $1`,
       [req.user.id]
     );
 
@@ -178,24 +186,85 @@ export const getMe = async (req, res) => {
   }
 };
 
-// PATCH /api/auth/me - Update the signed-in user's display name
+// PATCH /api/auth/me - Update the signed-in user's profile
 export const updateMe = async (req, res) => {
   try {
-    const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+    const {
+      name,
+      avatar_url,
+      avatarUrl,
+      bio,
+      company,
+      website,
+      phone,
+      job_title,
+      jobTitle,
+      location,
+    } = req.body || {};
 
-    if (name.length < 2 || name.length > 80) {
+    const cleanName = typeof name === 'string' ? name.trim() : null;
+    if (cleanName !== null && (cleanName.length < 2 || cleanName.length > 80)) {
       return res.status(400).json({
         success: false,
         message: 'Display name must be between 2 and 80 characters.',
       });
     }
 
+    // Coalesce camelCase and snake_case
+    const resolvedAvatar = avatar_url !== undefined ? avatar_url : avatarUrl;
+    const resolvedJobTitle = job_title !== undefined ? job_title : jobTitle;
+
+    // Build dynamic update set safely
+    const updates = [];
+    const values = [];
+    let idx = 1;
+
+    if (cleanName !== null) {
+      updates.push(`name = $${idx++}`);
+      values.push(cleanName);
+    }
+    if (resolvedAvatar !== undefined) {
+      updates.push(`avatar_url = $${idx++}`);
+      values.push(resolvedAvatar ? String(resolvedAvatar).trim() : null);
+    }
+    if (bio !== undefined) {
+      updates.push(`bio = $${idx++}`);
+      values.push(bio ? String(bio).trim().slice(0, 500) : null);
+    }
+    if (company !== undefined) {
+      updates.push(`company = $${idx++}`);
+      values.push(company ? String(company).trim().slice(0, 100) : null);
+    }
+    if (website !== undefined) {
+      updates.push(`website = $${idx++}`);
+      values.push(website ? String(website).trim().slice(0, 255) : null);
+    }
+    if (phone !== undefined) {
+      updates.push(`phone = $${idx++}`);
+      values.push(phone ? String(phone).trim().slice(0, 50) : null);
+    }
+    if (resolvedJobTitle !== undefined) {
+      updates.push(`job_title = $${idx++}`);
+      values.push(resolvedJobTitle ? String(resolvedJobTitle).trim().slice(0, 100) : null);
+    }
+    if (location !== undefined) {
+      updates.push(`location = $${idx++}`);
+      values.push(location ? String(location).trim().slice(0, 100) : null);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ success: false, message: 'No profile fields provided to update.' });
+    }
+
+    updates.push('updated_at = NOW()');
+    values.push(req.user.id);
+
     const result = await query(
       `UPDATE users
-       SET name = $1, updated_at = NOW()
-       WHERE id = $2
-       RETURNING id, name, email, plan, role, avatar_url, created_at`,
-      [name, req.user.id]
+       SET ${updates.join(', ')}
+       WHERE id = $${idx}
+       RETURNING id, name, email, plan, role, avatar_url, bio, company, website, phone, job_title, location, created_at`,
+      values
     );
 
     if (result.rows.length === 0) {

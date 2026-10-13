@@ -182,8 +182,12 @@ export default function LandingPage() {
           {user ? (
             <div className="landing-signed-in-actions">
               <Link to="/app/profile" className="landing-profile-shortcut" aria-label="Open your profile">
-                <span className="landing-profile-avatar">
-                  {user.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || <UserRound size={16} />}
+                <span className="landing-profile-avatar" style={{ overflow: 'hidden' }}>
+                  {user.avatar_url ? (
+                    <img src={user.avatar_url} alt={user.name || 'Profile'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    user.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || <UserRound size={16} />
+                  )}
                 </span>
                 <span className="landing-profile-label">Profile</span>
               </Link>

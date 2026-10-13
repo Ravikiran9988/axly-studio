@@ -79,8 +79,8 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   };
 
-  const updateProfile = async ({ name }) => {
-    const res = await api.patch('/auth/me', { name });
+  const updateProfile = async (updates) => {
+    const res = await api.patch('/auth/me', updates);
     setUser(res.data.user);
     localStorage.setItem('axly_user', JSON.stringify(res.data.user));
     return res.data.user;

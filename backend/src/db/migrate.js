@@ -32,6 +32,55 @@ export const runMigrations = async () => {
         ) THEN
           ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'user';
         END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'avatar_url'
+        ) THEN
+          ALTER TABLE users ADD COLUMN avatar_url TEXT;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'bio'
+        ) THEN
+          ALTER TABLE users ADD COLUMN bio TEXT;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'company'
+        ) THEN
+          ALTER TABLE users ADD COLUMN company VARCHAR(255);
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'website'
+        ) THEN
+          ALTER TABLE users ADD COLUMN website VARCHAR(255);
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'phone'
+        ) THEN
+          ALTER TABLE users ADD COLUMN phone VARCHAR(50);
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'job_title'
+        ) THEN
+          ALTER TABLE users ADD COLUMN job_title VARCHAR(255);
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'location'
+        ) THEN
+          ALTER TABLE users ADD COLUMN location VARCHAR(255);
+        END IF;
       END $$;
     `);
 

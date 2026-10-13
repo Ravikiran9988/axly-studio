@@ -261,7 +261,16 @@ export default function Sidebar({ isOpen, onClose, onOpenCreateLink, isCollapsed
         {/* User Info Footer */}
         <div className="sidebar-footer" style={{ padding: isCollapsed ? '12px 6px' : '14px 16px' }}>
           <div className="user-info" style={{ cursor: 'default', justifyContent: isCollapsed ? 'center' : 'flex-start' }}>
-            <div className="user-avatar" style={{ width: 32, height: 32, fontSize: '0.8rem' }}>{initials}</div>
+            {user?.avatar_url ? (
+              <img
+                src={user.avatar_url}
+                alt={user?.name || 'User'}
+                className="user-avatar"
+                style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: '50%', flexShrink: 0 }}
+              />
+            ) : (
+              <div className="user-avatar" style={{ width: 32, height: 32, fontSize: '0.8rem' }}>{initials}</div>
+            )}
             {!isCollapsed && (
               <>
                 <div className="user-details" style={{ overflow: 'hidden' }}>
