@@ -19,18 +19,20 @@ const generateShortCode = () => nanoid(6);
 export const createUrl = async (req, res) => {
   try {
     const { 
-      url, customAlias, title, expiresAt, tags, notes, 
+      url, originalUrl, customAlias, customCode, title, expiresAt, tags, notes, 
       password, isPreviewEnabled, campaignId,
       utmSource, utmMedium, utmCampaign, utmTerm, utmContent 
     } = req.body;
+    const targetUrl = url || originalUrl;
+    const targetAlias = customAlias || customCode;
     const userId = req.user?.id || null;
 
-    if (!url) {
+    if (!targetUrl) {
       return res.status(400).json({ success: false, message: 'URL is required.' });
     }
 
     // SSRF and protocol check
-    const ssrfCheck = validateSafeDestinationUrl(url);
+    const ssrfCheck = validateSafeDestinationUrl(targetUrl);
     if (!ssrfCheck.valid) {
       return res.status(400).json({ 
         success: false, 
@@ -40,7 +42,7 @@ export const createUrl = async (req, res) => {
 
     // Guest restrictions: custom aliases, expiration, tags, notes, password require account
     if (!userId) {
-      if (customAlias) {
+      if (targetAlias) {
         return res.status(403).json({
           success: false,
           unlock_prompt: true,
@@ -85,8 +87,8 @@ export const createUrl = async (req, res) => {
     let cleanAlias = null;
 
     // Validate custom alias if provided
-    if (customAlias && typeof customAlias === 'string') {
-      const alias = customAlias.trim().toLowerCase();
+    if (targetAlias && typeof targetAlias === 'string') {
+      const alias = targetAlias.trim().toLowerCase();
       
       if (!/^[a-zA-Z0-9_-]{3,30}$/.test(alias)) {
         return res.status(400).json({ 
@@ -206,7 +208,9 @@ export const createUrl = async (req, res) => {
         message: isGuest ? 'Short URL created successfully!' : 'Short URL created and saved to your account!',
         data: {
           ...savedUrl,
+          shortCode: savedUrl.short_code,
           short_url: shortUrl,
+          shortUrl: shortUrl,
           is_guest: isGuest,
           has_password: Boolean(passwordHash),
           unlock_prompt: isGuest 

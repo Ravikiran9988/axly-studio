@@ -1178,14 +1178,29 @@ export const cleanupMaintenance = async (req, res) => {
   }
 };
 
+const DEFAULT_BANNED_DOMAINS = [
+  { domain: 'phish-axly.xyz', reason: 'Known phishing threat', addedAt: new Date().toISOString() },
+  { domain: 'free-crypto-airdrop.net', reason: 'Cryptocurrency scam', addedAt: new Date().toISOString() },
+  { domain: 'malware-distribution.cc', reason: 'Malicious payload dropper', addedAt: new Date().toISOString() },
+  { domain: 'telegram-gift-bot.tk', reason: 'Credential harvester', addedAt: new Date().toISOString() },
+];
+
+const getBannedDomainsList = async () => {
+  const settingsRes = await query("SELECT value FROM platform_settings WHERE key = 'banned_domains'");
+  if (settingsRes.rows.length > 0 && Array.isArray(settingsRes.rows[0].value)) {
+    return settingsRes.rows[0].value;
+  }
+  return DEFAULT_BANNED_DOMAINS;
+};
+
 /**
  * GET /api/admin/firewall
  * Domain firewall rules, banned domains list, and tenant custom domains oversight
  */
 export const getFirewallOverview = async (req, res) => {
   try {
-    const [settingsRes, domainsRes] = await Promise.all([
-      query("SELECT value FROM platform_settings WHERE key = 'banned_domains'"),
+    const [bannedDomains, domainsRes] = await Promise.all([
+      getBannedDomainsList(),
       query(`
         SELECT 
           cd.id, cd.domain, cd.domain_type, cd.status, cd.dns_record_type, 
@@ -1198,18 +1213,6 @@ export const getFirewallOverview = async (req, res) => {
         ORDER BY cd.created_at DESC
       `),
     ]);
-
-    let bannedDomains = [];
-    if (settingsRes.rows.length > 0 && Array.isArray(settingsRes.rows[0].value)) {
-      bannedDomains = settingsRes.rows[0].value;
-    } else {
-      bannedDomains = [
-        { domain: 'phish-axly.xyz', reason: 'Known phishing threat', addedAt: new Date().toISOString() },
-        { domain: 'free-crypto-airdrop.net', reason: 'Cryptocurrency scam', addedAt: new Date().toISOString() },
-        { domain: 'malware-distribution.cc', reason: 'Malicious payload dropper', addedAt: new Date().toISOString() },
-        { domain: 'telegram-gift-bot.tk', reason: 'Credential harvester', addedAt: new Date().toISOString() },
-      ];
-    }
 
     const customDomains = domainsRes.rows;
     const stats = {
@@ -1249,11 +1252,7 @@ export const addBannedDomain = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid domain format.' });
     }
 
-    const settingsRes = await query("SELECT value FROM platform_settings WHERE key = 'banned_domains'");
-    let currentList = [];
-    if (settingsRes.rows.length > 0 && Array.isArray(settingsRes.rows[0].value)) {
-      currentList = settingsRes.rows[0].value;
-    }
+    const currentList = await getBannedDomainsList();
 
     // Check if already in list
     if (currentList.some(item => (typeof item === 'string' ? item : item.domain) === domain)) {
@@ -1304,11 +1303,7 @@ export const removeBannedDomain = async (req, res) => {
   try {
     const targetDomain = req.params.domain.trim().toLowerCase();
 
-    const settingsRes = await query("SELECT value FROM platform_settings WHERE key = 'banned_domains'");
-    let currentList = [];
-    if (settingsRes.rows.length > 0 && Array.isArray(settingsRes.rows[0].value)) {
-      currentList = settingsRes.rows[0].value;
-    }
+    const currentList = await getBannedDomainsList();
 
     const updatedList = currentList.filter(item => {
       const d = typeof item === 'string' ? item : item.domain;
@@ -1316,9 +1311,9 @@ export const removeBannedDomain = async (req, res) => {
     });
 
     await query(`
-      UPDATE platform_settings 
-      SET value = $1, updated_by = $2, updated_at = NOW()
-      WHERE key = 'banned_domains'
+      INSERT INTO platform_settings (key, value, description, updated_by, updated_at)
+      VALUES ('banned_domains', $1, 'Global list of prohibited malicious domains', $2, NOW())
+      ON CONFLICT (key) DO UPDATE SET value = $1, updated_by = $2, updated_at = NOW()
     `, [JSON.stringify(updatedList), req.user.id]);
 
     await logAuditEvent({
@@ -1361,11 +1356,7 @@ export const testFirewallUrl = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Malformed target URL.' });
     }
 
-    const settingsRes = await query("SELECT value FROM platform_settings WHERE key = 'banned_domains'");
-    let currentList = [];
-    if (settingsRes.rows.length > 0 && Array.isArray(settingsRes.rows[0].value)) {
-      currentList = settingsRes.rows[0].value;
-    }
+    const currentList = await getBannedDomainsList();
 
     const matched = currentList.find(item => {
       const d = (typeof item === 'string' ? item : item.domain).toLowerCase();
