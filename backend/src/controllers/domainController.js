@@ -91,7 +91,8 @@ export const createDomain = async (req, res) => {
           host: cleanDomain,
           target: dnsExpectedValue,
         },
-        alternativeMethod: {
+        ownershipTxtRecord: {
+          purpose: 'Optional ownership evidence; traffic routing still requires the CNAME above.',
           type: 'TXT',
           host: `_axly-verify.${cleanDomain}`,
           value: verificationToken,
