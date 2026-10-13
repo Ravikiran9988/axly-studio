@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import BrandMark from './BrandMark';
 import toast from 'react-hot-toast';
 
 const NAV_ITEMS = [
@@ -64,7 +65,7 @@ export default function Sidebar({ isOpen, onClose }) {
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         {/* Studio Branding */}
         <div className="sidebar-logo">
-          <div className="logo-icon">A</div>
+          <div className="logo-icon"><BrandMark size={25} /></div>
           <div>
             <div className="logo-text">Axly Studio</div>
             <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: -2, fontWeight: 500 }}>
