@@ -29,7 +29,10 @@ export const submitReport = async (req, res) => {
     if (urlId) {
       urlResult = await query('SELECT id, short_code FROM urls WHERE id = $1', [urlId]);
     } else {
-      urlResult = await query('SELECT id, short_code FROM urls WHERE short_code = $1', [shortCode.trim()]);
+      urlResult = await query(
+        'SELECT id, short_code FROM urls WHERE short_code = $1 OR LOWER(short_code) = LOWER($1)',
+        [shortCode.trim()]
+      );
     }
 
     if (urlResult.rows.length === 0) {

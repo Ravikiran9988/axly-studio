@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Link2, ArrowRight, Moon, Sun, Copy, Check, ExternalLink, 
-  ShieldCheck, Zap, BarChart2, Globe, Sparkles, QrCode, Lock,
+  ShieldCheck, Zap, BarChart2, Globe, QrCode, Lock,
   CheckCircle2, XCircle, ShieldAlert, Shield, Database, Activity
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
@@ -117,7 +117,7 @@ export default function LandingPage() {
       <section className="hero-section" id="shorten">
         <div className="hero-container">
           <div className="hero-badge">
-            <Sparkles size={14} style={{ color: 'var(--brand-primary)' }} />
+            <Zap size={14} style={{ color: 'var(--brand-primary)' }} />
             <span>Next-Generation Link Management</span>
           </div>
 
@@ -219,7 +219,7 @@ export default function LandingPage() {
                 {result.is_guest && (
                   <div className="guest-unlock-banner">
                     <div>
-                      <strong><Sparkles size={13} style={{ marginRight: 4, verticalAlign: 'middle', color: 'var(--brand-primary)' }} /> Want custom aliases &amp; click analytics for this link?</strong>
+                      <strong><Link2 size={13} style={{ marginRight: 4, verticalAlign: 'middle', color: 'var(--brand-primary)' }} /> Want custom aliases &amp; click analytics for this link?</strong>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: 2 }}>
                         Create a free Axly Studio account to track clicks, download high-res QR codes, and customize links.
                       </div>

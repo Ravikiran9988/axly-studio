@@ -705,10 +705,10 @@ export const runMigrations = async () => {
     `);
 
     await client.query('COMMIT');
-    console.log('✅ Phase 2, 3 & Phase 4 database schema, tables, and indexes migrated successfully');
+    console.log('[OK] Phase 2, 3 & Phase 4 database schema, tables, and indexes migrated successfully');
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('❌ Migration failed:', err.message);
+    console.error('[ERROR] Migration failed:', err.message);
     throw err;
   } finally {
     client.release();

@@ -101,7 +101,7 @@ export const redirect = async (req, res) => {
       return res.status(404).send(renderErrorPage('Link Not Found', 'This short link does not exist.'));
     }
 
-    const cleanCode = shortCode.trim().toLowerCase();
+    const cleanCode = shortCode.trim();
 
     // Check if request is routed via an active custom domain
     const hostHeader = (req.headers.host || '').split(':')[0].toLowerCase();
@@ -112,7 +112,9 @@ export const redirect = async (req, res) => {
         SELECT u.id, u.original_url, u.status, u.expires_at, u.password_hash, u.is_preview_enabled, u.title
         FROM urls u
         JOIN custom_domains cd ON (u.custom_domain_id = cd.id OR u.workspace_id = cd.workspace_id)
-        WHERE cd.domain = $1 AND cd.status = 'active' AND u.short_code = $2
+        WHERE cd.domain = $1 AND cd.status = 'active' AND (u.short_code = $2 OR LOWER(u.short_code) = LOWER($2))
+        ORDER BY (u.short_code = $2) DESC
+        LIMIT 1
       `, [hostHeader, cleanCode]);
 
       if (domainLookup.rows.length > 0) {
@@ -120,11 +122,14 @@ export const redirect = async (req, res) => {
       }
     }
 
-    // Default short code resolution fallback
+    // Default short code resolution fallback (matches exact case-sensitive code first, then case-insensitive)
     if (!url) {
       const result = await query(
         `SELECT id, original_url, status, expires_at, password_hash, is_preview_enabled, title 
-         FROM urls WHERE short_code = $1`,
+         FROM urls 
+         WHERE short_code = $1 OR LOWER(short_code) = LOWER($1)
+         ORDER BY (short_code = $1) DESC
+         LIMIT 1`,
         [cleanCode]
       );
 
@@ -284,8 +289,11 @@ export const unlockPasswordProtectedLink = async (req, res) => {
     }
 
     const result = await query(
-      'SELECT id, password_hash FROM urls WHERE short_code = $1',
-      [shortCode.trim().toLowerCase()]
+      `SELECT id, password_hash FROM urls 
+       WHERE short_code = $1 OR LOWER(short_code) = LOWER($1)
+       ORDER BY (short_code = $1) DESC
+       LIMIT 1`,
+      [shortCode.trim()]
     );
 
     if (result.rows.length === 0 || !result.rows[0].password_hash) {

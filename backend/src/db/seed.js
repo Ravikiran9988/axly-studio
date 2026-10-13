@@ -4,7 +4,7 @@ import { config } from '../config/env.js';
 
 export const runSeed = async () => {
   if (config.NODE_ENV === 'production') {
-    console.error('❌ Refusing to run seed data in production environment.');
+    console.error('[ERROR] Refusing to run seed data in production environment.');
     return;
   }
 
@@ -49,12 +49,12 @@ export const runSeed = async () => {
     }
 
     await client.query('COMMIT');
-    console.log('✅ Seed demo data created successfully.');
-    console.log('👑 Admin login: demo@axly.in / demo1234');
-    console.log('👤 Member login: user@axly.in / user1234');
+    console.log('[OK] Seed demo data created successfully.');
+    console.log('[ADMIN] Admin login: demo@axly.in / demo1234');
+    console.log('[MEMBER] Member login: user@axly.in / user1234');
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('❌ Seed failed:', err.message);
+    console.error('[ERROR] Seed failed:', err.message);
     throw err;
   } finally {
     client.release();

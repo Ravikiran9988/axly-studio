@@ -32,7 +32,7 @@ export const validateEnv = () => {
   }
 
   if (errors.length > 0) {
-    console.error('❌ FATAL: Production environment validation failed:');
+    console.error('[FATAL] Production environment validation failed:');
     errors.forEach((err) => console.error(`  - ${err}`));
     throw new Error(`Environment validation failed:\n${errors.join('\n')}`);
   }

@@ -39,16 +39,16 @@ const createAdmin = async () => {
     // 2. Validate input
     const normalizedEmail = (email || '').trim().toLowerCase();
     if (!normalizedEmail || !EMAIL_REGEX.test(normalizedEmail)) {
-      console.error('❌ Error: A valid email address is required.');
+      console.error('[ERROR] A valid email address is required.');
       process.exit(1);
     }
 
     if (!password || password.length < 8) {
-      console.error('❌ Error: Password must be at least 8 characters long.');
+      console.error('[ERROR] Password must be at least 8 characters long.');
       process.exit(1);
     }
 
-    console.log(`\n⏳ Hashing password with bcrypt (12 rounds) and creating administrator...`);
+    console.log(`\n[INFO] Hashing password with bcrypt (12 rounds) and creating administrator...`);
     const passwordHash = await bcrypt.hash(password, 12);
 
     // 3. Upsert user into database
@@ -69,7 +69,7 @@ const createAdmin = async () => {
     const user = result.rows[0];
 
     console.log(`
-✅ Administrator account successfully provisioned!
+[SUCCESS] Administrator account successfully provisioned!
 --------------------------------------------------
 ID:       ${user.id}
 Name:     ${user.name}
@@ -82,7 +82,7 @@ You can now sign in at http://localhost:5173/login
 `);
 
   } catch (err) {
-    console.error('❌ Failed to provision administrator account:', err.message);
+    console.error('[ERROR] Failed to provision administrator account:', err.message);
     process.exit(1);
   } finally {
     await closePool();

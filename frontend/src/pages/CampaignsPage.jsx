@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Megaphone, Plus, Download, Search, ExternalLink,
   BarChart3, Calendar, Tag, Trash2, ArrowRight,
-  Copy, Check, Sparkles, Filter,
+  Copy, Check, Filter,
 } from 'lucide-react';
 import { api } from '../context/AuthContext';
 import toast from 'react-hot-toast';

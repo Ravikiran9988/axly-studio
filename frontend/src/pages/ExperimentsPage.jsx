@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   GitCompare, Plus, Play, Pause, CheckCircle2,
   TrendingUp, ExternalLink, BarChart3, AlertCircle,
-  Sparkles, RefreshCw,
+  RefreshCw,
 } from 'lucide-react';
 import { api } from '../context/AuthContext';
 import toast from 'react-hot-toast';
