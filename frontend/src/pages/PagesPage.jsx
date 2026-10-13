@@ -589,50 +589,119 @@ export default function PagesPage() {
             <section id="pages-content" className="card pages-form-card">
               <div className="pages-section-title"><div className="pages-section-icon"><Link2 size={17} /></div><div><h2>Content blocks</h2><p>Build your page section by section. Use arrows to reorder, hide blocks without deleting them, or duplicate a block to reuse its settings.</p></div></div>
               <div className="pages-add-blocks">
-                {[['link','Link',Link2],['heading','Heading',Type],['text','Text',Type],['social','Social',Globe],['image','Image',Image],['video','Video',Video],['lead_form','Lead form',Mail],['divider','Divider',Minus],['file','File link',ExternalLink]].map(([key,label,Icon]) => <button type="button" key={key} onClick={() => addBlock(key)}><Icon size={14} /> {label}</button>)}
-              </div>
-              {form.blocks.length === 0 ? <div className="pages-empty-inline">This page has no blocks yet. Add your first link or content block.</div> : <div className="pages-block-list">
-                {form.blocks.map((block,index) => (
-                  <div className="pages-block-editor" key={block.id || index}>
-                    <div className="pages-block-editor-header">
-                      <span className="pages-block-type">{index + 1}. {block.type.replace('_',' ')}</span>
-                      <div className="pages-block-order">
-                        <button type="button" title="Move up" aria-label={'Move ' + block.type + ' up'} disabled={index===0} onClick={() => moveBlock(index,-1)}><ArrowUp size={14}/></button>
-                        <button type="button" title="Move down" aria-label={'Move ' + block.type + ' down'} disabled={index===form.blocks.length-1} onClick={() => moveBlock(index,1)}><ArrowDown size={14}/></button>
-                        <button type="button" title="Duplicate block" aria-label={'Duplicate ' + block.type} disabled={form.blocks.length >= quota.blocks} onClick={() => {
-                          if (form.blocks.length >= quota.blocks) return toast.error('Your current plan supports up to ' + quota.blocks + ' blocks per page.');
-                          const copy = { ...block, id: 'block-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8) };
-                          setForm(prev => ({ ...prev, blocks: [...prev.blocks.slice(0, index + 1), copy, ...prev.blocks.slice(index + 1)] }));
-                        }}><Copy size={14}/></button>
-                        <button type="button" title="Remove block" aria-label={'Remove ' + block.type} onClick={() => setForm(prev => ({...prev,blocks:prev.blocks.filter((_,i) => i!==index)}))}><Trash2 size={14}/></button>
-                      </div>
-                    </div>
-                    <label className="pages-visible-toggle"><input type="checkbox" checked={block.visible !== false} onChange={e => updateBlock(index,'visible',e.target.checked)} /> Show on public page</label>
-                    {['link','social','file'].includes(block.type) && <div className="pages-form-two"><div className="form-group"><label className="form-label">Label</label><input className="form-input" value={block.label || ''} onChange={e => updateBlock(index,'label',e.target.value)} required maxLength={120}/></div><div className="form-group"><label className="form-label">Destination URL</label><input className="form-input" type="url" value={block.url || ''} onChange={e => updateBlock(index,'url',e.target.value)} required/></div></div>}
-                    {block.type==='link' && <>
-                      <div className="pages-form-two">
-                        <div className="form-group"><label className="form-label">Description (optional)</label><input className="form-input" value={block.description || ''} onChange={e => updateBlock(index,'description',e.target.value)} maxLength={240} placeholder="A few words about this link"/></div>
-                        <div className="form-group"><label className="form-label">Icon</label><select className="form-input" value={block.icon || 'link'} onChange={e=>updateBlock(index,'icon',e.target.value)}><option value="link">Link</option><option value="website">Website</option><option value="github">GitHub / Code</option><option value="linkedin">LinkedIn / Work</option><option value="instagram">Instagram / Camera</option><option value="youtube">YouTube / Video</option><option value="email">Email</option><option value="download">Download</option><option value="external">External link</option></select></div>
-                      </div>
-                      <label className="pages-visible-toggle"><input type="checkbox" checked={block.featured===true} onChange={e=>updateBlock(index,'featured',e.target.checked)}/> Highlight this link</label>
-                    </>}
-                    {['heading','text'].includes(block.type) && <div className="form-group"><label className="form-label">Text</label><textarea className="form-input" rows={block.type==='heading'?2:3} value={block.text || ''} onChange={e=>updateBlock(index,'text',e.target.value)} maxLength={1600} required/></div>}
-                    {block.type==='social' && <div className="form-group"><label className="form-label">Platform</label><select className="form-input" value={block.platform || 'website'} onChange={e=>updateBlock(index,'platform',e.target.value)}>{['website','github','linkedin','instagram','youtube','tiktok','x','facebook','email'].map(v=><option key={v} value={v}>{v}</option>)}</select></div>}
-                    {block.type==='image' && <>
-                      <div className="form-group"><label className="form-label">Image URL (HTTPS)</label><input className="form-input" type="url" value={block.url || ''} onChange={e=>updateBlock(index,'url',e.target.value)} placeholder="https://example.com/image.jpg" required/></div>
-                      {block.url && <div className="pages-block-image-preview"><img src={block.url} alt="" loading="lazy" onError={e => { e.currentTarget.hidden = true; }}/><span>Image preview</span></div>}
-                      <div className="form-group"><label className="form-label">Alternative text</label><input className="form-input" value={block.alt || ''} onChange={e=>updateBlock(index,'alt',e.target.value)} maxLength={180} placeholder="Describe the image for screen readers"/></div>
-                      <div className="form-group"><label className="form-label">Caption (optional)</label><input className="form-input" value={block.caption || ''} onChange={e=>updateBlock(index,'caption',e.target.value)} maxLength={240} placeholder="A short caption shown below the image"/></div>
-                    </>}
-                    {block.type==='video' && <>
-                      <div className="form-group"><label className="form-label">YouTube or Vimeo URL</label><input className="form-input" type="url" value={block.url || ''} onChange={e=>updateBlock(index,'url',e.target.value)} placeholder="https://youtu.be/..." required/><small className="pages-field-hint">Video embeds currently support YouTube and Vimeo links.</small></div>
-                      <div className="form-group"><label className="form-label">Video title (for accessibility)</label><input className="form-input" value={block.title || ''} onChange={e=>updateBlock(index,'title',e.target.value)} maxLength={180} placeholder="What is this video about?"/></div>
-                    </>}
-                    {block.type==='lead_form' && <><div className="form-group"><label className="form-label">Form title</label><input className="form-input" value={block.title || ''} onChange={e=>updateBlock(index,'title',e.target.value)} maxLength={120}/></div><div className="form-group"><label className="form-label">Description</label><input className="form-input" value={block.description || ''} onChange={e=>updateBlock(index,'description',e.target.value)} maxLength={240}/></div><div className="form-group"><label className="form-label">Button label</label><input className="form-input" value={block.buttonLabel || ''} onChange={e=>updateBlock(index,'buttonLabel',e.target.value)} maxLength={40}/></div></>}
-                    {block.type==='divider' && <div className="form-group"><label className="form-label">Divider style</label><select className="form-input" value={block.style || 'line'} onChange={e=>updateBlock(index,'style',e.target.value)}><option value="line">Thin separator line</option><option value="space">Extra vertical space</option></select><small className="pages-field-hint">Choose a visible line or just add breathing room.</small></div>}
-                  </div>
+                {[
+                  ['link', 'Link', Link2],
+                  ['heading', 'Heading', Type],
+                  ['text', 'Text', Type],
+                  ['social', 'Social', Globe],
+                  ['image', 'Image', Image],
+                  ['video', 'Video', Video],
+                  ['lead_form', 'Lead form', Mail],
+                  ['divider', 'Divider', Minus],
+                  ['file', 'File link', ExternalLink],
+                ].map(([key, label, Icon]) => (
+                  <button
+                    type="button"
+                    key={key}
+                    className={key === 'link' ? 'pages-add-block-btn pages-add-link-btn' : 'pages-add-block-btn'}
+                    onClick={() => addBlock(key)}
+                    title={`Add ${label} block`}
+                  >
+                    <Plus size={key === 'link' ? 14 : 12} strokeWidth={key === 'link' ? 2.6 : 2.2} className="pages-btn-plus-icon" />
+                    <Icon size={14} />
+                    <span>{key === 'link' ? 'Add Link' : label}</span>
+                  </button>
                 ))}
-              </div>}
+              </div>
+              {form.blocks.length === 0 ? (
+                <div className="pages-empty-inline">
+                  <p>This page has no blocks yet. Start by adding your first link or content block.</p>
+                  <button type="button" className="btn btn-primary btn-sm" onClick={() => addBlock('link')}>
+                    <Plus size={14} strokeWidth={2.6} /> Add Link
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="pages-block-list">
+                    {form.blocks.map((block,index) => (
+                      <div className="pages-block-editor" key={block.id || index}>
+                        <div className="pages-block-editor-header">
+                          <span className="pages-block-type">{index + 1}. {block.type.replace('_',' ')}</span>
+                          <div className="pages-block-order">
+                            <button type="button" title="Move up" aria-label={'Move ' + block.type + ' up'} disabled={index===0} onClick={() => moveBlock(index,-1)}><ArrowUp size={14}/></button>
+                            <button type="button" title="Move down" aria-label={'Move ' + block.type + ' down'} disabled={index===form.blocks.length-1} onClick={() => moveBlock(index,1)}><ArrowDown size={14}/></button>
+                            <button type="button" title="Duplicate block" aria-label={'Duplicate ' + block.type} disabled={form.blocks.length >= quota.blocks} onClick={() => {
+                              if (form.blocks.length >= quota.blocks) return toast.error('Your current plan supports up to ' + quota.blocks + ' blocks per page.');
+                              const copy = { ...block, id: 'block-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8) };
+                              setForm(prev => ({ ...prev, blocks: [...prev.blocks.slice(0, index + 1), copy, ...prev.blocks.slice(index + 1)] }));
+                            }}><Copy size={14}/></button>
+                            <button type="button" title="Remove block" aria-label={'Remove ' + block.type} onClick={() => setForm(prev => ({...prev,blocks:prev.blocks.filter((_,i) => i!==index)}))}><Trash2 size={14}/></button>
+                          </div>
+                        </div>
+                        <label className="pages-visible-toggle"><input type="checkbox" checked={block.visible !== false} onChange={e => updateBlock(index,'visible',e.target.checked)} /> Show on public page</label>
+                        {['link','social','file'].includes(block.type) && <div className="pages-form-two"><div className="form-group"><label className="form-label">Label</label><input className="form-input" value={block.label || ''} onChange={e => updateBlock(index,'label',e.target.value)} required maxLength={120}/></div><div className="form-group"><label className="form-label">Destination URL</label><input className="form-input" type="url" value={block.url || ''} onChange={e => updateBlock(index,'url',e.target.value)} required/></div></div>}
+                        {block.type==='link' && <>
+                          <div className="pages-form-two">
+                            <div className="form-group"><label className="form-label">Description (optional)</label><input className="form-input" value={block.description || ''} onChange={e => updateBlock(index,'description',e.target.value)} maxLength={240} placeholder="A few words about this link"/></div>
+                            <div className="form-group"><label className="form-label">Icon</label><select className="form-input" value={block.icon || 'link'} onChange={e=>updateBlock(index,'icon',e.target.value)}><option value="link">Link</option><option value="website">Website</option><option value="github">GitHub / Code</option><option value="linkedin">LinkedIn / Work</option><option value="instagram">Instagram / Camera</option><option value="youtube">YouTube / Video</option><option value="email">Email</option><option value="download">Download</option><option value="external">External link</option></select></div>
+                          </div>
+                          <label className="pages-visible-toggle"><input type="checkbox" checked={block.featured===true} onChange={e=>updateBlock(index,'featured',e.target.checked)}/> Highlight this link</label>
+                        </>}
+                        {['heading','text'].includes(block.type) && <div className="form-group"><label className="form-label">Text</label><textarea className="form-input" rows={block.type==='heading'?2:3} value={block.text || ''} onChange={e=>updateBlock(index,'text',e.target.value)} maxLength={1600} required/></div>}
+                        {block.type==='social' && <div className="form-group"><label className="form-label">Platform</label><select className="form-input" value={block.platform || 'website'} onChange={e=>updateBlock(index,'platform',e.target.value)}>{['website','github','linkedin','instagram','youtube','tiktok','x','facebook','email'].map(v=><option key={v} value={v}>{v}</option>)}</select></div>}
+                        {block.type==='image' && <>
+                          <div className="form-group"><label className="form-label">Image URL (HTTPS)</label><input className="form-input" type="url" value={block.url || ''} onChange={e=>updateBlock(index,'url',e.target.value)} placeholder="https://example.com/image.jpg" required/></div>
+                          {block.url && <div className="pages-block-image-preview"><img src={block.url} alt="" loading="lazy" onError={e => { e.currentTarget.hidden = true; }}/><span>Image preview</span></div>}
+                          <div className="form-group"><label className="form-label">Alternative text</label><input className="form-input" value={block.alt || ''} onChange={e=>updateBlock(index,'alt',e.target.value)} maxLength={180} placeholder="Describe the image for screen readers"/></div>
+                          <div className="form-group"><label className="form-label">Caption (optional)</label><input className="form-input" value={block.caption || ''} onChange={e=>updateBlock(index,'caption',e.target.value)} maxLength={240} placeholder="A short caption shown below the image"/></div>
+                        </>}
+                        {block.type==='video' && <>
+                          <div className="form-group"><label className="form-label">YouTube or Vimeo URL</label><input className="form-input" type="url" value={block.url || ''} onChange={e=>updateBlock(index,'url',e.target.value)} placeholder="https://youtu.be/..." required/><small className="pages-field-hint">Video embeds currently support YouTube and Vimeo links.</small></div>
+                          <div className="form-group"><label className="form-label">Video title (for accessibility)</label><input className="form-input" value={block.title || ''} onChange={e=>updateBlock(index,'title',e.target.value)} maxLength={180} placeholder="What is this video about?"/></div>
+                        </>}
+                        {block.type==='lead_form' && <><div className="form-group"><label className="form-label">Form title</label><input className="form-input" value={block.title || ''} onChange={e=>updateBlock(index,'title',e.target.value)} maxLength={120}/></div><div className="form-group"><label className="form-label">Description</label><input className="form-input" value={block.description || ''} onChange={e=>updateBlock(index,'description',e.target.value)} maxLength={240}/></div><div className="form-group"><label className="form-label">Button label</label><input className="form-input" value={block.buttonLabel || ''} onChange={e=>updateBlock(index,'buttonLabel',e.target.value)} maxLength={40}/></div></>}
+                        {block.type==='divider' && <div className="form-group"><label className="form-label">Divider style</label><select className="form-input" value={block.style || 'line'} onChange={e=>updateBlock(index,'style',e.target.value)}><option value="line">Thin separator line</option><option value="space">Extra vertical space</option></select><small className="pages-field-hint">Choose a visible line or just add breathing room.</small></div>}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="pages-add-blocks-footer">
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm pages-footer-add-link"
+                      onClick={() => addBlock('link')}
+                      disabled={form.blocks.length >= quota.blocks}
+                      title="Add another link to this page"
+                    >
+                      <Plus size={14} strokeWidth={2.6} /> Add Link
+                    </button>
+                    <span className="pages-add-footer-label">or add:</span>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => addBlock('heading')}
+                      disabled={form.blocks.length >= quota.blocks}
+                    >
+                      <Plus size={12} strokeWidth={2.2} /> Heading
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => addBlock('social')}
+                      disabled={form.blocks.length >= quota.blocks}
+                    >
+                      <Plus size={12} strokeWidth={2.2} /> Social
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => addBlock('image')}
+                      disabled={form.blocks.length >= quota.blocks}
+                    >
+                      <Plus size={12} strokeWidth={2.2} /> Image
+                    </button>
+                  </div>
+                </>
+              )}
               <p className="pages-muted">{form.blocks.length} / {quota.blocks} blocks allowed by your current plan.</p>
             </section>
 
