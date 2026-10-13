@@ -177,3 +177,39 @@ export const getMe = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error.' });
   }
 };
+
+// PATCH /api/auth/me - Update the signed-in user's display name
+export const updateMe = async (req, res) => {
+  try {
+    const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+
+    if (name.length < 2 || name.length > 80) {
+      return res.status(400).json({
+        success: false,
+        message: 'Display name must be between 2 and 80 characters.',
+      });
+    }
+
+    const result = await query(
+      `UPDATE users
+       SET name = $1, updated_at = NOW()
+       WHERE id = $2
+       RETURNING id, name, email, plan, role, avatar_url, created_at`,
+      [name, req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Profile updated successfully.',
+      user: result.rows[0],
+    });
+  } catch (err) {
+    console.error('UpdateMe error:', err);
+    return res.status(500).json({ success: false, message: 'Could not update profile.' });
+  }
+};
+
