@@ -1109,6 +1109,38 @@ tbody tr:hover {
   background: rgba(124, 58, 237, 0.04);
 }
 
+.comparison-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+
+.pill-guest-yes {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.pill-guest-no {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.pill-member-yes {
+  background: rgba(124, 58, 237, 0.1);
+  color: var(--brand-primary);
+  font-weight: 700;
+}
+
+/* Mobile Comparison Container (hidden by default on desktop) */
+.comparison-mobile-container {
+  display: none;
+}
+
 /* Security Section */
 .security-section {
   padding: 84px 24px;
@@ -2010,7 +2042,7 @@ tbody tr:hover {
   }
 
   .comparison-table {
-    min-width: 520px;
+    width: 100%;
   }
 
   .stats-row {
@@ -4400,9 +4432,182 @@ tbody tr:hover {
     max-width: 100%;
   }
 
-  .comparison-table-wrapper {
+  /* Desktop table hidden on mobile phones; Mobile cards displayed */
+  .desktop-comparison-table {
+    display: none !important;
+  }
+
+  .comparison-mobile-container {
+    display: flex !important;
+    flex-direction: column;
+    gap: 12px;
     width: 100%;
-    max-width: 100%;
+    margin-top: 4px;
+  }
+
+  /* Segmented Filter Switcher */
+  .comparison-mobile-filter {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .comparison-filter-btn {
+    flex: 1;
+    padding: 8px 6px;
+    border-radius: 8px;
+    font-size: 0.74rem;
+    font-weight: 650;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+
+  .comparison-filter-btn.active {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    font-weight: 750;
+  }
+
+  [data-theme="dark"] .comparison-filter-btn.active {
+    background: #111c33;
+    color: #f8fafc;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Feature List Cards */
+  .comparison-mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .comparison-mobile-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: var(--shadow-sm);
+    box-sizing: border-box;
+  }
+
+  [data-theme="dark"] .comparison-mobile-card {
+    background: #0f172a;
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .comparison-mobile-card-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.35;
+  }
+
+  .comparison-mobile-card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .comparison-mobile-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 0.72rem;
+    font-weight: 650;
+  }
+
+  .chip-label {
+    opacity: 0.75;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .chip-value {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.72rem;
+  }
+
+  .chip-guest-yes {
+    background: var(--success-bg);
+    color: var(--success);
+  }
+
+  .chip-guest-no {
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    opacity: 0.65;
+  }
+
+  .chip-member-yes {
+    background: rgba(124, 58, 237, 0.10);
+    color: var(--brand-primary);
+    border: 1px solid rgba(124, 58, 237, 0.20);
+    font-weight: 750;
+  }
+
+  [data-theme="dark"] .chip-member-yes {
+    background: rgba(168, 85, 247, 0.16);
+    color: #c084fc;
+    border-color: rgba(168, 85, 247, 0.35);
+  }
+
+  /* Bottom Conversion CTA on Mobile */
+  .comparison-mobile-cta {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    margin-top: 4px;
+    box-sizing: border-box;
+  }
+
+  [data-theme="dark"] .comparison-mobile-cta {
+    background: #0f172a;
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .comparison-mobile-cta-content h4 {
+    font-size: 0.95rem;
+    font-weight: 750;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+  }
+
+  .comparison-mobile-cta-content p {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
+    margin: 0;
+  }
+
+  .comparison-mobile-cta-btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .landing-footer {

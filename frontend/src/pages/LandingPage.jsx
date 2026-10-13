@@ -43,6 +43,13 @@ export default function LandingPage() {
   const [copied, setCopied] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportShortCode, setReportShortCode] = useState('');
+  const [comparisonFilter, setComparisonFilter] = useState('all');
+
+  const filteredComparisonFeatures = COMPARISON_FEATURES.filter(row => {
+    if (comparisonFilter === 'guest') return row.guest;
+    if (comparisonFilter === 'member') return !row.guest;
+    return true;
+  });
 
   const handleShorten = async (e) => {
     e.preventDefault();
@@ -646,13 +653,19 @@ export default function LandingPage() {
           </p>
         </div>
 
-        <div className="comparison-table-wrapper">
+        {/* Desktop Comparison Table (Visible on > 640px) */}
+        <div className="comparison-table-wrapper desktop-comparison-table">
           <table className="comparison-table">
             <thead>
               <tr>
-                <th style={{ width: '50%' }}>Capability</th>
-                <th style={{ textAlign: 'center', width: '25%' }}>Guest Visitor</th>
-                <th style={{ textAlign: 'center', width: '25%' }} className="highlight-column">Axly Studio Member</th>
+                <th style={{ width: '46%' }}>Capability</th>
+                <th style={{ textAlign: 'center', width: '27%' }}>Guest Visitor</th>
+                <th style={{ textAlign: 'center', width: '27%' }} className="highlight-column">
+                  <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <span>Axly Studio Member</span>
+                    <span className="badge badge-pro" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>100% FREE</span>
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -661,18 +674,97 @@ export default function LandingPage() {
                   <td><strong>{row.feature}</strong></td>
                   <td style={{ textAlign: 'center' }}>
                     {row.guest ? (
-                      <CheckCircle2 size={18} style={{ color: 'var(--success)', verticalAlign: 'middle' }} />
+                      <span className="comparison-status-pill pill-guest-yes">
+                        <CheckCircle2 size={16} /> Yes
+                      </span>
                     ) : (
-                      <XCircle size={18} style={{ color: 'var(--text-muted)', verticalAlign: 'middle', opacity: 0.5 }} />
+                      <span className="comparison-status-pill pill-guest-no">
+                        <XCircle size={16} /> Locked
+                      </span>
                     )}
                   </td>
                   <td style={{ textAlign: 'center' }} className="highlight-column">
-                    <CheckCircle2 size={18} style={{ color: 'var(--brand-primary)', verticalAlign: 'middle' }} />
+                    <span className="comparison-status-pill pill-member-yes">
+                      <CheckCircle2 size={16} /> Included
+                    </span>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Comparison Experience (Visible on <= 640px) */}
+        <div className="comparison-mobile-container">
+          {/* Quick Filter Switcher */}
+          <div className="comparison-mobile-filter">
+            <button
+              type="button"
+              className={`comparison-filter-btn ${comparisonFilter === 'all' ? 'active' : ''}`}
+              onClick={() => setComparisonFilter('all')}
+            >
+              All (13)
+            </button>
+            <button
+              type="button"
+              className={`comparison-filter-btn ${comparisonFilter === 'guest' ? 'active' : ''}`}
+              onClick={() => setComparisonFilter('guest')}
+            >
+              Guest (2)
+            </button>
+            <button
+              type="button"
+              className={`comparison-filter-btn ${comparisonFilter === 'member' ? 'active' : ''}`}
+              onClick={() => setComparisonFilter('member')}
+            >
+              Member Only (11)
+            </button>
+          </div>
+
+          {/* Mobile Comparison Cards */}
+          <div className="comparison-mobile-list">
+            {filteredComparisonFeatures.map((row, idx) => (
+              <div className="comparison-mobile-card" key={idx}>
+                <div className="comparison-mobile-card-title">
+                  {row.feature}
+                </div>
+                <div className="comparison-mobile-card-grid">
+                  <div className={`comparison-mobile-chip ${row.guest ? 'chip-guest-yes' : 'chip-guest-no'}`}>
+                    <span className="chip-label">Guest</span>
+                    <span className="chip-value">
+                      {row.guest ? (
+                        <>
+                          <Check size={13} /> Available
+                        </>
+                      ) : (
+                        <>
+                          <X size={13} /> Locked
+                        </>
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="comparison-mobile-chip chip-member-yes">
+                    <span className="chip-label">Studio</span>
+                    <span className="chip-value">
+                      <Check size={13} /> Included
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Mobile Conversion CTA Card */}
+          <div className="comparison-mobile-cta">
+            <div className="comparison-mobile-cta-content">
+              <h4>Ready to unlock all 13 features?</h4>
+              <p>Create your free Axly Studio workspace in seconds — no credit card needed.</p>
+            </div>
+            <Link to={user ? '/app/dashboard' : '/register'} className="btn btn-primary comparison-mobile-cta-btn">
+              {user ? 'Open Studio Dashboard' : 'Get Started Free'} <ArrowRight size={15} />
+            </Link>
+          </div>
         </div>
       </section>
 
