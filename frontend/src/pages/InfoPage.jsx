@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft, ArrowRight, BookOpen, CheckCircle2, CircleHelp, ExternalLink,
@@ -10,7 +10,6 @@ import { api } from '../context/AuthContext';
 import BrandMark from '../components/BrandMark';
 import toast from 'react-hot-toast';
 
-const SUPPORT_EMAIL = 'support@axly.in';
 const LAST_UPDATED = 'October 13, 2026';
 
 const PAGE_META = {
@@ -555,9 +554,22 @@ function ReportAbuseContent() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     const raw = reportedLink.trim();
-    const code = raw.includes('/')
-      ? raw.replace(/\/+$/, '').split('/').filter(Boolean).pop()
-      : raw;
+    let code = raw;
+
+    if (/^https?:\/\//i.test(raw) || raw.includes('/')) {
+      try {
+        const candidate = new URL(/^https?:\/\//i.test(raw) ? raw : 'https://' + raw);
+        const host = candidate.hostname.toLowerCase();
+        if (!(host === 'axly.in' || host.endsWith('.axly.in'))) {
+          toast.error('Use an Axly short URL or enter just its short code. For a custom domain, email support@axly.in.');
+          return;
+        }
+        code = candidate.pathname.replace(/\/+$/, '').split('/').filter(Boolean).pop() || '';
+      } catch {
+        toast.error('Enter an Axly short URL or a valid short code.');
+        return;
+      }
+    }
 
     if (!/^[A-Za-z0-9_-]{3,30}$/.test(code || '')) {
       toast.error('Enter an Axly short code or a short URL such as s.axly.in/abc123.');
