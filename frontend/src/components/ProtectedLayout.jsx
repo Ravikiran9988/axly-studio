@@ -7,6 +7,7 @@ import {
   LayoutDashboard, Link2, Plus, BarChart3, MoreHorizontal
 } from 'lucide-react';
 import Sidebar from './Sidebar';
+import BrandMark from './BrandMark';
 import CreateLinkModal from './CreateLinkModal';
 import toast from 'react-hot-toast';
 
@@ -120,7 +121,7 @@ export default function ProtectedLayout() {
             </button>
 
             <Link to="/app/dashboard" className="mobile-brand-title mobile-only">
-              <div className="logo-icon">A</div>
+              <div className="logo-icon"><BrandMark size={20} /></div>
               <span>Axly Studio</span>
             </Link>
 
