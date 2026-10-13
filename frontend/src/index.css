@@ -1065,9 +1065,34 @@ tbody tr:hover {
 
 /* Comparison Table */
 .comparison-section {
-  padding: 70px 24px;
-  max-width: 1000px;
+  padding: 80px 24px;
+  max-width: 1040px;
   margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.comparison-section .section-header {
+  text-align: center;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.comparison-section .section-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3.2vw, 2.5rem);
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  margin: 0 0 12px 0;
+}
+
+.comparison-section .section-subtitle {
+  font-size: clamp(1rem, 1.4vw, 1.08rem);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 auto 30px auto;
+  max-width: 620px;
 }
 
 .comparison-table-wrapper {
@@ -1076,6 +1101,7 @@ tbody tr:hover {
   border-radius: var(--radius-xl);
   overflow-x: auto;
   box-shadow: var(--shadow-sm);
+  margin-top: 0;
 }
 
 .comparison-table {
@@ -1084,7 +1110,7 @@ tbody tr:hover {
 }
 
 .comparison-table th {
-  padding: 18px 24px;
+  padding: 20px 24px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
   font-size: 0.85rem;
@@ -1092,13 +1118,26 @@ tbody tr:hover {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-primary);
+  vertical-align: middle;
 }
 
 .comparison-table td {
-  padding: 16px 24px;
+  padding: 20px 24px;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-secondary);
-  font-size: 0.92rem;
+  font-size: 0.94rem;
+  vertical-align: middle;
+}
+
+.comparison-table th:first-child,
+.comparison-table td:first-child {
+  text-align: left;
+  padding-left: 28px;
+}
+
+.comparison-table th:not(:first-child),
+.comparison-table td:not(:first-child) {
+  text-align: center;
 }
 
 .comparison-table tr:last-child td {
@@ -4442,7 +4481,7 @@ tbody tr:hover {
     flex-direction: column;
     gap: 12px;
     width: 100%;
-    margin-top: 4px;
+    margin-top: 0;
   }
 
   /* Segmented Filter Switcher */
@@ -4782,7 +4821,13 @@ tbody tr:hover {
   .features-section .section-title,
   .comparison-section .section-title {
     font-size: 1.65rem;
-    line-height: 1.2;
+    line-height: 1.25;
+    margin-bottom: 10px;
+  }
+
+  .comparison-section .section-subtitle {
+    margin-bottom: 24px;
+    font-size: 0.95rem;
   }
 
   .feature-card {
