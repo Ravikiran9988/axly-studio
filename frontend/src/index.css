@@ -2833,3 +2833,52 @@ tbody tr:hover {
   .pages-preview-browser-bar { padding-inline: 11px; gap: 8px; }
   .pages-preview-live { font-size: 0.56rem; }
 }
+
+
+/* Responsive public navbar dropdown */
+.landing-mobile-menu-toggle {
+  display: none;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+.landing-mobile-menu-toggle:hover {
+  color: var(--brand-primary);
+  border-color: var(--brand-primary);
+}
+@media (max-width: 1040px) {
+  .landing-nav-links.mobile-open {
+    display: flex;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 210;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    padding: 12px 22px 18px;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: var(--shadow-lg);
+    white-space: normal;
+  }
+  .landing-nav-links.mobile-open .nav-link {
+    padding: 12px 8px;
+    border-radius: 8px;
+  }
+  .landing-nav-links.mobile-open .nav-link:hover {
+    background: var(--bg-secondary);
+  }
+  .landing-mobile-menu-toggle { display: inline-flex; }
+}
+@media (max-width: 520px) {
+  .landing-nav-links.mobile-open { padding: 10px 14px 14px; }
+}
