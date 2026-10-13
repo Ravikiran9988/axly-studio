@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth, api } from '../context/AuthContext';
+import BrandMark from '../components/BrandMark';
 import ReportModal from '../components/ReportModal';
 import toast from 'react-hot-toast';
 
@@ -76,7 +77,7 @@ export default function LandingPage() {
       <header className="landing-nav">
         <Link to="/" className="nav-logo" aria-label="Axly Studio Home">
           <div className="logo-icon">
-            <Link2 size={20} />
+            <BrandMark size={25} />
           </div>
           <div>
             <span style={{ letterSpacing: '-0.02em' }}>Axly Studio</span>
@@ -617,7 +618,7 @@ export default function LandingPage() {
         <div className="footer-content">
           <div className="footer-brand">
             <div className="logo-icon">
-              <Link2 size={16} />
+              <BrandMark size={19} />
             </div>
             <span>Axly Studio</span>
           </div>
