@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
 import { 
   Link2, ArrowRight, Moon, Sun, Copy, Check, ExternalLink, 
   ShieldCheck, Zap, BarChart2, Globe, QrCode, Lock,
   CheckCircle2, XCircle, ShieldAlert, Shield, Database, Activity,
-  UserRound, PanelsTopLeft, Megaphone, GitCompare, Users, Code2, Mail, Menu, X
+  UserRound, PanelsTopLeft, Megaphone, GitCompare, Users, Code2, Mail, Menu, X, Download
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth, api } from '../context/AuthContext';
@@ -34,6 +35,8 @@ export default function LandingPage() {
   const navigate = useNavigate();
 
   const [url, setUrl] = useState('');
+  const [qrInput, setQrInput] = useState('');
+  const [qrValue, setQrValue] = useState('');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -71,6 +74,64 @@ export default function LandingPage() {
     }
   };
 
+  // Generate the QR code locally so guest visitors don't need an account.
+  const handleGenerateQr = (event) => {
+    event.preventDefault();
+    const rawValue = qrInput.trim();
+    if (!rawValue) return;
+
+    try {
+      const parsedUrl = new URL(rawValue);
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        toast.error('Enter a website URL starting with http:// or https://.');
+        return;
+      }
+      setQrValue(parsedUrl.href);
+      toast.success('QR code is ready. No sign-in required.');
+    } catch {
+      toast.error('Enter a valid website URL, including https://.');
+    }
+  };
+
+  const handleCopyQrUrl = async () => {
+    if (!qrValue) return;
+    try {
+      await navigator.clipboard.writeText(qrValue);
+      toast.success('URL copied to clipboard.');
+    } catch {
+      toast.error('Could not copy the URL. Please select and copy it.');
+    }
+  };
+
+  const handleDownloadQrPng = () => {
+    const canvas = document.querySelector('#landing-qr-canvas canvas');
+    if (!canvas || !qrValue) {
+      toast.error('Generate a QR code first.');
+      return;
+    }
+    const downloadLink = document.createElement('a');
+    downloadLink.href = canvas.toDataURL('image/png');
+    downloadLink.download = 'axly-qr-code.png';
+    downloadLink.click();
+  };
+
+  const handleDownloadQrSvg = () => {
+    const svg = document.querySelector('#landing-qr-svg');
+    if (!svg || !qrValue) {
+      toast.error('Generate a QR code first.');
+      return;
+    }
+    const svgClone = svg.cloneNode(true);
+    svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    const blob = new Blob([new XMLSerializer().serializeToString(svgClone)], { type: 'image/svg+xml;charset=utf-8' });
+    const objectUrl = URL.createObjectURL(blob);
+    const downloadLink = document.createElement('a');
+    downloadLink.href = objectUrl;
+    downloadLink.download = 'axly-qr-code.svg';
+    downloadLink.click();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  };
+
   return (
     <div className="landing-page">
       {/* Top Header & Navigation */}
@@ -86,6 +147,7 @@ export default function LandingPage() {
 
         <nav className={`nav-links landing-nav-links ${mobileNavOpen ? 'mobile-open' : ''}`} aria-label="Main navigation">
           <a href="#shorten" className="nav-link" onClick={() => setMobileNavOpen(false)}>Shorten</a>
+          <a href="#qr-codes" className="nav-link" onClick={() => setMobileNavOpen(false)}>QR Codes</a>
           <a href="#pages" className="nav-link" onClick={() => setMobileNavOpen(false)}>Pages</a>
           <a href="#features" className="nav-link" onClick={() => setMobileNavOpen(false)}>Platform</a>
           <a href="#security" className="nav-link" onClick={() => setMobileNavOpen(false)}>Security</a>
@@ -276,6 +338,87 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Free QR Code Generator — generated locally, no account required */}
+      <section className="qr-generator-section" id="qr-codes">
+        <div className="qr-generator-container">
+          <div className="qr-generator-intro">
+            <span className="qr-generator-eyebrow"><QrCode size={15} /> FREE TOOL · NO SIGN-IN</span>
+            <h2>QR Code Generator</h2>
+            <p>Turn any website URL into a scannable QR code. Paste a link, generate your code, and download it for posters, packaging, menus, or social profiles.</p>
+            <div className="qr-generator-benefits">
+              <span><CheckCircle2 size={16} /> Any http:// or https:// website</span>
+              <span><CheckCircle2 size={16} /> Generated directly in your browser</span>
+              <span><CheckCircle2 size={16} /> Download PNG or SVG</span>
+            </div>
+          </div>
+
+          <div className="qr-generator-workspace">
+            <form className="qr-generator-form" onSubmit={handleGenerateQr}>
+              <label htmlFor="landing-qr-url">Website URL</label>
+              <input
+                id="landing-qr-url"
+                className="qr-generator-input"
+                type="url"
+                inputMode="url"
+                autoComplete="url"
+                placeholder="https://example.com"
+                value={qrInput}
+                onChange={(event) => {
+                  setQrInput(event.target.value);
+                  if (qrValue) setQrValue('');
+                }}
+                required
+              />
+              <p className="qr-generator-help">Tip: a QR code containing an Axly short link can keep the printed code the same if you later update that link's destination, where supported.</p>
+              <button type="submit" className="btn btn-primary qr-generator-submit">
+                <QrCode size={17} /> Generate QR Code
+              </button>
+            </form>
+
+            <div className={`qr-generator-result ${qrValue ? 'has-qr' : ''}`} aria-live="polite">
+              {qrValue ? (
+                <>
+                  <div className="qr-generator-image">
+                    <QRCodeSVG
+                      id="landing-qr-svg"
+                      value={qrValue}
+                      size={208}
+                      level="H"
+                      includeMargin
+                      bgColor="#ffffff"
+                      fgColor="#111827"
+                      title="Generated QR code"
+                    />
+                  </div>
+                  <p className="qr-generator-result-label">Your QR code is ready</p>
+                  <p className="qr-generator-result-url">{qrValue}</p>
+                  <div className="qr-generator-downloads">
+                    <button type="button" className="btn btn-outline" onClick={handleCopyQrUrl}>
+                      <Copy size={15} /> Copy URL
+                    </button>
+                    <button type="button" className="btn btn-outline" onClick={handleDownloadQrSvg}>
+                      <Download size={15} /> SVG
+                    </button>
+                    <button type="button" className="btn btn-primary" onClick={handleDownloadQrPng}>
+                      <Download size={15} /> PNG
+                    </button>
+                  </div>
+                  <div id="landing-qr-canvas" className="qr-generator-export-canvas" aria-hidden="true">
+                    <QRCodeCanvas value={qrValue} size={1024} level="H" includeMargin bgColor="#ffffff" fgColor="#111827" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="qr-generator-placeholder-icon"><QrCode size={34} /></div>
+                  <strong>Your QR code will appear here</strong>
+                  <p>Enter a website address and choose Generate QR Code.</p>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Feature Highlights Section */}
       <section className="features-section" id="features">
         <div className="section-header">
@@ -320,10 +463,13 @@ export default function LandingPage() {
             <div className="feature-icon" style={{ background: '#fffbeb', color: '#d97706' }}>
               <QrCode size={24} />
             </div>
-            <h3 className="feature-title">Dynamic QR Code Generation</h3>
+            <h3 className="feature-title">Free QR Code Generator</h3>
             <p className="feature-desc">
-              Generate scannable QR codes for any short link to bridge offline and online campaigns in print, presentations, and product packaging.
+              Turn any website URL into a scannable code directly in your browser, then download a PNG or SVG without signing in.
             </p>
+            <a href="#qr-codes" className="feature-card-link">
+              Generate a QR code <ArrowRight size={14} />
+            </a>
           </div>
 
           <div className="feature-card">
@@ -631,6 +777,7 @@ export default function LandingPage() {
 
           <div style={{ display: 'flex', gap: 24, fontSize: '0.88rem', color: 'var(--text-secondary)', alignItems: 'center' }}>
             <a href="#features" className="nav-link">Platform</a>
+            <a href="#qr-codes" className="nav-link">QR Codes</a>
             <a href="#pages" className="nav-link">Public Pages</a>
             <a href="#comparison" className="nav-link">Capabilities</a>
             <a href="#security" className="nav-link">Security</a>
