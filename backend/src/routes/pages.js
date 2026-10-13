@@ -4,7 +4,7 @@ import {
   createPage, deletePage, duplicatePage, getPage, getPageAnalytics,
   getPublicPageByDomain, getPublicPageBySlug, listPageLeads, listPages,
   pageTemplates, publicLeadLimiter, recordPublicPageEvent, submitPageLead,
-  suggestPageCopy, updatePage,
+  suggestPageCopy, updatePage, listPageRevisions, restorePageRevision,
 } from '../controllers/pageController.js';
 
 const router = Router();
@@ -21,6 +21,8 @@ router.use(authenticate);
 router.get('/', listPages);
 router.post('/', createPage);
 router.get('/:id/analytics', getPageAnalytics);
+router.get('/:id/revisions', listPageRevisions);
+router.post('/:id/revisions/:revisionId/restore', restorePageRevision);
 router.get('/:id/leads', listPageLeads);
 router.post('/:id/duplicate', duplicatePage);
 router.post('/:id/ai-copy', suggestPageCopy);
