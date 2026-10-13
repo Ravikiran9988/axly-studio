@@ -214,12 +214,11 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="hero-section" id="shorten">
         <div className="hero-container">
-          <div className="hero-badge">
-            <span className="hero-badge-dot"></span>
-            <span className="hero-badge-tag">LINKS MADE SIMPLE</span>
-            <span className="hero-badge-divider">/</span>
-            <span>Short links, QR codes & public pages</span>
-          </div>
+          <a href="#pages" className="hero-badge" aria-label="Explore Axly Studio public pages and link tools">
+            <span className="hero-badge-chip">LINKS MADE SIMPLE</span>
+            <span className="hero-badge-text">Short links, QR codes &amp; public pages</span>
+            <ArrowRight size={13} className="hero-badge-arrow" />
+          </a>
 
           <h1 className="hero-title">
             Shorten links. <span className="gradient-text">Share smarter.</span>
