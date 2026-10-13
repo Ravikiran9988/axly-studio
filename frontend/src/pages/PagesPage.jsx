@@ -112,6 +112,7 @@ export default function PagesPage() {
   const [saving, setSaving] = useState(false);
   const [panel, setPanel] = useState('editor');
   const [analytics, setAnalytics] = useState(null);
+  const [revisions, setRevisions] = useState([]);
   const [leads, setLeads] = useState([]);
   const [aiTopic, setAiTopic] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
@@ -143,6 +144,7 @@ export default function PagesPage() {
       setPanel('editor');
       setAnalytics(null);
       setLeads([]);
+      setRevisions([]);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Could not open page.');
     }
@@ -221,6 +223,34 @@ export default function PagesPage() {
       setAnalytics(res.data.data);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Could not load analytics.');
+    }
+  };
+
+  const showRevisions = async () => {
+    setPanel('history');
+    try {
+      const res = await api.get('/pages/' + selected + '/revisions');
+      setRevisions(res.data.data || []);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not load page history.');
+    }
+  };
+
+  const restoreRevision = async (revision) => {
+    if (!confirm('Restore the saved version from ' + new Date(revision.created_at).toLocaleString() + '? The current content will be preserved in history.')) return;
+    setSaving(true);
+    try {
+      const res = await api.post('/pages/' + selected + '/revisions/' + revision.id + '/restore');
+      setForm(fromApi(res.data.data));
+      await loadPages();
+      const revisionsRes = await api.get('/pages/' + selected + '/revisions');
+      setRevisions(revisionsRes.data.data || []);
+      setPanel('history');
+      toast.success('Saved version restored.');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not restore version.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -388,7 +418,7 @@ export default function PagesPage() {
           <p className="page-subtitle">{form.status === 'published' ? 'Published page · changes are saved as you edit only when you press Save.' : 'Draft page · visitors cannot see it until you publish.'}</p>
         </div>
         <div className="pages-header-actions">
-          <button className="btn btn-secondary btn-sm" onClick={() => window.open(publicUrl(form.slug) + '?preview=1', '_blank', 'noopener,noreferrer')}><Eye size={15} /> Preview</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => window.open(publicUrl(form.slug) + '?preview=1&pageId=' + selected, '_blank', 'noopener,noreferrer')}><Eye size={15} /> Preview</button>
           <button className="btn btn-primary" onClick={savePage} disabled={saving}><Save size={15} /> {saving ? 'Saving…' : 'Save changes'}</button>
         </div>
       </div>
@@ -397,6 +427,7 @@ export default function PagesPage() {
         <button className={panel === 'editor' ? 'active' : ''} onClick={() => setPanel('editor')}><Edit3 size={15} /> Editor</button>
         <button className={panel === 'analytics' ? 'active' : ''} onClick={showAnalytics}><BarChart3 size={15} /> Analytics</button>
         <button className={panel === 'leads' ? 'active' : ''} onClick={showLeads}><Users size={15} /> Leads</button>
+        <button className={panel === 'history' ? 'active' : ''} onClick={showRevisions}><CalendarClock size={15} /> History</button>
       </div>
 
       {panel === 'analytics' && (
@@ -417,6 +448,23 @@ export default function PagesPage() {
               <h3 style={{ marginTop: 24 }}>Referrers</h3>{(analytics.referrers || []).map(item => <div className="pages-ranked-row" key={item.source}><span>{item.source}</span><strong>{item.views}</strong></div>)}
             </div>
           </div>}
+        </div>
+      )}
+
+      {panel === 'history' && (
+        <div className="card pages-history-card">
+          <div className="pages-leads-heading">
+            <div><h2>Version history</h2><p>Axly keeps snapshots before saved edits, so you can restore a previous version.</p></div>
+            <button className="btn btn-secondary btn-sm" onClick={showRevisions}>Refresh</button>
+          </div>
+          {revisions.length === 0 ? (
+            <div className="pages-empty-inline"><CalendarClock size={26}/><strong>No saved versions yet</strong><p>Save a content change to create the first revision.</p></div>
+          ) : revisions.map(revision => (
+            <div className="pages-revision-row" key={revision.id}>
+              <div><strong>{revision.revision_label}</strong><span>{new Date(revision.created_at).toLocaleString()}</span></div>
+              <button className="btn btn-secondary btn-sm" disabled={saving} onClick={() => restoreRevision(revision)}>Restore this version</button>
+            </div>
+          ))}
         </div>
       )}
 
