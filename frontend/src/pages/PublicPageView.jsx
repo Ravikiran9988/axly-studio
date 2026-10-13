@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { api } from '../context/AuthContext';
 import {
   ArrowUpRight, Download, ExternalLink, Mail, Phone, Globe, Link2,
-  Github, Linkedin, Instagram, Youtube, Copy, Check, AlertCircle
+  Code2, Briefcase, Camera, PlayCircle, Copy, Check, AlertCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -49,10 +49,10 @@ const downloadVCard = (page) => {
 
 const socialIcon = (platform) => {
   const key = String(platform || '').toLowerCase();
-  if (key === 'github') return <Github size={17} />;
-  if (key === 'linkedin') return <Linkedin size={17} />;
-  if (key === 'instagram') return <Instagram size={17} />;
-  if (key === 'youtube') return <Youtube size={17} />;
+  if (key === 'github') return <Code2 size={17} />;
+  if (key === 'linkedin') return <Briefcase size={17} />;
+  if (key === 'instagram') return <Camera size={17} />;
+  if (key === 'youtube') return <PlayCircle size={17} />;
   if (key === 'email') return <Mail size={17} />;
   return <Globe size={17} />;
 };
