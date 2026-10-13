@@ -45,7 +45,7 @@ function ScrollToTop() {
 
 function HomeRoute() {
   const host = window.location.hostname.toLowerCase();
-  const axlyHost = host === 'url.axly.in' || host === 'axly.in' || host === 'localhost' ||
+  const axlyHost = host === 'url.axly.in' || host === 'studio.axly.in' || host === 'axly.in' || host === 'localhost' ||
     host === '127.0.0.1' || host === 's.axly.in' || host === 'api.axly.in' ||
     host.endsWith('.vercel.app');
   return axlyHost ? <LandingPage /> : <PublicPageView customDomainHost={host} />;
