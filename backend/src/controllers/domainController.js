@@ -13,14 +13,14 @@ export const listDomains = async (req, res) => {
     let result;
     if (workspaceId) {
       result = await query(`
-        SELECT id, domain, verification_token, status, dns_record_type, dns_expected_value, verified_at, ssl_status, created_at
+        SELECT id, domain, domain_type, verification_token, status, dns_record_type, dns_expected_value, verified_at, ssl_status, created_at
         FROM custom_domains
         WHERE workspace_id = $1 AND (user_id = $2 OR $3 = 'admin')
         ORDER BY created_at DESC
       `, [workspaceId, req.user.id, req.user.role]);
     } else {
       result = await query(`
-        SELECT id, domain, verification_token, status, dns_record_type, dns_expected_value, verified_at, ssl_status, created_at
+        SELECT id, domain, domain_type, verification_token, status, dns_record_type, dns_expected_value, verified_at, ssl_status, created_at
         FROM custom_domains
         WHERE user_id = $1
         ORDER BY created_at DESC
@@ -42,7 +42,8 @@ export const listDomains = async (req, res) => {
  */
 export const createDomain = async (req, res) => {
   try {
-    const { domain, workspaceId = null } = req.body;
+    const { domain, workspaceId = null, domainType = 'shortlinks' } = req.body;
+    if (!['shortlinks', 'page'].includes(domainType)) return res.status(400).json({ success: false, message: 'Domain type must be shortlinks or page.' });
 
     const validation = validateDomainSyntax(domain);
     if (!validation.valid) {
@@ -61,14 +62,14 @@ export const createDomain = async (req, res) => {
     }
 
     const verificationToken = `axly-verify-${crypto.randomBytes(12).toString('hex')}`;
-    const dnsExpectedValue = 'cname.axly.in';
+    const dnsExpectedValue = domainType === 'page' ? 'url.axly.in' : 'axly-api.onrender.com';
 
     const result = await query(`
       INSERT INTO custom_domains (
-        user_id, workspace_id, domain, verification_token, status, dns_record_type, dns_expected_value
-      ) VALUES ($1, $2, $3, $4, 'pending_dns', 'CNAME', $5)
-      RETURNING id, domain, verification_token, status, dns_record_type, dns_expected_value, created_at
-    `, [req.user.id, workspaceId || null, cleanDomain, verificationToken, dnsExpectedValue]);
+        user_id, workspace_id, domain, domain_type, verification_token, status, dns_record_type, dns_expected_value
+      ) VALUES ($1, $2, $3, $4, $5, 'pending_dns', 'CNAME', $6)
+      RETURNING id, domain, domain_type, verification_token, status, dns_record_type, dns_expected_value, created_at
+    `, [req.user.id, workspaceId || null, cleanDomain, domainType, verificationToken, dnsExpectedValue]);
 
     const created = result.rows[0];
 
@@ -88,9 +89,10 @@ export const createDomain = async (req, res) => {
         primaryMethod: {
           type: 'CNAME',
           host: cleanDomain,
-          target: 'cname.axly.in',
+          target: dnsExpectedValue,
         },
-        alternativeMethod: {
+        ownershipTxtRecord: {
+          purpose: 'Optional ownership evidence; traffic routing still requires the CNAME above.',
           type: 'TXT',
           host: `_axly-verify.${cleanDomain}`,
           value: verificationToken,
@@ -118,7 +120,7 @@ export const verifyDomain = async (req, res) => {
     const { id } = req.params;
 
     const domRes = await query(`
-      SELECT id, domain, verification_token, status
+      SELECT id, domain, domain_type, verification_token, status, dns_expected_value
       FROM custom_domains
       WHERE id = $1 AND (user_id = $2 OR $3 = 'admin')
     `, [id, req.user.id, req.user.role]);
@@ -130,7 +132,7 @@ export const verifyDomain = async (req, res) => {
     const domainRecord = domRes.rows[0];
 
     // Check DNS records
-    const check = await verifyDomainDns(domainRecord.domain, domainRecord.verification_token);
+    const check = await verifyDomainDns(domainRecord.domain, domainRecord.verification_token, domainRecord.dns_expected_value);
 
     if (!check.verified) {
       return res.status(400).json({
@@ -143,7 +145,7 @@ export const verifyDomain = async (req, res) => {
     // Update status to active & verified
     const updated = await query(`
       UPDATE custom_domains
-      SET status = 'active', verified_at = NOW(), ssl_status = 'active', updated_at = NOW()
+      SET status = 'active', verified_at = NOW(), ssl_status = 'pending', updated_at = NOW()
       WHERE id = $1
       RETURNING id, domain, status, verified_at, ssl_status
     `, [id]);
@@ -160,7 +162,7 @@ export const verifyDomain = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Domain '${domainRecord.domain}' verified and activated successfully! 🎉`,
+      message: `DNS routing for '${domainRecord.domain}' is verified. HTTPS becomes active after the hosting provider finishes domain setup and provisions a certificate.`,
       data: updated.rows[0],
     });
   } catch (err) {

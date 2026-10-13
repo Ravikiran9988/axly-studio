@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Link2, Settings, LogOut,
   Moon, Sun, Menu, X, ChevronRight, ShieldAlert,
   Megaphone, GitCompare, FileSpreadsheet, BarChart3,
-  Users, Code2, UserRound,
+  Users, Code2, UserRound, PanelsTopLeft, Globe,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -13,6 +13,8 @@ import toast from 'react-hot-toast';
 const NAV_ITEMS = [
   { to: '/app/dashboard', icon: <LayoutDashboard size={18} />, label: 'Dashboard' },
   { to: '/app/links', icon: <Link2 size={18} />, label: 'My Links' },
+  { to: '/app/pages', icon: <PanelsTopLeft size={18} />, label: 'My Pages' },
+  { to: '/app/domains', icon: <Globe size={18} />, label: 'Domains' },
   { to: '/app/campaigns', icon: <Megaphone size={18} />, label: 'Campaigns & UTM' },
   { to: '/app/experiments', icon: <GitCompare size={18} />, label: 'A/B Experiments' },
   { to: '/app/teams', icon: <Users size={18} />, label: 'Teams & Workspaces' },
