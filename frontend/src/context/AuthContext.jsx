@@ -79,8 +79,15 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   };
 
+  const updateProfile = async ({ name }) => {
+    const res = await api.patch('/auth/me', { name });
+    setUser(res.data.user);
+    localStorage.setItem('axly_user', JSON.stringify(res.data.user));
+    return res.data.user;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, api }}>
+    <AuthContext.Provider value={{ user, loading, login, register, updateProfile, logout, api }}>
       {children}
     </AuthContext.Provider>
   );
