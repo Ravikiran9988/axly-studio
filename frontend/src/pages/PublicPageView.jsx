@@ -202,7 +202,7 @@ export default function PublicPageView({ customDomainHost = null }) {
               if (block.type === 'lead_form') {
                 const form = leadForms[block.id] || { name: '', email: '', message: '', consent: false };
                 return <section className="public-page-lead-card" key={block.id}><h2>{block.title || 'Get in touch'}</h2>{block.description && <p>{block.description}</p>}
-                  {form.sent ? <div className="public-page-thanks">Thanks! Your message has been sent.</div> :
+                  {form.sent ? <div className="public-page-thanks">Thanks! Your message has been received.</div> :
                     <form onSubmit={(event) => sendLead(block.id,event)} className="public-page-lead-form">
                       <input aria-label="Your name" placeholder="Your name" value={form.name || ''} onChange={e=>setLeadForms(prev=>({...prev,[block.id]:{...form,name:e.target.value}}))} required minLength={2} maxLength={120}/>
                       <input aria-label="Email address" type="email" placeholder="Email address" value={form.email || ''} onChange={e=>setLeadForms(prev=>({...prev,[block.id]:{...form,email:e.target.value}}))} required maxLength={320}/>
