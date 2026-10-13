@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Link2, Settings, LogOut,
   Moon, Sun, Menu, X, ChevronRight, ShieldAlert,
   Megaphone, GitCompare, FileSpreadsheet, BarChart3,
-  Users, Code2,
+  Users, Code2, UserRound,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { to: '/app/developer', icon: <Code2 size={18} />, label: 'Developer Platform' },
   { to: '/app/bulk', icon: <FileSpreadsheet size={18} />, label: 'Bulk Import/Export' },
   { to: '/app/analytics', icon: <BarChart3 size={18} />, label: 'Account Analytics' },
+  { to: '/app/profile', icon: <UserRound size={18} />, label: 'My Profile' },
   { to: '/app/settings', icon: <Settings size={18} />, label: 'Settings' },
 ];
 

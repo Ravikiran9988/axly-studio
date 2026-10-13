@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   Link2, ArrowRight, Moon, Sun, Copy, Check, ExternalLink, 
   ShieldCheck, Zap, BarChart2, Globe, Sparkles, QrCode, Lock,
-  CheckCircle2, XCircle, ShieldAlert
+  CheckCircle2, XCircle, ShieldAlert, UserRound
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth, api } from '../context/AuthContext';
@@ -76,14 +76,13 @@ export default function LandingPage() {
           </div>
         </Link>
 
-        <nav className="nav-links desktop-only" style={{ display: 'flex', gap: 28 }}>
+        <nav className="nav-links desktop-only landing-nav-links" aria-label="Main navigation">
           <a href="#shorten" className="nav-link">Shorten</a>
-          <a href="#features" className="nav-link">Capabilities</a>
-          <a href="#comparison" className="nav-link">Guest vs Account</a>
+          <a href="#features" className="nav-link">Features</a>
           <a href="#security" className="nav-link">Security</a>
         </nav>
 
-        <div className="nav-actions">
+        <div className="nav-actions landing-nav-actions">
           <button 
             className="theme-toggle" 
             onClick={toggleTheme} 
@@ -94,14 +93,22 @@ export default function LandingPage() {
           </button>
 
           {user ? (
-            <button 
-              className="btn btn-primary" 
-              onClick={() => navigate(user.role === 'admin' ? '/admin' : '/app/dashboard')}
-            >
-              Enter Studio <ArrowRight size={15} style={{ marginLeft: 6 }} />
-            </button>
+            <div className="landing-signed-in-actions">
+              <Link to="/app/profile" className="landing-profile-shortcut" aria-label="Open your profile">
+                <span className="landing-profile-avatar">
+                  {user.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || <UserRound size={16} />}
+                </span>
+                <span className="landing-profile-label">Profile</span>
+              </Link>
+              <button
+                className="btn btn-primary"
+                onClick={() => navigate(user.role === 'admin' ? '/admin' : '/app/dashboard')}
+              >
+                Open Studio <ArrowRight size={15} style={{ marginLeft: 6 }} />
+              </button>
+            </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="landing-guest-actions">
               <Link to="/login" className="btn btn-ghost" id="nav-login-btn">
                 Sign in
               </Link>
