@@ -28,8 +28,8 @@ const WEBHOOK_EVENTS = [
   { id: 'experiment.completed', label: 'Experiment Completed', desc: 'Fires when an A/B test concludes' },
 ];
 
-export default function DeveloperPage() {
-  const [tab, setTab] = useState('keys'); // 'keys' | 'webhooks' | 'domains'
+export default function DeveloperPage({ initialTab = 'keys' }) {
+  const [tab, setTab] = useState(initialTab); // 'keys' | 'webhooks' | 'domains'
   const [loading, setLoading] = useState(true);
 
   // API Keys State
