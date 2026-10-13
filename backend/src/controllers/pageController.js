@@ -375,8 +375,12 @@ export const updatePage = async (req, res) => {
     set.push('updated_at = NOW()');
     if (value.status === 'published' && current.status !== 'published') set.push('published_at = NOW()');
     params.push(req.params.id, req.user.id);
+    await query(
+      'INSERT INTO page_revisions (page_id, user_id, revision_label, snapshot) VALUES ($1, $2, $3, $4::jsonb)',
+      [current.id, req.user.id, safeText(req.body.revisionLabel, 160) || 'Before update', JSON.stringify(current)]
+    );
     const saved = await query(
-      `UPDATE public_pages SET ${set.join(', ')} WHERE id = $${params.length - 1} AND user_id = $${params.length} RETURNING *`,
+      `UPDATE public_pages SET ${set.join(', ')} WHERE id = ${params.length - 1} AND user_id = ${params.length} RETURNING *`,
       params
     );
     res.json({ success: true, data: saved.rows[0], message: 'Page saved.' });
@@ -649,3 +653,71 @@ export const pageTemplates = (_req, res) => {
     ],
   });
 };
+
+export const listPageRevisions = async (req, res) => {
+  try {
+    const page = await getOwnedPage(req.params.id, req.user.id);
+    if (!page) return res.status(404).json({ success: false, message: 'Page not found.' });
+    const result = await query(
+      'SELECT id, revision_label, created_at FROM page_revisions WHERE page_id = $1 AND user_id = $2 ORDER BY created_at DESC LIMIT 50',
+      [page.id, req.user.id]
+    );
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    console.error('listPageRevisions error:', err);
+    res.status(500).json({ success: false, message: 'Could not load page history.' });
+  }
+};
+
+export const restorePageRevision = async (req, res) => {
+  try {
+    const current = await getOwnedPage(req.params.id, req.user.id);
+    if (!current) return res.status(404).json({ success: false, message: 'Page not found.' });
+    const revisionResult = await query(
+      'SELECT snapshot FROM page_revisions WHERE id = $1 AND page_id = $2 AND user_id = $3',
+      [req.params.revisionId, current.id, req.user.id]
+    );
+    if (revisionResult.rows.length === 0) return res.status(404).json({ success: false, message: 'Revision not found.' });
+
+    const snapshot = revisionResult.rows[0].snapshot;
+    const input = pageInput(snapshot, current);
+    if (!input.valid) return res.status(400).json({ success: false, message: input.message });
+    const value = input.value;
+    if (value.custom_domain_id) {
+      const domain = await query(
+        "SELECT id FROM custom_domains WHERE id = $1 AND user_id = $2 AND domain_type = 'page' AND status = 'active'",
+        [value.custom_domain_id, req.user.id]
+      );
+      if (domain.rows.length === 0) value.custom_domain_id = null;
+    }
+
+    await query(
+      "INSERT INTO page_revisions (page_id, user_id, revision_label, snapshot) VALUES ($1, $2, 'Before restore', $3::jsonb)",
+      [current.id, req.user.id, JSON.stringify(current)]
+    );
+    const result = await query(`
+      UPDATE public_pages SET
+        slug=$1, title=$2, bio=$3, profile_image_url=$4, page_type=$5, template_key=$6,
+        theme=$7::jsonb, blocks=$8::jsonb, status=$9, seo_title=$10, seo_description=$11,
+        og_image_url=$12, publish_at=$13, unpublish_at=$14, custom_domain_id=$15,
+        contact_email=$16, contact_phone=$17, contact_company=$18, contact_job_title=$19,
+        updated_at=NOW()
+      WHERE id=$20 AND user_id=$21
+      RETURNING *
+    `, [
+      value.slug, value.title, value.bio || '', value.profile_image_url || null,
+      value.page_type || 'link-in-bio', value.template_key || 'minimal',
+      JSON.stringify(sanitizeTheme(value.theme)), JSON.stringify(sanitizePageBlocks(value.blocks || []).blocks),
+      value.status || 'draft', value.seo_title || null, value.seo_description || null,
+      value.og_image_url || null, value.publish_at || null, value.unpublish_at || null,
+      value.custom_domain_id || null, value.contact_email || null, value.contact_phone || null,
+      value.contact_company || null, value.contact_job_title || null, current.id, req.user.id,
+    ]);
+    res.json({ success: true, data: result.rows[0], message: 'Page revision restored.' });
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ success: false, message: 'This revision uses a page URL that is already taken.' });
+    console.error('restorePageRevision error:', err);
+    res.status(500).json({ success: false, message: 'Could not restore that revision.' });
+  }
+};
+
