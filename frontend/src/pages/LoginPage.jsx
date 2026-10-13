@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Zap, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Zap, ShieldCheck, Database, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
@@ -38,7 +38,7 @@ export default function LoginPage() {
 
     try {
       const res = await login(form.email, form.password);
-      toast.success(`Welcome back, ${res.user?.name || 'user'}! 👋`);
+      toast.success(`Welcome back, ${res.user?.name || 'user'}!`);
       
       // Role-based routing: Verified by backend JWT and DB
       if (res.user?.role === 'admin') {
@@ -100,16 +100,16 @@ export default function LoginPage() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {[
-              { icon: '⚡', title: 'Lakebase Postgres Engine', desc: 'Real-time click streams with pooled high-throughput latency' },
-              { icon: '🛡️', title: 'Role-Based Access Control', desc: 'Isolated personal workspaces and comprehensive administrator oversight' },
-              { icon: '🔒', title: 'Zero Public Admin Vector', desc: 'Secure backend credential verification with no public entrypoints' },
+              { icon: <Zap size={16} />, iconColor: '#f59e0b', title: 'Lakebase Postgres Engine', desc: 'Real-time click streams with pooled high-throughput latency' },
+              { icon: <ShieldCheck size={16} />, iconColor: '#2563eb', title: 'Role-Based Access Control', desc: 'Isolated personal workspaces and comprehensive administrator oversight' },
+              { icon: <Lock size={16} />, iconColor: '#059669', title: 'Zero Public Admin Vector', desc: 'Secure backend credential verification with no public entrypoints' },
             ].map((item) => (
               <div key={item.title} style={{
                 display: 'flex', alignItems: 'flex-start', gap: 14,
                 padding: '12px 14px', borderRadius: 'var(--radius-md)',
                 background: 'var(--bg-secondary)', border: '1px solid var(--border-color)',
               }}>
-                <span style={{ fontSize: '1.2rem', marginTop: 2 }}>{item.icon}</span>
+                <span style={{ marginTop: 3, color: item.iconColor }}>{item.icon}</span>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: '0.92rem', color: 'var(--text-primary)' }}>{item.title}</div>
                   <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 2 }}>{item.desc}</div>
@@ -145,8 +145,9 @@ export default function LoginPage() {
         </div>
 
         {error && (
-          <div className="alert alert-error" style={{ marginBottom: 24 }}>
-            ⚠️ {error}
+          <div className="alert alert-error" style={{ marginBottom: 24, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <AlertCircle size={16} />
+            <span>{error}</span>
           </div>
         )}
 

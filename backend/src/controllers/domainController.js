@@ -160,7 +160,7 @@ export const verifyDomain = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Domain '${domainRecord.domain}' verified and activated successfully! 🎉`,
+      message: `Domain '${domainRecord.domain}' verified and activated successfully.`,
       data: updated.rows[0],
     });
   } catch (err) {

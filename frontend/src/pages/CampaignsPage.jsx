@@ -71,7 +71,7 @@ export default function CampaignsPage() {
       };
 
       const res = await api.post('/campaigns', payload);
-      toast.success('Campaign created successfully! 🎯');
+      toast.success('Campaign created successfully.');
       setShowCreate(false);
       setForm({
         name: '',
@@ -298,7 +298,7 @@ export default function CampaignsPage() {
             </div>
           ) : campaigns.length === 0 ? (
             <div className="empty-state card" style={{ padding: '40px' }}>
-              <div className="empty-icon">📢</div>
+              <div className="empty-icon"><Megaphone size={36} /></div>
               <div className="empty-title">No campaigns created yet</div>
               <div className="empty-desc">
                 Organize your marketing links with UTM channels, conversion rates, and CSV exports.

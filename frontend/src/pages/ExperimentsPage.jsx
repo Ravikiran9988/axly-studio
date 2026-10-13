@@ -68,7 +68,7 @@ export default function ExperimentsPage() {
       };
 
       await api.post('/experiments', payload);
-      toast.success('A/B Experiment launched successfully! 🧪');
+      toast.success('A/B Experiment launched successfully.');
       setShowCreate(false);
       fetchData();
     } catch (err) {
@@ -227,7 +227,7 @@ export default function ExperimentsPage() {
         </div>
       ) : experiments.length === 0 ? (
         <div className="empty-state card" style={{ padding: '48px' }}>
-          <div className="empty-icon">🧪</div>
+          <div className="empty-icon"><GitCompare size={28} style={{ color: 'var(--text-muted)' }} /></div>
           <div className="empty-title">No A/B experiments running yet</div>
           <div className="empty-desc">
             Test and validate conversion improvements scientifically across different destination landing pages.
@@ -256,7 +256,7 @@ export default function ExperimentsPage() {
                   onClick={() => handleSimulateConversion(exp.id)}
                   title="Fire test conversion"
                 >
-                  🧪 Simulate Conversion
+                  <GitCompare size={13} style={{ marginRight: 4 }} /> Simulate Conversion
                 </button>
               </div>
 

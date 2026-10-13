@@ -4,12 +4,12 @@ import { api } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
 const REPORT_REASONS = [
-  { value: 'phishing', label: '🎣 Phishing or Credential Theft' },
-  { value: 'malware', label: '🦠 Malware, Virus or Dangerous Download' },
-  { value: 'spam', label: '📢 Spam or Deceptive Scam' },
-  { value: 'copyright', label: '⚖️ Copyright or Trademark Infringement' },
-  { value: 'harassment', label: '🚫 Harassment, Hate Speech or Threat' },
-  { value: 'other', label: '⚠️ Other Policy Violation' },
+  { value: 'phishing', label: 'Phishing or Credential Theft' },
+  { value: 'malware', label: 'Malware, Virus or Dangerous Download' },
+  { value: 'spam', label: 'Spam or Deceptive Scam' },
+  { value: 'copyright', label: 'Copyright or Trademark Infringement' },
+  { value: 'harassment', label: 'Harassment, Hate Speech or Threat' },
+  { value: 'other', label: 'Other Policy Violation' },
 ];
 
 export default function ReportModal({ isOpen, onClose, shortCode = '', urlId = null, targetUrl = '' }) {

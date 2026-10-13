@@ -494,8 +494,12 @@ export default function DeveloperPage() {
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <h4 style={{ fontSize: '1.05rem', margin: 0 }}>{d.domain}</h4>
-                        <span className={`badge ${d.status === 'active' ? 'badge-active' : 'badge-warning'}`}>
-                          {d.status === 'active' ? '✓ Verified & Active' : '⏳ Pending DNS'}
+                        <span className={`badge ${d.status === 'active' ? 'badge-active' : 'badge-warning'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          {d.status === 'active' ? (
+                            <><CheckCircle2 size={12} /> Verified & Active</>
+                          ) : (
+                            <><Clock size={12} /> Pending DNS</>
+                          )}
                         </span>
                       </div>
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 4 }}>

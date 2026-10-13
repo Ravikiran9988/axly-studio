@@ -183,7 +183,7 @@ export default function LinkDetailPage() {
 
       const res = await api.patch(`/urls/${id}`, payload);
       setUrl(res.data.data);
-      toast.success('Link settings saved successfully! ✨');
+      toast.success('Link settings saved successfully.');
       setFormData(p => ({ ...p, password: '', removePassword: false }));
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update link');
@@ -254,7 +254,7 @@ export default function LinkDetailPage() {
       const res = await api.post('/experiments', payload);
       setExperiment(res.data.data);
       setShowCreateExp(false);
-      toast.success('A/B Experiment launched! 🧪');
+      toast.success('A/B Experiment launched.');
       fetchExperiment();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to create experiment');
@@ -521,7 +521,7 @@ export default function LinkDetailPage() {
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 12 }}>
                   {url.has_password
-                    ? '🔒 This link is currently password-protected. Visitors must provide the passcode before routing.'
+                    ? 'This link is currently password-protected. Visitors must provide the passcode before routing.'
                     : 'Visitors must enter a passcode to unlock the link destination.'}
                 </div>
 
@@ -679,7 +679,7 @@ export default function LinkDetailPage() {
             <div className="skeleton" style={{ height: 120, borderRadius: 12 }} />
           ) : rules.length === 0 ? (
             <div className="empty-state card" style={{ padding: '40px' }}>
-              <div className="empty-icon">🔀</div>
+              <div className="empty-icon"><GitCompare size={36} /></div>
               <div className="empty-title">No smart redirect rules configured</div>
               <div className="empty-desc">
                 All visitors will route directly to the default destination: <code>{url.original_url}</code>
@@ -852,7 +852,7 @@ export default function LinkDetailPage() {
             <div className="skeleton" style={{ height: 160, borderRadius: 12 }} />
           ) : !experiment ? (
             <div className="empty-state card" style={{ padding: '40px' }}>
-              <div className="empty-icon">🧪</div>
+              <div className="empty-icon"><GitCompare size={28} style={{ color: 'var(--text-muted)' }} /></div>
               <div className="empty-title">No active A/B test on this link</div>
               <div className="empty-desc">
                 Deploy split tests to compare copy, hero sections, and pricing designs safely.
@@ -872,7 +872,7 @@ export default function LinkDetailPage() {
                 </div>
 
                 <button className="btn btn-secondary btn-sm" onClick={handleSimulateConversion} title="Simulate a conversion event">
-                  🧪 Simulate Conversion Event
+                  <GitCompare size={13} style={{ marginRight: 4 }} /> Simulate Conversion Event
                 </button>
               </div>
 

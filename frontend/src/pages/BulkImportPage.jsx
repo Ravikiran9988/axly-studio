@@ -126,7 +126,7 @@ export default function BulkImportPage() {
       });
 
       setResultSummary(res.data);
-      toast.success(`Successfully imported ${res.data.successCount} links! 🎉`);
+      toast.success(`Successfully imported ${res.data.successCount} links.`);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to complete bulk import');
     } finally {
@@ -216,9 +216,13 @@ export default function BulkImportPage() {
             <div>
               <h2 style={{ fontSize: '1.15rem', fontWeight: 800 }}>CSV Live Validation Preview</h2>
               <div style={{ display: 'flex', gap: 16, marginTop: 4, fontSize: '0.85rem' }}>
-                <span style={{ color: '#10b981', fontWeight: 600 }}>✓ {validCount} valid rows ready</span>
+                <span style={{ color: '#10b981', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Check size={14} /> {validCount} valid rows ready
+                </span>
                 {invalidCount > 0 && (
-                  <span style={{ color: 'var(--danger)', fontWeight: 600 }}>✗ {invalidCount} rows have errors</span>
+                  <span style={{ color: 'var(--danger)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <X size={14} /> {invalidCount} rows have errors
+                  </span>
                 )}
               </div>
             </div>

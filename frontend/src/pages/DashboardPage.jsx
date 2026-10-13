@@ -93,7 +93,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="page-title">
             Dashboard 
-            {user?.name && <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> — Hey, {user.name.split(' ')[0]}! 👋</span>}
+            {user?.name && <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> — Welcome back, {user.name.split(' ')[0]}</span>}
           </h1>
           <p className="page-subtitle">Here's what's happening with your links today.</p>
         </div>
@@ -169,7 +169,7 @@ export default function DashboardPage() {
           </div>
         ) : urls.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">🔗</div>
+            <div className="empty-icon"><Link2 size={28} style={{ color: 'var(--text-muted)' }} /></div>
             <div className="empty-title">No links yet</div>
             <div className="empty-desc">Create your first short link to start tracking clicks.</div>
             <button className="btn btn-primary" onClick={() => setShowCreate(true)}>

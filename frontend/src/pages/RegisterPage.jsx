@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, User, ArrowRight, Check, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, ArrowRight, Check, ShieldCheck, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -48,7 +48,7 @@ export default function RegisterPage() {
 
     try {
       await register(form.name, form.email, form.password);
-      toast.success('Account created! Welcome to Axly Studio 🎉');
+      toast.success('Account created! Welcome to Axly Studio.');
       navigate('/app/dashboard', { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
@@ -108,7 +108,10 @@ export default function RegisterPage() {
         </div>
 
         {error && (
-          <div className="alert alert-error" style={{ marginBottom: 24 }}>⚠️ {error}</div>
+          <div className="alert alert-error" style={{ marginBottom: 24, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <AlertCircle size={16} />
+            <span>{error}</span>
+          </div>
         )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -242,7 +245,7 @@ export default function RegisterPage() {
             fontSize: '0.82rem', fontWeight: 600, color: '#1d4ed8',
             marginBottom: 24,
           }}>
-            ✨ Member Capabilities Included
+            Member Capabilities Included
           </div>
 
           <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: 12, lineHeight: 1.25, letterSpacing: '-0.02em' }}>

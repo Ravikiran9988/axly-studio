@@ -442,7 +442,9 @@ const renderPasswordPage = (shortCode, errorMessage = null) => `
   </head>
   <body>
     <div class="card">
-      <div class="icon-wrap">🔒</div>
+      <div class="icon-wrap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
       <h1>Password Protected</h1>
       <p>This link is encrypted by its author. Enter the password to continue.</p>
       ${errorMessage ? `<div class="alert">${escapeHtml(errorMessage)}</div>` : ''}
@@ -526,7 +528,9 @@ const renderPreviewPage = (url, shortCode) => {
   </head>
   <body>
     <div class="card">
-      <div class="shield">🛡️</div>
+      <div class="shield">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
       <h1>Safety Verification</h1>
       <p>You are about to be redirected to an external website. Please review the destination hostname below.</p>
       <div class="dest-box">
@@ -587,7 +591,9 @@ const renderErrorPage = (title, message) => `
   </head>
   <body>
     <div class="card">
-      <div style="font-size: 32px; margin-bottom: 12px;">🔗</div>
+      <div style="margin-bottom:16px; width:48px; height:48px; border-radius:12px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; margin-left:auto; margin-right:auto;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      </div>
       <h1>${escapeHtml(title)}</h1>
       <p>${escapeHtml(message)}</p>
       <a href="${escapeHtml(config.FRONTEND_URL)}">Go to Axly Studio</a>

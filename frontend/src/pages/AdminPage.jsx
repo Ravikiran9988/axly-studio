@@ -886,7 +886,7 @@ export default function AdminPage() {
                 ) : (
                   <tr>
                     <td colSpan={7} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
-                      🎉 Zero active abuse reports in the moderation queue!
+                      Zero active abuse reports in the moderation queue.
                     </td>
                   </tr>
                 )}

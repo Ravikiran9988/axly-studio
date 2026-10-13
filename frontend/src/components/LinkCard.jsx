@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Copy, Check, BarChart3, Trash2, ToggleLeft, ToggleRight,
   ExternalLink, QrCode, Calendar, Tag, Lock, ShieldCheck,
-  Sliders, AlertTriangle,
+  Sliders, AlertTriangle, Megaphone,
 } from 'lucide-react';
 import QRModal from './QRModal';
 import toast from 'react-hot-toast';
@@ -122,8 +122,8 @@ export default function LinkCard({
               )}
 
               {url.campaign_name && (
-                <span className="badge" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
-                  📢 {url.campaign_name}
+                <span className="badge" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Megaphone size={11} /> {url.campaign_name}
                 </span>
               )}
             </div>

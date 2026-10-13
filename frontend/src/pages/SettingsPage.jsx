@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, api } from '../context/AuthContext';
 import {
   User, Mail, Shield, Bell, Palette, Globe, Save,
-  Download, Trash2, ExternalLink, AlertTriangle, CheckCircle2
+  Download, Trash2, ExternalLink, AlertTriangle, CheckCircle2, Sun, Moon
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
@@ -100,7 +100,7 @@ export default function SettingsPage() {
               <div style={{ fontWeight: 600, fontSize: '1.05rem', color: 'var(--text-primary)' }}>{user?.name}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{user?.email}</div>
               <span className={`badge ${user?.role === 'admin' ? 'badge-admin' : 'badge-active'}`} style={{ marginTop: 6 }}>
-                {user?.role === 'admin' ? '🛡️ Administrator' : '✓ Active Member'}
+                {user?.role === 'admin' ? 'Administrator' : 'Active Member'}
               </span>
             </div>
           </div>
@@ -139,8 +139,18 @@ export default function SettingsPage() {
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
             <div>
-              <div style={{ fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                {theme === 'dark' ? '🌙 Dark Mode' : '☀️ Light Mode'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                {theme === 'dark' ? (
+                  <>
+                    <Moon size={15} style={{ color: 'var(--brand-primary)' }} />
+                    <span>Dark Mode</span>
+                  </>
+                ) : (
+                  <>
+                    <Sun size={15} style={{ color: '#f59e0b' }} />
+                    <span>Light Mode</span>
+                  </>
+                )}
               </div>
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 2 }}>
                 Switch between curated sleek dark theme and responsive light mode

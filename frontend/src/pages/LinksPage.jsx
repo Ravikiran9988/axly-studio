@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Search, Filter, Download, Trash2, ToggleRight,
-  ToggleLeft, Tag, CheckSquare, Square, X, ArrowUpDown,
+  ToggleLeft, Tag, CheckSquare, Square, X, ArrowUpDown, Link2,
 } from 'lucide-react';
 import { api } from '../context/AuthContext';
 import CreateLinkModal from '../components/CreateLinkModal';
@@ -297,7 +297,7 @@ export default function LinksPage() {
         </div>
       ) : urls.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">🔗</div>
+          <div className="empty-icon"><Link2 size={28} style={{ color: 'var(--text-muted)' }} /></div>
           <div className="empty-title">
             {debouncedSearch || statusFilter !== 'all' || selectedTag
               ? 'No links match your filter criteria'

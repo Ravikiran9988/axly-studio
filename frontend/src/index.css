@@ -1,34 +1,35 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
 
 /* ============================================
    CSS CUSTOM PROPERTIES - AXLY STUDIO DESIGN SYSTEM
-   Default: Premium Warm Ivory & Cobalt Light Theme
+   Default: Premium Light Theme — Deep Violet + Warm Ivory
    ============================================ */
 :root {
-  /* Brand Accents - Restrained Cobalt & Electric Blue */
-  --brand-primary: #2563eb;
-  --brand-secondary: #1d4ed8;
-  --brand-accent: #0284c7;
-  --brand-gradient: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0284c7 100%);
-  --brand-gradient-hover: linear-gradient(135deg, #1e40af 0%, #1d4ed8 50%, #0369a1 100%);
+  /* Brand Accents — Rich Indigo-Violet with Electric Accent */
+  --brand-primary: #7c3aed;
+  --brand-secondary: #6d28d9;
+  --brand-accent: #a855f7;
+  --brand-gradient: linear-gradient(135deg, #6d28d9 0%, #7c3aed 45%, #a855f7 100%);
+  --brand-gradient-hover: linear-gradient(135deg, #5b21b6 0%, #6d28d9 45%, #9333ea 100%);
+  --brand-gradient-subtle: linear-gradient(135deg, rgba(109,40,217,0.08) 0%, rgba(168,85,247,0.06) 100%);
   
-  /* Surfaces & Backgrounds - Warm Ivory & Crisp White */
-  --bg-primary: #fbfbfa;
-  --bg-secondary: #f4f3ee;
+  /* Surfaces & Backgrounds — Warm Ivory & Crisp White */
+  --bg-primary: #faf9f7;
+  --bg-secondary: #f3f2ed;
   --bg-surface: #ffffff;
   --bg-card: #ffffff;
-  --bg-card-hover: #faf9f6;
+  --bg-card-hover: #f9f8f5;
   --bg-input: #ffffff;
-  --bg-glass: rgba(255, 255, 255, 0.85);
-  --bg-glass-hover: rgba(255, 255, 255, 0.95);
-  --border-color: #e5e3dc;
-  --border-focus: #2563eb;
+  --bg-glass: rgba(255, 255, 255, 0.88);
+  --bg-glass-hover: rgba(255, 255, 255, 0.97);
+  --border-color: #e6e4dd;
+  --border-focus: #7c3aed;
   
-  /* Typography - Deep Ink & High Contrast Slate */
-  --text-primary: #111827;
-  --text-secondary: #4b5563;
-  --text-muted: #8b929e;
-  --text-accent: #2563eb;
+  /* Typography — Deep Ink */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-accent: #7c3aed;
   
   /* Status Colors */
   --success: #059669;
@@ -41,23 +42,23 @@
   --info-bg: #f0f9ff;
   
   /* Elevation Shadows */
-  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
-  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.07), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
-  --shadow-glow: 0 0 24px rgba(37, 99, 235, 0.12);
-  --shadow-glow-strong: 0 0 40px rgba(37, 99, 235, 0.22);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 8px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  --shadow-lg: 0 12px 20px -4px rgba(15, 23, 42, 0.10), 0 4px 8px -4px rgba(15, 23, 42, 0.06);
+  --shadow-glow: 0 0 28px rgba(124, 58, 237, 0.14);
+  --shadow-glow-strong: 0 0 48px rgba(124, 58, 237, 0.28);
   
   /* Border Radii */
   --radius-sm: 6px;
   --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
   --radius-full: 9999px;
   
   /* Transitions */
-  --transition-fast: 0.15s ease;
+  --transition-fast: 0.14s ease;
   --transition-base: 0.22s ease;
-  --transition-slow: 0.35s ease;
+  --transition-slow: 0.38s ease;
   
   /* Typography Scale */
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -67,29 +68,30 @@
   --sidebar-width: 260px;
 }
 
-/* Optional Dark Theme Overrides */
+/* Premium Dark Theme — Deep Midnight Navy */
 [data-theme="dark"] {
-  --brand-primary: #3b82f6;
-  --brand-secondary: #2563eb;
-  --brand-accent: #38bdf8;
-  --brand-gradient: linear-gradient(135deg, #2563eb 0%, #3b82f6 50%, #38bdf8 100%);
-  --brand-gradient-hover: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0284c7 100%);
+  --brand-primary: #a855f7;
+  --brand-secondary: #9333ea;
+  --brand-accent: #c084fc;
+  --brand-gradient: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #c084fc 100%);
+  --brand-gradient-hover: linear-gradient(135deg, #6d28d9 0%, #9333ea 50%, #a855f7 100%);
+  --brand-gradient-subtle: linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(168,85,247,0.08) 100%);
   
-  --bg-primary: #0b0f19;
-  --bg-secondary: #111827;
-  --bg-surface: #151d2e;
-  --bg-card: #151d2e;
-  --bg-card-hover: #1c263c;
-  --bg-input: #1a2336;
-  --bg-glass: rgba(21, 29, 46, 0.85);
-  --bg-glass-hover: rgba(21, 29, 46, 0.95);
-  --border-color: #243049;
-  --border-focus: #3b82f6;
+  --bg-primary: #080c14;
+  --bg-secondary: #0d1422;
+  --bg-surface: #111827;
+  --bg-card: #111827;
+  --bg-card-hover: #161f33;
+  --bg-input: #141c2e;
+  --bg-glass: rgba(13, 20, 34, 0.88);
+  --bg-glass-hover: rgba(13, 20, 34, 0.97);
+  --border-color: #1e2d47;
+  --border-focus: #a855f7;
   
-  --text-primary: #f9fafb;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
-  --text-accent: #60a5fa;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-accent: #c084fc;
   
   --success: #10b981;
   --success-bg: rgba(16, 185, 129, 0.12);
@@ -97,14 +99,14 @@
   --warning-bg: rgba(245, 158, 11, 0.12);
   --danger: #ef4444;
   --danger-bg: rgba(239, 68, 68, 0.12);
-  --info: #0ea5e9;
-  --info-bg: rgba(14, 165, 233, 0.12);
+  --info: #38bdf8;
+  --info-bg: rgba(56, 189, 248, 0.12);
   
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.55);
-  --shadow-glow: 0 0 30px rgba(59, 130, 246, 0.18);
-  --shadow-glow-strong: 0 0 50px rgba(59, 130, 246, 0.28);
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.65);
+  --shadow-glow: 0 0 32px rgba(168, 85, 247, 0.20);
+  --shadow-glow-strong: 0 0 56px rgba(168, 85, 247, 0.36);
 }
 
 /* ============================================
@@ -779,10 +781,24 @@ tbody tr:hover {
 }
 
 .hero-section {
-  padding: 80px 24px 60px;
+  padding: 90px 24px 70px;
   display: flex;
   justify-content: center;
   position: relative;
+  overflow: hidden;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: -120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 900px;
+  height: 600px;
+  background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.10) 0%, rgba(168, 85, 247, 0.05) 45%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .hero-container {
@@ -792,26 +808,29 @@ tbody tr:hover {
   flex-direction: column;
   align-items: center;
   text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
 .hero-badge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 16px;
+  padding: 7px 18px;
   border-radius: var(--radius-full);
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  color: var(--brand-secondary);
-  font-size: 0.85rem;
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.22);
+  color: var(--brand-primary);
+  font-size: 0.84rem;
   font-weight: 600;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
+  letter-spacing: 0.01em;
 }
 
 [data-theme="dark"] .hero-badge {
-  background: rgba(37, 99, 235, 0.15);
-  border-color: rgba(37, 99, 235, 0.35);
-  color: #93c5fd;
+  background: rgba(124, 58, 237, 0.16);
+  border-color: rgba(168, 85, 247, 0.38);
+  color: #c084fc;
 }
 
 .hero-title {
@@ -849,7 +868,7 @@ tbody tr:hover {
 
 .shorten-form-container:focus-within {
   border-color: var(--brand-primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15), var(--shadow-md);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15), var(--shadow-md);
 }
 
 .shorten-input-row {
@@ -986,7 +1005,7 @@ tbody tr:hover {
 }
 
 .comparison-table .highlight-column {
-  background: rgba(37, 99, 235, 0.03);
+  background: rgba(124, 58, 237, 0.04);
 }
 
 /* Security Section */
@@ -1016,6 +1035,13 @@ tbody tr:hover {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 24px;
+  transition: all var(--transition-base);
+}
+
+.security-card:hover {
+  border-color: rgba(124, 58, 237, 0.25);
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-2px);
 }
 
 .security-card h4 {

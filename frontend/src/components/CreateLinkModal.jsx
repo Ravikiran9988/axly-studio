@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Link2, Tag, Calendar, Shuffle, Check, Copy, ExternalLink } from 'lucide-react';
+import { X, Link2, Tag, Calendar, Shuffle, Check, Copy, ExternalLink, AlertCircle } from 'lucide-react';
 import { api } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -33,7 +33,7 @@ export default function CreateLinkModal({ onClose, onCreated }) {
 
       const res = await api.post('/urls', payload);
       setResult(res.data.data);
-      toast.success('Short URL created! 🎉');
+      toast.success('Short URL created.');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create short URL');
     } finally {
@@ -60,7 +60,7 @@ export default function CreateLinkModal({ onClose, onCreated }) {
 
         <div style={{ marginBottom: 28 }}>
           <h2 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: 4 }}>
-            {result ? '🎉 Link Created!' : 'Create Short Link'}
+            {result ? 'Link Created!' : 'Create Short Link'}
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
             {result ? 'Your short link is ready to share.' : 'Paste a long URL to generate a short, trackable link.'}
@@ -103,7 +103,12 @@ export default function CreateLinkModal({ onClose, onCreated }) {
         ) : (
           /* Form */
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {error && <div className="alert alert-error">⚠️ {error}</div>}
+            {error && (
+              <div className="alert alert-error" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertCircle size={15} />
+                <span>{error}</span>
+              </div>
+            )}
 
             <div className="form-group">
               <label className="form-label" htmlFor="create-url">

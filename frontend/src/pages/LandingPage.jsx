@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   Link2, ArrowRight, Moon, Sun, Copy, Check, ExternalLink, 
   ShieldCheck, Zap, BarChart2, Globe, Sparkles, QrCode, Lock,
-  CheckCircle2, XCircle, ShieldAlert
+  CheckCircle2, XCircle, ShieldAlert, Shield, Database, Activity
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth, api } from '../context/AuthContext';
@@ -219,7 +219,7 @@ export default function LandingPage() {
                 {result.is_guest && (
                   <div className="guest-unlock-banner">
                     <div>
-                      <strong>✨ Want custom aliases & click analytics for this link?</strong>
+                      <strong><Sparkles size={13} style={{ marginRight: 4, verticalAlign: 'middle', color: 'var(--brand-primary)' }} /> Want custom aliases &amp; click analytics for this link?</strong>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: 2 }}>
                         Create a free Axly Studio account to track clicks, download high-res QR codes, and customize links.
                       </div>
@@ -359,19 +359,19 @@ export default function LandingPage() {
 
           <div className="security-grid">
             <div className="security-card">
-              <h4>🛡️ Strict Protocol Validation</h4>
+              <h4><Shield size={16} style={{ marginRight: 6, verticalAlign: 'middle', color: 'var(--brand-primary)' }} />Strict Protocol Validation</h4>
               <p>Rejects unsafe schemes (such as javascript: or data: URIs) and validates fully qualified hostnames.</p>
             </div>
             <div className="security-card">
-              <h4>🔒 Role-Based Access Control</h4>
+              <h4><Lock size={16} style={{ marginRight: 6, verticalAlign: 'middle', color: 'var(--brand-primary)' }} />Role-Based Access Control</h4>
               <p>Database-enforced separation between standard users and system administrators on every protected endpoint.</p>
             </div>
             <div className="security-card">
-              <h4>⚡ Intelligent Rate Limiting</h4>
+              <h4><Zap size={16} style={{ marginRight: 6, verticalAlign: 'middle', color: 'var(--brand-primary)' }} />Intelligent Rate Limiting</h4>
               <p>Independent rate limit tiers protect public endpoints and prevent credential abuse or denial of service.</p>
             </div>
             <div className="security-card">
-              <h4>🐘 PostgreSQL Persistence</h4>
+              <h4><Database size={16} style={{ marginRight: 6, verticalAlign: 'middle', color: 'var(--brand-primary)' }} />PostgreSQL Persistence</h4>
               <p>ACID-compliant storage powered by Lakebase Postgres on Neon with encrypted TLS 1.3 database connections.</p>
             </div>
           </div>

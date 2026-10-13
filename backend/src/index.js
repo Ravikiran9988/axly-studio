@@ -176,9 +176,9 @@ if (process.env.NODE_ENV !== 'test' && isDirectEntry) {
 ║               Axly URL Shortener                 ║
 ║            Production-Ready API v1.0.0           ║
 ╠══════════════════════════════════════════════════╣
-║  🚀 API Server:    http://localhost:${PORT}         ║
-║  🌐 Short Domain:  ${config.SHORT_DOMAIN.padEnd(29)} ║
-║  📊 Mode:          ${config.NODE_ENV.padEnd(29)} ║
+║  >> API Server:    http://localhost:${PORT}         ║
+║  -- Short Domain:  ${config.SHORT_DOMAIN.padEnd(29)} ║
+║  -- Mode:          ${config.NODE_ENV.padEnd(29)} ║
 ╚══════════════════════════════════════════════════╝
     `);
   });
