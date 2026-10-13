@@ -15,6 +15,7 @@ import ExperimentsPage from './pages/ExperimentsPage';
 import BulkImportPage from './pages/BulkImportPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import SettingsPage from './pages/SettingsPage';
+import ProfilePage from './pages/ProfilePage';
 import DeveloperPage from './pages/DeveloperPage';
 import TeamsPage from './pages/TeamsPage';
 import AdminPage from './pages/AdminPage';
@@ -44,6 +45,7 @@ export default function App() {
               <Route path="bulk" element={<BulkImportPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="analytics/:id" element={<AnalyticsPage />} />
+              <Route path="profile" element={<ProfilePage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
 
