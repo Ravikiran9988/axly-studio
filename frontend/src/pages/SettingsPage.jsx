@@ -2,16 +2,14 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, api } from '../context/AuthContext';
 import {
-  User, Mail, Shield, Bell, Palette, Globe, Save,
-  Download, Trash2, ExternalLink, AlertTriangle, CheckCircle2, Sun, Moon,
+  User, Mail, Shield, Bell, Globe, Save,
+  Download, Trash2, ExternalLink, AlertTriangle, CheckCircle2,
   Bot, Copy, Check, Send
 } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 
 export default function SettingsPage() {
   const { user, logout, updateProfile } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const [nameForm, setNameForm] = useState({ name: user?.name || '' });
@@ -185,58 +183,6 @@ export default function SettingsPage() {
           </form>
         </div>
 
-        {/* Appearance */}
-        <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(236,72,153,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ec4899' }}>
-              <Palette size={18} />
-            </div>
-            <div>
-              <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>Appearance</h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Customize how Axly Studio looks</p>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 500, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                {theme === 'dark' ? (
-                  <>
-                    <Moon size={15} style={{ color: 'var(--brand-primary)' }} />
-                    <span>Dark Mode</span>
-                  </>
-                ) : (
-                  <>
-                    <Sun size={15} style={{ color: '#f59e0b' }} />
-                    <span>Light Mode</span>
-                  </>
-                )}
-              </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                Switch between curated sleek dark theme and responsive light mode
-              </div>
-            </div>
-            <button
-              id="settings-theme-toggle"
-              onClick={toggleTheme}
-              style={{
-                width: 52, height: 28,
-                background: theme === 'dark' ? 'var(--brand-gradient)' : 'var(--bg-card)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 14,
-                position: 'relative', cursor: 'pointer', transition: 'all 0.25s ease',
-              }}
-            >
-              <div style={{
-                width: 22, height: 22, borderRadius: '50%', background: '#fff',
-                position: 'absolute', top: 2,
-                left: theme === 'dark' ? 26 : 2,
-                transition: 'left 0.25s ease',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-              }} />
-            </button>
-          </div>
-        </div>
 
         {/* Developer Platform Link */}
         <div className="card">

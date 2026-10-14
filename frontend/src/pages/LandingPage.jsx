@@ -2,12 +2,11 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
 import { 
-  Link2, ArrowRight, Moon, Sun, Copy, Check, ExternalLink, 
+  Link2, ArrowRight, Copy, Check, ExternalLink, 
   ShieldCheck, Zap, BarChart2, Globe, QrCode, Lock,
   CheckCircle2, XCircle, ShieldAlert, Shield, Database,
   UserRound, PanelsTopLeft, Megaphone, GitCompare, Users, Code2, Mail, Menu, X, Download
 } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
 import { useAuth, api } from '../context/AuthContext';
 import BrandMark from '../components/BrandMark';
 import TelegramIcon from '../components/TelegramIcon';
@@ -32,7 +31,6 @@ const COMPARISON_FEATURES = [
 ];
 
 export default function LandingPage() {
-  const { theme, toggleTheme } = useTheme();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -189,14 +187,6 @@ export default function LandingPage() {
             title={mobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
           >
             {mobileNavOpen ? <X size={19} /> : <Menu size={19} />}
-          </button>
-          <button 
-            className="theme-toggle" 
-            onClick={toggleTheme} 
-            aria-label="Toggle visual theme"
-            title={theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
-          >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
 
           {user ? (

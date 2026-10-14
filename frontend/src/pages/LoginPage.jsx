@@ -3,12 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Zap, ShieldCheck, Database, AlertCircle } from 'lucide-react';
 import AxlyLogo from '../components/AxlyLogo';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 
 export default function LoginPage() {
   const { user, login } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({ email: '', password: '' });

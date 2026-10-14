@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Navigate, Outlet, NavLink, Link } from 'react-router-dom';
 import { useAuth, api } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import {
-  Bell, Check, AlertCircle, Info, Menu, X, Sun, Moon,
+  Bell, Check, AlertCircle, Info, Menu, X,
   LayoutDashboard, Link2, Plus, BarChart3, MoreHorizontal, HelpCircle, Radio
 } from 'lucide-react';
 import Sidebar from './Sidebar';
@@ -13,7 +12,6 @@ import toast from 'react-hot-toast';
 
 export default function ProtectedLayout() {
   const { user, loading } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -190,15 +188,6 @@ export default function ProtectedLayout() {
               <HelpCircle size={18} />
             </Link>
 
-            <button
-              onClick={toggleTheme}
-              className="theme-toggle"
-              style={{ width: 38, height: 38 }}
-              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
-            </button>
 
             <div style={{ position: 'relative' }} ref={dropdownRef}>
               <button

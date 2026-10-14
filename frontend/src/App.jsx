@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
-import { useLayoutEffect } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
+import { Menu, X } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedLayout from './components/ProtectedLayout';
@@ -54,6 +55,8 @@ function HomeRoute() {
 
 function PublicQrPage() {
   const { user } = useAuth();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
   if (user) {
     return <Navigate to="/app/qr" replace />;
   }
@@ -63,25 +66,39 @@ function PublicQrPage() {
         <Link to="/" className="nav-logo" aria-label="Axly Studio Home" style={{ display: 'inline-flex', alignItems: 'center' }}>
           <AxlyLogo size="md" />
         </Link>
-        <nav className="nav-links landing-nav-links">
-          <Link to="/" className="nav-link">Home</Link>
-          <Link to="/#shorten" className="nav-link">URL Shortener</Link>
-          <Link to="/qr" className="nav-link active">QR Codes</Link>
+        <nav className={`nav-links landing-nav-links ${mobileNavOpen ? 'mobile-open' : ''}`} aria-label="Main navigation">
+          <Link to="/" className="nav-link" onClick={() => setMobileNavOpen(false)}>Home</Link>
+          <Link to="/#shorten" className="nav-link" onClick={() => setMobileNavOpen(false)}>URL Shortener</Link>
+          <Link to="/qr" className="nav-link active" onClick={() => setMobileNavOpen(false)}>QR Codes</Link>
           <a
             href="https://t.me/AxlyStudioBot"
             target="_blank"
             rel="noopener noreferrer"
             className="nav-link nav-link-telegram"
             title="Open Axly Studio on Telegram"
+            onClick={() => setMobileNavOpen(false)}
           >
             <TelegramIcon size={14} />
             <span>Telegram Bot</span>
           </a>
-          <Link to="/help" className="nav-link">Help</Link>
+          <Link to="/help" className="nav-link" onClick={() => setMobileNavOpen(false)}>Help</Link>
+          <Link to="/login" className="nav-link landing-mobile-auth-link" onClick={() => setMobileNavOpen(false)}>Sign in</Link>
+          <Link to="/register" className="nav-link landing-mobile-auth-link landing-mobile-auth-primary" onClick={() => setMobileNavOpen(false)}>Create a free account</Link>
         </nav>
         <div className="nav-actions landing-nav-actions">
-          <Link to="/login" className="btn btn-ghost">Sign in</Link>
-          <Link to="/register" className="btn btn-primary">Get Started</Link>
+          <button
+            type="button"
+            className="landing-mobile-menu-toggle"
+            onClick={() => setMobileNavOpen((open) => !open)}
+            aria-expanded={mobileNavOpen}
+            aria-label={mobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          >
+            {mobileNavOpen ? <X size={19} /> : <Menu size={19} />}
+          </button>
+          <div className="landing-guest-actions">
+            <Link to="/login" className="btn btn-ghost" id="nav-login-btn">Sign in</Link>
+            <Link to="/register" className="btn btn-primary" id="nav-register-btn">Get Started</Link>
+          </div>
         </div>
       </header>
       <main style={{ flex: 1, padding: '32px 16px' }}>

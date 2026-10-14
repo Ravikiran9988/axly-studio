@@ -2,14 +2,13 @@ import { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Link2, Settings, LogOut,
-  Moon, Sun, Menu, X, ChevronRight, ShieldAlert,
+  Menu, X, ChevronRight, ShieldAlert,
   Megaphone, GitCompare, FileSpreadsheet, BarChart3,
   Users, Code2, UserRound, PanelsTopLeft, Globe, QrCode,
   HelpCircle, Plus, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import AxlyLogo from './AxlyLogo';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 
 const NAV_GROUPS = [
@@ -62,7 +61,6 @@ const NAV_GROUPS = [
 
 export default function Sidebar({ isOpen, onClose, onOpenCreateLink, isCollapsed, onToggleCollapse }) {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [internalOpen, setInternalOpen] = useState(false);
@@ -231,19 +229,6 @@ export default function Sidebar({ isOpen, onClose, onOpenCreateLink, isCollapsed
             </div>
           )}
 
-          {!isCollapsed && <div className="nav-section-label" style={{ marginTop: 6, padding: '8px 8px 4px' }}>Preferences</div>}
-
-          {/* Theme Toggle */}
-          <button 
-            className="nav-item" 
-            onClick={toggleTheme} 
-            id="theme-toggle-sidebar" 
-            title={theme === 'dark' ? 'Light Theme' : 'Dark Theme'}
-            style={{ width: '100%', textAlign: 'left', justifyContent: isCollapsed ? 'center' : 'flex-start' }}
-          >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            {!isCollapsed && <span>{theme === 'dark' ? 'Light Theme' : 'Dark Theme'}</span>}
-          </button>
 
           {/* Sign Out */}
           <button
