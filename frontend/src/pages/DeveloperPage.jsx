@@ -557,7 +557,7 @@ export default function DeveloperPage({ initialTab = 'keys' }) {
                           <tr>
                             <td style={{ fontWeight: 600, color: 'var(--brand-primary)' }}>CNAME</td>
                             <td><code>{d.domain}</code></td>
-                            <td><code>{d.dns_expected_value || (d.domain_type === 'page' ? 'url.axly.in' : 'axly-api.onrender.com')}</code></td>
+                            <td><code>{d.dns_expected_value || (d.domain_type === 'page' ? 'url.axly.in' : 'api.axly.in')}</code></td>
                           </tr>
                           <tr>
                             <td style={{ fontWeight: 600, color: 'var(--text-muted)' }}>TXT (optional)</td>
