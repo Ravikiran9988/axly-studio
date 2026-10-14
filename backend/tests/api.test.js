@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import app from '../src/index.js';
+import { toCsvCell } from '../src/controllers/urlController.js';
 import pool, { closePool } from '../src/db/pool.js';
 import { config, validateEnv } from '../src/config/env.js';
 import { validateSafeDestinationUrl } from '../src/utils/ssrf.js';
@@ -10,6 +11,84 @@ import { generateApiKey, hashApiKey } from '../src/utils/apiKey.js';
 import { signWebhookPayload } from '../src/utils/webhookDispatcher.js';
 import { validateDomainSyntax } from '../src/utils/dnsVerifier.js';
 import { normalizePageSlug, sanitizePageBlocks } from '../src/controllers/pageController.js';
+
+describe('Destination URL network normalization', () => {
+  test('rejects bracketed private IPv6 and IPv4-mapped IPv6 destinations', () => {
+    for (const url of [
+      'http://[::1]/',
+      'http://[::]/',
+      'http://[fd00::1]/',
+      'http://[fe80::1]/',
+      'http://[::ffff:127.0.0.1]/',
+      'http://[::ffff:7f00:1]/',
+      'http://localhost./',
+      'http://metadata.internal./',
+    ]) {
+      assert.equal(validateSafeDestinationUrl(url).valid, false, `Expected to reject ${url}`);
+    }
+  });
+
+  test('continues to accept public IPv6 destination addresses', () => {
+    assert.equal(validateSafeDestinationUrl('https://[2606:4700:4700::1111]/').valid, true);
+  });
+});
+
+describe('CSV export safety', () => {
+  test('quotes CSV cells and escapes embedded quotes', () => {
+    assert.equal(toCsvCell('hello, "world"'), '"hello, ""world"""');
+  });
+
+  test('neutralizes spreadsheet formula prefixes after leading whitespace', () => {
+    for (const value of ['=1+1', '+SUM(A1:A2)', '-1+2', '@SUM(A1)', '  =HYPERLINK("https://bad.example")', '\\t=cmd']) {
+      assert.ok(toCsvCell(value).startsWith('"\\\''), `Expected formula-safe prefix for ${JSON.stringify(value)}`);
+    }
+  });
+
+  test('preserves ordinary values without adding a formula prefix', () => {
+    assert.equal(toCsvCell('https://example.com/path?a=1&b=2'), '"https://example.com/path?a=1&b=2"');
+  });
+});
+
+describe('Optional authentication fails closed', () => {
+  const optionalAuthSql = 'SELECT id, is_active, role, token_version FROM users WHERE id = $1';
+
+  test('rejects a disabled account on the guest-capable create endpoint', async () => {
+    const originalQuery = pool.query;
+    pool.query = async (text) => {
+      if (text.includes(optionalAuthSql)) {
+        return { rows: [{ id: testUserId, is_active: false, role: 'user', token_version: 1 }] };
+      }
+      return { rows: [] };
+    };
+
+    try {
+      const res = await request(app)
+        .post('/api/urls')
+        .set('Authorization', `Bearer ${testToken}`)
+        .send({ url: 'https://example.com' });
+      assert.equal(res.status, 403);
+      assert.match(res.body.message, /disabled/i);
+    } finally {
+      pool.query = originalQuery;
+    }
+  });
+
+  test('does not downgrade an invalid API key to guest access', async () => {
+    const originalQuery = pool.query;
+    pool.query = async () => ({ rows: [] });
+
+    try {
+      const res = await request(app)
+        .post('/api/urls')
+        .set('x-api-key', 'axly_invalid_test_key')
+        .send({ url: 'https://example.com' });
+      assert.equal(res.status, 401);
+      assert.match(res.body.message, /API key/i);
+    } finally {
+      pool.query = originalQuery;
+    }
+  });
+});
 
 describe('Custom Page Builder validation', () => {
   test('accepts valid public page slugs and normalizes case', () => {
