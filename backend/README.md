@@ -88,6 +88,10 @@ Root-level endpoints: GET /health, GET /healthz, GET /readyz, GET /api/health, G
 
 Consult src/routes/ for authoritative route definitions. docs/openapi.yaml is a machine-readable API subset and should not be treated as exhaustive until its endpoint coverage is compared with all route modules.
 
+## Custom-domain deployment caveat
+
+The current domain controller returns url.axly.in as the CNAME target for page-type custom domains and axly-api.onrender.com for short-link domains. Since url.axly.in is intended to redirect to studio.axly.in, validate the page-domain DNS and Vercel routing end to end before declaring custom page domains production-ready. The expected DNS target is implementation-specific; coordinate any change across backend code, DeveloperPage help/fallbacks, DNS validation, tests and docs.
+
 ## Authentication and permissions
 
 - Browser sessions use the auth middleware and JWT handling implemented by the backend.
