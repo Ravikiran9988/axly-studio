@@ -19,7 +19,7 @@ This guide defines deployment practices for the current repository topology. Das
 - The frontend API rewrite is checked in at frontend/vercel.json: /api/:path* forwards to https://axly-api.onrender.com/api/:path*.
 - The domain-level redirect is configured in Vercel settings, not by frontend/vercel.json. Verify it is saved and test final Location values with an HTTP client.
 
-Do not claim production cutover is complete until DNS, certificate, redirect behavior, API proxy and short-link routing have been tested from outside the hosting dashboard.
+Do not claim production cutover is complete until DNS, certificate, redirect behavior, API proxy and short-link routing have been tested from outside the hosting dashboard. Also validate the custom-page-domain flow: the current domain controller expects page-type custom domains to point at url.axly.in. That target must be reviewed alongside the intended redirect-only behavior for the legacy host.
 
 ## Production environment
 
