@@ -81,6 +81,12 @@ if (config.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
 }
 
+// Public health endpoint for uptime monitors (e.g. UptimeRobot).
+// Keep this before `/:shortCode`, otherwise `health` is treated as a short link.
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Liveness probe (Kubernetes / container orchestrator)
 app.get('/healthz', (req, res) => {
   res.status(200).json({ status: 'ok', liveness: true, timestamp: new Date().toISOString() });
