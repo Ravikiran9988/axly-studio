@@ -15,10 +15,12 @@
 - **Backend**: Express REST API with input validation, rate limiting, Helmet security headers, CORS, JWT authentication, and bcrypt password hashing.
 - **Database**: PostgreSQL accessed via the `pg` pool driver. Supports both local PostgreSQL instances and managed Supabase Cloud databases using `DATABASE_URL` with strict TLS certificate verification. --- ## Target Production Domains
 
-**Canonical primary domain:** `https://studio.axly.in`. The secondary `https://url.axly.in` domain is configured in Vercel to permanently redirect (HTTP 301) to `https://studio.axly.in`. The application is structured to support clean separation between the product dashboard and short links: | Domain | Purpose | Routing Target |
+**Canonical primary domain:** `https://studio.axly.in`. The secondary `https://url.axly.in` domain should permanently redirect (HTTP 301) to `https://studio.axly.in`.
+
+**Canonical primary domain:** `https://studio.axly.in`. The secondary `https://studio.axly.in` domain is configured in Vercel to permanently redirect (HTTP 301) to `https://studio.axly.in`. The application is structured to support clean separation between the product dashboard and short links: | Domain | Purpose | Routing Target |
 |--------|---------|----------------|
 | `https://studio.axly.in` | Primary website and dashboard | Serves React SPA and `/api/` proxy |
-| `https://url.axly.in` | Legacy/secondary domain | Permanent 301 redirect to `https://studio.axly.in` |
+| `https://studio.axly.in` | Legacy/secondary domain | Permanent 301 redirect to `https://studio.axly.in` |
 | `https://s.axly.in/<shortCode>` | Short Link Redirections | Direct 302 redirect via Node.js API |
 | `https://studio.axly.in/api` | REST API Endpoints | Node.js Backend API | *Note: These domains are production targets. They require valid DNS records (CNAME/A) and TLS certificates in your hosting environment before activation.* --- ## Quick Start (Local Development) ### Prerequisites
 - Node.js 20+
@@ -99,6 +101,6 @@ npm test
 - [YES] URL creation, protocol validation, and reserved alias rejection
 - [YES] **Expiration bug regression test**: Partial updates omitting `expiresAt` preserve existing expiration dates
 - [YES] Explicit `null` expiration clearing
-- [YES] Redirection HTTP status codes (302, 404, 410) & XSS-safe error rendering GitHub Actions automatically runs backend tests and frontend production builds on every push to `master`. --- ## Deployment & DNS Setup To configure custom domains: 1. **DNS Records**: - Point `studio.axly.in` (CNAME or A record) to your web server / load balancer. Configure `url.axly.in` as a Vercel 301 redirect to `studio.axly.in`. - Point `s.axly.in` (CNAME or A record) to your web server / load balancer.
+- [YES] Redirection HTTP status codes (302, 404, 410) & XSS-safe error rendering GitHub Actions automatically runs backend tests and frontend production builds on every push to `master`. --- ## Deployment & DNS Setup To configure custom domains: 1. **DNS Records**: - Point `studio.axly.in` (CNAME or A record) to your web server / load balancer. Configure `studio.axly.in` as a Vercel 301 redirect to `studio.axly.in`. - Point `s.axly.in` (CNAME or A record) to your web server / load balancer.
 2. **Reverse Proxy / Nginx**: - The provided [`frontend/nginx.conf`](./frontend/nginx.conf) routes `studio.axly.in` to the React SPA and proxies `s.axly.in` directly to the backend redirection service.
 3. **Environment Configuration**: - Set `APP_URL=https://studio.axly.in` - Set `FRONTEND_URL=https://studio.axly.in` - Set `SHORT_DOMAIN=https://s.axly.in` - Set `TRUST_PROXY=1` (or `true`) --- ## License MIT © 2026 Axly
