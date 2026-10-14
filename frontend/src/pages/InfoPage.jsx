@@ -94,6 +94,15 @@ const HELP_GUIDES = [
     keywords: 'profile page link in bio portfolio template public business creator publish',
   },
   {
+    title: 'Shorten links via Telegram Bot',
+    description: 'Use @AxlyStudioBot to shorten links and create QR codes directly from Telegram.',
+    detail: 'Forward or paste any URL to @AxlyStudioBot to get an instant short link. You can also generate QR codes and link your Axly account to view click analytics right in chat.',
+    icon: Send,
+    href: '/#telegram',
+    action: 'View Telegram Bot',
+    keywords: 'telegram bot botfather chat shorten message mobile quick url qr code @AxlyStudioBot',
+  },
+  {
     title: 'Connect a custom domain',
     description: 'Use a domain you own for an eligible public page or short-link setup.',
     detail: 'Follow the DNS values shown by Axly. Ownership verification, correct CNAME routing, hosting configuration, and HTTPS activation may be separate steps. A DNS check alone does not guarantee that HTTPS is ready.',
@@ -422,6 +431,7 @@ function InfoFooter() {
         <span>© {new Date().getFullYear()} Axly Studio</span>
         <nav aria-label="Legal and support links">
           <Link to="/help">Help</Link>
+          <a href="https://t.me/AxlyStudioBot" target="_blank" rel="noopener noreferrer">Telegram Bot</a>
           <Link to="/contact">Contact</Link>
           <Link to="/terms">Terms</Link>
           <Link to="/privacy">Privacy</Link>

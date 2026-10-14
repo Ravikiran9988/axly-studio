@@ -258,12 +258,12 @@ export default function SettingsPage() {
 
         {/* Telegram Bot Integration */}
         <div className="card" style={{ border: '1px solid rgba(124,58,237,0.25)', background: 'linear-gradient(180deg, rgba(124,58,237,0.03) 0%, rgba(124,58,237,0) 100%)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(124,58,237,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-primary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              <div style={{ width: 36, height: 36, minWidth: 36, borderRadius: 8, background: 'rgba(124,58,237,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-primary)' }}>
                 <Bot size={20} />
               </div>
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>Axly Studio Telegram Bot</h3>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Shorten links, generate QR codes, and manage your account in Telegram</p>
               </div>
@@ -285,7 +285,7 @@ export default function SettingsPage() {
                   Connected on {new Date(telegramStatus.telegram?.linkedAt || Date.now()).toLocaleDateString()}
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                 <a
                   href="https://t.me/AxlyStudioBot"
                   target="_blank"
@@ -314,8 +314,8 @@ export default function SettingsPage() {
               {telegramLinkData ? (
                 <div style={{ background: 'var(--bg-input)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)', marginBottom: 16 }}>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 8 }}>Your 10-minute single-use linking code:</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                    <code style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '0.1em', padding: '6px 14px', background: 'rgba(124,58,237,0.1)', color: 'var(--brand-primary)', borderRadius: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
+                    <code style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '0.1em', padding: '6px 14px', background: 'rgba(124,58,237,0.1)', color: 'var(--brand-primary)', borderRadius: 6, wordBreak: 'break-all' }}>
                       {telegramLinkData.code}
                     </code>
                     <button
@@ -336,7 +336,7 @@ export default function SettingsPage() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn btn-primary btn-sm"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, maxWidth: '100%' }}
                   >
                     <Send size={14} /> Connect in Telegram (1-Click)
                   </a>

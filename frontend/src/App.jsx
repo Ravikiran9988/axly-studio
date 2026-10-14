@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ProtectedLayout from './components/ProtectedLayout';
 import AxlyLogo from './components/AxlyLogo';
+import TelegramIcon from './components/TelegramIcon';
 import AdminRoute from './components/AdminRoute';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
@@ -66,6 +67,16 @@ function PublicQrPage() {
           <Link to="/" className="nav-link">Home</Link>
           <Link to="/#shorten" className="nav-link">URL Shortener</Link>
           <Link to="/qr" className="nav-link active">QR Codes</Link>
+          <a
+            href="https://t.me/AxlyStudioBot"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="nav-link nav-link-telegram"
+            title="Open Axly Studio on Telegram"
+          >
+            <TelegramIcon size={14} />
+            <span>Telegram Bot</span>
+          </a>
           <Link to="/help" className="nav-link">Help</Link>
         </nav>
         <div className="nav-actions landing-nav-actions">
@@ -77,9 +88,18 @@ function PublicQrPage() {
         <QrCodePage />
       </main>
       <footer className="landing-footer">
-        <div className="footer-content">
+        <div className="footer-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 }}>
           <div className="footer-brand"><AxlyLogo size="sm" /></div>
           <p className="footer-copy">© 2026 Axly Studio. Built for speed, security, and privacy.</p>
+          <a
+            href="https://t.me/AxlyStudioBot"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="footer-tg-badge"
+            style={{ marginTop: 0 }}
+          >
+            <TelegramIcon size={14} /> @AxlyStudioBot
+          </a>
         </div>
       </footer>
     </div>

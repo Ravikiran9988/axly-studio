@@ -4,12 +4,14 @@ import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
 import { 
   Link2, ArrowRight, Moon, Sun, Copy, Check, ExternalLink, 
   ShieldCheck, Zap, BarChart2, Globe, QrCode, Lock,
-  CheckCircle2, XCircle, ShieldAlert, Shield, Database, Activity,
+  CheckCircle2, XCircle, ShieldAlert, Shield, Database,
   UserRound, PanelsTopLeft, Megaphone, GitCompare, Users, Code2, Mail, Menu, X, Download
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth, api } from '../context/AuthContext';
 import BrandMark from '../components/BrandMark';
+import TelegramIcon from '../components/TelegramIcon';
+import TelegramShowcase from '../components/TelegramShowcase';
 import ReportModal from '../components/ReportModal';
 import toast from 'react-hot-toast';
 
@@ -158,6 +160,17 @@ export default function LandingPage() {
           <a href="#pages" className="nav-link" onClick={() => setMobileNavOpen(false)}>Pages</a>
           <a href="#features" className="nav-link" onClick={() => setMobileNavOpen(false)}>Platform</a>
           <a href="#security" className="nav-link" onClick={() => setMobileNavOpen(false)}>Security</a>
+          <a
+            href="https://t.me/AxlyStudioBot"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="nav-link nav-link-telegram"
+            onClick={() => setMobileNavOpen(false)}
+            title="Open Axly Studio on Telegram"
+          >
+            <TelegramIcon size={15} />
+            <span>Telegram Bot</span>
+          </a>
           {!user && (
             <>
               <Link to="/login" className="nav-link landing-mobile-auth-link" onClick={() => setMobileNavOpen(false)}>Sign in</Link>
@@ -478,9 +491,12 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Also available on Telegram Showcase Section */}
+      <TelegramShowcase />
+
       {/* Feature Highlights Section */}
       <section className="features-section" id="features">
-        <div className="section-header">
+        <div className="section-header features-section-header" style={{ marginBottom: 'clamp(26px, 3.2vw, 36px)' }}>
           <h2 className="section-title">Everything you need to grow your digital presence</h2>
           <p className="section-subtitle">
             Bring short links, landing pages, domain branding, experiments, and campaign measurement together in one workspace.
@@ -872,10 +888,26 @@ export default function LandingPage() {
                 <span>Axly Studio</span>
               </div>
               <p className="footer-tagline">Simple links. Useful tools. Clear insights.</p>
-              <p className="footer-support-copy">Need a hand? Contact support:</p>
-              <a className="footer-support-email" href="mailto:support@axly.in">
-                <Mail size={15} /> support@axly.in
-              </a>
+              
+              <div className="footer-support-block">
+                <p className="footer-support-copy">Need a hand? Contact support:</p>
+                <div className="footer-contact-row">
+                  <a className="footer-support-email" href="mailto:support@axly.in">
+                    <Mail size={15} />
+                    <span>support@axly.in</span>
+                  </a>
+                  <a
+                    href="https://t.me/AxlyStudioBot"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="footer-tg-contact-badge"
+                    title="Axly Studio on Telegram (@AxlyStudioBot)"
+                  >
+                    <TelegramIcon size={13} />
+                    <span>@AxlyStudioBot</span>
+                  </a>
+                </div>
+              </div>
             </div>
 
             <div className="footer-column">
@@ -890,6 +922,17 @@ export default function LandingPage() {
             <div className="footer-column">
               <h3>Resources</h3>
               <Link to="/help">Help Center</Link>
+              <a
+                href="https://t.me/AxlyStudioBot"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="footer-telegram-resource-link"
+                title="Axly Studio Telegram Bot"
+              >
+                <TelegramIcon size={14} />
+                <span>Telegram Bot</span>
+                <ExternalLink size={12} className="footer-ext-icon" />
+              </a>
               <Link to="/contact">Contact Support</Link>
               <Link to="/report-abuse">Report Abuse</Link>
               <Link to="/security">Security &amp; safety</Link>
