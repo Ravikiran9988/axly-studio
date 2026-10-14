@@ -2,7 +2,7 @@
  * Inline Keyboards for Axly Studio Telegram Bot
  */
 
-const FRONTEND_URL = process.env.AXLY_FRONTEND_URL || 'https://url.axly.in';
+const FRONTEND_URL = process.env.AXLY_FRONTEND_URL || 'https://studio.axly.in';
 
 /**
  * Main Welcome Menu Keyboard
