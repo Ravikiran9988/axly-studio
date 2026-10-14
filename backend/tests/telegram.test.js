@@ -1,7 +1,7 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
-process.env.TELEGRAM_BOT_SECRET ||= 'telegram_bot_test_secret_32_characters_minimum';
+process.env.TELEGRAM_BOT_SECRET = 'telegram_bot_test_secret_32_characters_minimum';
 
 const { default: app } = await import('../src/index.js');
 const { query, closePool } = await import('../src/db/pool.js');
@@ -133,6 +133,40 @@ describe('Telegram Integration API Endpoints', () => {
       });
     assert.equal(secondUse.status, 400);
     assert.equal(secondUse.body.code, 'CODE_ALREADY_USED');
+  });
+
+  test('POST /api/telegram/session fails closed for missing or incorrect bot secrets', async () => {
+    const missingSecret = await request(app)
+      .post('/api/telegram/session')
+      .send({ telegramUserId: testTelegramUserId });
+    assert.equal(missingSecret.status, 403);
+
+    const incorrectSecret = await request(app)
+      .post('/api/telegram/session')
+      .set('x-telegram-bot-secret', 'this-is-definitely-not-the-shared-secret');
+    assert.equal(incorrectSecret.status, 403);
+  });
+
+  test('POST /api/telegram/unlink rejects unauthenticated requests without the service secret', async () => {
+    const res = await request(app)
+      .post('/api/telegram/unlink')
+      .send({ telegramUserId: testTelegramUserId });
+    assert.equal(res.status, 401);
+  });
+
+  test('POST /api/telegram/verify atomically rejects concurrent reuse of the same code', async () => {
+    const codeRes = await request(app)
+      .post('/api/telegram/link-code')
+      .set('Authorization', `Bearer ${testUserToken}`);
+    assert.equal(codeRes.status, 201);
+
+    const payload = { code: codeRes.body.code, telegramUserId: '987654322' };
+    const results = await Promise.all([
+      request(app).post('/api/telegram/verify').send(payload),
+      request(app).post('/api/telegram/verify').send(payload),
+    ]);
+    assert.equal(results.filter((item) => item.status === 200).length, 1);
+    assert.equal(results.filter((item) => item.status === 400).length, 1);
   });
 
   test('POST /api/telegram/session retrieves active session with bot secret', async () => {
