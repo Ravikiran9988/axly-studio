@@ -1,10 +1,12 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
-import app from '../src/index.js';
-import { query, closePool } from '../src/db/pool.js';
-import { runMigrations } from '../src/db/migrate.js';
-import { config } from '../src/config/env.js';
+process.env.TELEGRAM_BOT_SECRET ||= 'telegram_bot_test_secret_32_characters_minimum';
+
+const { default: app } = await import('../src/index.js');
+const { query, closePool } = await import('../src/db/pool.js');
+const { runMigrations } = await import('../src/db/migrate.js');
+const { config } = await import('../src/config/env.js');
 
 describe('Telegram Integration API Endpoints', () => {
   let testUserToken = null;
