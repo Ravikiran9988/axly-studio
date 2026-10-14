@@ -126,9 +126,11 @@ Deploy the bot as a **separate service** on Render so your existing website and 
    | `AXLY_FRONTEND_URL` | `https://url.axly.in` | Production Web URL |
    | `TELEGRAM_BOT_SECRET` | `(32-char secret)` | Must match backend `TELEGRAM_BOT_SECRET` |
    | `PORT` | `3000` | Health check port |
-   | `USE_WEBHOOK` | `false` | Set `false` for automatic long-polling |
+   | `USE_WEBHOOK` | `false` | Recommended: use automatic long-polling |
+   | `WEBHOOK_DOMAIN` | HTTPS service URL | Required only when `USE_WEBHOOK=true` |
+   | `WEBHOOK_SECRET_TOKEN` | Random 32+ character token | Required only when `USE_WEBHOOK=true`; Telegram requests are checked against it |
    | `NODE_ENV` | `production` | Production mode |
-5. Click **Create Web Service**. Render will monitor `/healthz` on port 3000.
+5. Click **Create Web Service**. Render will monitor `/healthz` on port 3000. The health endpoint returns HTTP 503 until Telegram startup succeeds and returns to 503 if polling fails.
 
 ---
 
