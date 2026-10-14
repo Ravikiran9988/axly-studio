@@ -716,7 +716,7 @@ export const bulkImportCsv = async (req, res) => {
 // Quote CSV cells and neutralize spreadsheet formula prefixes in user-controlled fields.
 export const toCsvCell = (value) => {
   let text = String(value ?? '');
-  if (/^[\\u0000-\\u0020]*[=+\\-@]/.test(text)) {
+  if (/^[\u0000-\u0020]*[=+\-@]/.test(text)) {
     text = `'${text}`;
   }
   return `"${text.replace(/"/g, '""')}"`;
@@ -753,7 +753,7 @@ export const exportUrlsCsv = async (req, res) => {
       ]);
     }
 
-    const csvContent = rows.map(row => row.map(toCsvCell).join(',')).join('\\r\\n');
+    const csvContent = rows.map(row => row.map(toCsvCell).join(',')).join('\r\n');
 
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="axly-links-export.csv"');
