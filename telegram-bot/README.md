@@ -174,12 +174,7 @@ help - View help guide and instructions
 
 ## 🧪 Testing Summary
 
-- `backend`: `node --test tests/*.test.js`
-  - 89 core tests passed + 7 Telegram account-linking tests passed = **96 passing backend tests**.
-- `telegram-bot`: `node --test tests/*.test.js`
-  - **22 unit & integration tests passed**.
-- `frontend`: `npm run build`
-  - **Built cleanly in 10.99s with zero errors**.
+CI runs the backend integration tests (with PostgreSQL), the Telegram bot test suite, and the frontend production build on pull requests. See the repository's GitHub Actions page for current results; test counts and build timings are not pinned here so this section stays accurate as coverage grows.
 
 
 ## Forwarded links
