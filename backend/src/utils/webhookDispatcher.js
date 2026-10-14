@@ -90,9 +90,9 @@ export const executeWebhookDelivery = async (webhook, event, payload, attemptCou
   const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s strict timeout
 
   const parsedDestination = new URL(ssrfCheck.url);
-  const validatedHostname = parsedDestination.hostname.toLowerCase().replace(/^\\[|\\]$/g, '').replace(/\\.$/, '');
+  const validatedHostname = parsedDestination.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
   const pinnedLookup = (requestedHostname, options, callback) => {
-    const normalizedHostname = String(requestedHostname).toLowerCase().replace(/^\\[|\\]$/g, '').replace(/\\.$/, '');
+    const normalizedHostname = String(requestedHostname).toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
     if (normalizedHostname !== validatedHostname) {
       callback(new Error('Blocked unvalidated webhook hostname lookup.'));
       return;
