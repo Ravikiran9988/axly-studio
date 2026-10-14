@@ -181,7 +181,7 @@ You can shorten links and generate QR codes freely, but connecting your Axly acc
 • Custom vanity aliases and QR downloads
 
 <b>How to connect:</b>
-1. Log in to your Axly dashboard at <a href="https://studio.axly.in" >studio.axly.in</a>
+1. Log in to your Axly dashboard at <a href="https://studio.axly.in">studio.axly.in</a>
 2. Go to <b>Settings > Telegram Bot</b> and click <b>Connect Telegram Bot</b>
 3. Tap the <b>Connect in Telegram</b> button or send:
    <code>/link AX-XXXXXX</code> here!`;
