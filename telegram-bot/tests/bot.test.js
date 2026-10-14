@@ -2,7 +2,7 @@ import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import QRCode from 'qrcode';
 
-import { validateUrl, extractUrlFromText, isValidLinkCode } from '../src/utils/validation.js';
+import { validateUrl, extractUrlFromText, isValidLinkCode, isValidCustomAlias } from '../src/utils/validation.js';
 import {
   formatWelcomeMessage,
   formatHelpMessage,
@@ -122,6 +122,15 @@ describe('1. Input Validation & Protocol Hardening', () => {
       'https://www.google.com/search?q=axly'
     );
     assert.equal(extractUrlFromText('just saying hello there'), null);
+  });
+
+  test('validates custom alias format for linked accounts', () => {
+    for (const alias of ['my-brand', 'axly_2026', 'ABC123']) {
+      assert.equal(isValidCustomAlias(alias), true, `${alias} should be valid`);
+    }
+    for (const alias of ['ab', 'has spaces', 'bad.alias', 'this-alias-is-far-too-long-for-the-thirty-character-limit']) {
+      assert.equal(isValidCustomAlias(alias), false, `${alias} should be invalid`);
+    }
   });
 
   test('validates Axly account linking code format', () => {
