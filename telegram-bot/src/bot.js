@@ -8,7 +8,7 @@ import { authSessionMiddleware, setUserState } from './middleware/authSession.js
 
 import { handleStart } from './handlers/start.js';
 import { handleHelp } from './handlers/help.js';
-import { handleShortenCommand, handleDirectTextMessage } from './handlers/shorten.js';
+import { handleShortenCommand, handleDirectTextMessage, extractUrlFromTelegramMessage, executeShorten } from './handlers/shorten.js';
 import { handleQrCommand, handleQrCallback, executeGenerateQr } from './handlers/qr.js';
 import { handleMyLinks, handleMyLinksCallback } from './handlers/myLinks.js';
 import { handleStatsCommand, handleStatsCallback } from './handlers/stats.js';
@@ -101,7 +101,24 @@ export const createBot = (token) => {
     return handleDirectTextMessage(ctx, next);
   });
 
-  // 5. Centralized Error Handler
+  // 5. Forwarded media/posts may carry URLs in captions, including hidden text links.
+  // Text updates are handled above; this handler only processes caption-only messages.
+  bot.on('message', async (ctx, next) => {
+    const message = ctx.message;
+    if (!message || typeof message.text === 'string' || typeof message.caption !== 'string') {
+      return next();
+    }
+    const extracted = extractUrlFromTelegramMessage(message);
+    if (!extracted) return next();
+
+    const isForwarded = Boolean(
+      message.forward_origin || message.forward_from ||
+      message.forward_from_chat || message.is_automatic_forward
+    );
+    return executeShorten(ctx, extracted, isForwarded ? { forwardedMessage: message } : {});
+  });
+
+  // 6. Centralized Error Handler
   bot.catch((err, ctx) => {
     console.error(`[TELEGRAM ERROR] Update ${ctx.update?.update_id}:`, err.message);
     // Never leak secrets or stack traces to the user

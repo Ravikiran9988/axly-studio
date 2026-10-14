@@ -161,8 +161,9 @@ shorten - Shorten a long URL
 qr - Generate a QR code for a link
 mylinks - View and manage your links
 stats - View click analytics and statistics
-account - Check or connect your Axly account
-settings - Bot preferences and toggles
+account - View or connect your Axly account
+link - Link your Axly account with a code
+settings - Change bot preferences
 cancel - Cancel active prompt
 help - View help guide and instructions
 ```
@@ -177,3 +178,8 @@ help - View help guide and instructions
   - **22 unit & integration tests passed**.
 - `frontend`: `npm run build`
   - **Built cleanly in 10.99s with zero errors**.
+
+
+## Forwarded links
+
+Forward a text or caption containing a web URL to the bot. Axly shortens the URL and replies with a copy that keeps the surrounding text/media while replacing the URL. Telegram does not allow bots to edit the original incoming message.

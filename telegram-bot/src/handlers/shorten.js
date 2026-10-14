@@ -53,12 +53,16 @@ export const executeShorten = async (ctx, rawUrl, options = {}) => {
 
     const linkData = response.data;
     const shortUrl = linkData.shortUrl || linkData.short_url;
-    const message = formatLinkCreatedMessage(linkData, isGuest, ctx.auth?.user);
 
-    await ctx.reply(message, {
-      parse_mode: 'HTML',
-      reply_markup: getLinkActionsKeyboard(linkData.shortCode || linkData.short_code, shortUrl),
-    });
+    if (options.forwardedMessage) {
+      await replyWithShortenedForward(ctx, options.forwardedMessage, rawUrl, targetUrl, shortUrl, linkData);
+    } else {
+      const message = formatLinkCreatedMessage(linkData, isGuest, ctx.auth?.user);
+      await ctx.reply(message, {
+        parse_mode: 'HTML',
+        reply_markup: getLinkActionsKeyboard(linkData.shortCode || linkData.short_code, shortUrl),
+      });
+    }
 
     // If auto-QR is enabled, also generate and send QR code
     if (ctx.preferences?.autoQr) {
@@ -100,6 +104,102 @@ export const executeShorten = async (ctx, rawUrl, options = {}) => {
 };
 
 /**
+ * Reply with a copy of a forwarded message, replacing its URL but preserving its text/media.
+ * Telegram does not permit a bot to edit the incoming message itself.
+ */
+const replyWithShortenedForward = async (ctx, message, rawUrl, normalizedUrl, shortUrl, linkData) => {
+  const text = typeof message.text === 'string' ? message.text : message.caption;
+  const code = linkData.shortCode || linkData.short_code || shortUrl.split('/').pop();
+
+  if (typeof text !== 'string') {
+    return ctx.reply(shortUrl, {
+      reply_parameters: { message_id: message.message_id },
+      reply_markup: getLinkActionsKeyboard(code, shortUrl),
+    });
+  }
+
+  const entities = message.entities || message.caption_entities || [];
+  let outputText = text;
+  let replaced = false;
+
+  // Prefer Telegram's entity ranges. Offsets are UTF-16 code units, matching String.slice().
+  for (const entity of entities) {
+    const start = entity.offset;
+    const end = Number.isInteger(start) && Number.isInteger(entity.length) ? start + entity.length : -1;
+    if (end < 0) continue;
+
+    if (entity.type === 'text_link' && typeof entity.url === 'string') {
+      const checked = validateUrl(entity.url);
+      if (checked.valid && (checked.url === normalizedUrl || entity.url === rawUrl)) {
+        outputText = text.slice(0, start) + shortUrl + text.slice(end);
+        replaced = true;
+        break;
+      }
+    } else if (entity.type === 'url') {
+      const visibleUrl = text.slice(start, end);
+      const checked = validateUrl(visibleUrl);
+      if (checked.valid && (checked.url === normalizedUrl || visibleUrl === rawUrl)) {
+        outputText = text.slice(0, start) + shortUrl + text.slice(end);
+        replaced = true;
+        break;
+      }
+    }
+  }
+
+  if (!replaced) {
+    const candidates = [rawUrl, normalizedUrl].filter(Boolean);
+    for (const candidate of candidates) {
+      const index = text.indexOf(candidate);
+      if (index >= 0) {
+        outputText = text.slice(0, index) + shortUrl + text.slice(index + candidate.length);
+        replaced = true;
+        break;
+      }
+    }
+  }
+
+  if (!replaced) {
+    // Support visible URLs without an explicit scheme and preserve trailing punctuation.
+    const match = text.match(/(?:https?:\/\/|www\.)[^\s<>]+|\b[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s<>]*)?/i);
+    if (match && match.index !== undefined) {
+      const candidate = match[0];
+      const trimmed = candidate.replace(/[.,!?;:]+$/, '');
+      const punctuation = candidate.slice(trimmed.length);
+      const checked = validateUrl(trimmed);
+      if (checked.valid && checked.url === normalizedUrl) {
+        outputText = text.slice(0, match.index) + shortUrl + punctuation + text.slice(match.index + candidate.length);
+        replaced = true;
+      }
+    }
+  }
+
+  if (!replaced) outputText = `${text.trimEnd()}\n\n${shortUrl}`;
+
+  if (typeof message.text === 'string') {
+    return ctx.reply(outputText, {
+      reply_parameters: { message_id: message.message_id },
+      reply_markup: getLinkActionsKeyboard(code, shortUrl),
+      link_preview_options: { is_disabled: true },
+    });
+  }
+
+  // Preserve the media by copying it, then replace the caption on the bot's copy.
+  const copied = await ctx.telegram.copyMessage(
+    ctx.chat.id,
+    ctx.chat.id,
+    message.message_id,
+    { reply_parameters: { message_id: message.message_id } }
+  );
+  return ctx.telegram.editMessageCaption(
+    ctx.chat.id,
+    copied.message_id,
+    undefined,
+    outputText,
+    { reply_markup: getLinkActionsKeyboard(code, shortUrl) }
+  );
+};
+
+/**
  * Handle /shorten command
  */
 export const handleShortenCommand = async (ctx) => {
@@ -131,6 +231,31 @@ export const handleShortenCommand = async (ctx) => {
 };
 
 /**
+ * Extract a validated URL from Telegram text, captions, or hidden text links.
+ */
+export const extractUrlFromTelegramMessage = (message) => {
+  if (!message) return null;
+  const text = typeof message.text === 'string'
+    ? message.text
+    : typeof message.caption === 'string' ? message.caption : '';
+  const entities = message.entities || message.caption_entities || [];
+
+  for (const entity of entities) {
+    let candidate = null;
+    if (entity.type === 'text_link' && typeof entity.url === 'string') {
+      candidate = entity.url;
+    } else if (entity.type === 'url' && Number.isInteger(entity.offset) && Number.isInteger(entity.length)) {
+      candidate = text.slice(entity.offset, entity.offset + entity.length);
+    }
+    if (candidate) {
+      const checked = validateUrl(candidate);
+      if (checked.valid) return checked.url;
+    }
+  }
+  return extractUrlFromText(text);
+};
+
+/**
  * Handle text messages that may contain direct URLs or conversational state
  */
 export const handleDirectTextMessage = async (ctx, next) => {
@@ -147,9 +272,10 @@ export const handleDirectTextMessage = async (ctx, next) => {
   }
 
   // 2. Direct URL auto-detection
-  const extracted = extractUrlFromText(text);
+  const extracted = extractUrlFromTelegramMessage(ctx.message);
   if (extracted) {
-    return executeShorten(ctx, extracted);
+    const isForwarded = Boolean(ctx.message.forward_origin || ctx.message.forward_from || ctx.message.forward_from_chat || ctx.message.is_automatic_forward);
+    return executeShorten(ctx, extracted, isForwarded ? { forwardedMessage: ctx.message } : {});
   }
 
   return next();

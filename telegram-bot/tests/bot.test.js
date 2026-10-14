@@ -30,7 +30,7 @@ import {
 } from '../src/middleware/authSession.js';
 import { handleStart } from '../src/handlers/start.js';
 import { handleHelp } from '../src/handlers/help.js';
-import { handleShortenCommand, handleDirectTextMessage } from '../src/handlers/shorten.js';
+import { handleShortenCommand, handleDirectTextMessage, extractUrlFromTelegramMessage } from '../src/handlers/shorten.js';
 import { handleMyLinks } from '../src/handlers/myLinks.js';
 import { handleStats } from '../src/handlers/stats.js';
 import { handleAccount, handleLinkCommand } from '../src/handlers/account.js';
@@ -122,6 +122,19 @@ describe('1. Input Validation & Protocol Hardening', () => {
       'https://www.google.com/search?q=axly'
     );
     assert.equal(extractUrlFromText('just saying hello there'), null);
+  });
+
+  test('extracts URLs from forwarded Telegram text, captions and hidden links', () => {
+    assert.equal(extractUrlFromTelegramMessage({ text: 'Forwarded: https://example.com/path' }), 'https://example.com/path');
+    assert.equal(extractUrlFromTelegramMessage({ caption: 'Check this site: https://example.org/page' }), 'https://example.org/page');
+    assert.equal(extractUrlFromTelegramMessage({
+      text: 'Open site',
+      entities: [{ type: 'text_link', offset: 0, length: 4, url: 'https://example.com/hidden' }],
+    }), 'https://example.com/hidden');
+    assert.equal(extractUrlFromTelegramMessage({
+      text: 'internal',
+      entities: [{ type: 'text_link', offset: 0, length: 8, url: 'http://127.0.0.1/admin' }],
+    }), null);
   });
 
   test('validates custom alias format for linked accounts', () => {
