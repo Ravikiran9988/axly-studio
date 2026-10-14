@@ -3,7 +3,7 @@
  */
 
 import QRCode from 'qrcode';
-import { validateUrl, extractUrlFromText } from '../utils/validation.js';
+import { validateUrl, extractUrlFromText, isValidCustomAlias } from '../utils/validation.js';
 import { formatLinkCreatedMessage, escapeHtml } from '../utils/formatters.js';
 import { getLinkActionsKeyboard, getCancelKeyboard, getMainMenuKeyboard } from '../utils/keyboards.js';
 import { createShortUrl } from '../services/axlyApi.js';
@@ -30,7 +30,7 @@ export const executeShorten = async (ctx, rawUrl, options = {}) => {
         { parse_mode: 'HTML', reply_markup: getMainMenuKeyboard() }
       );
     }
-    if (!/^[a-z0-9_-]{3,30}$/.test(customAlias)) {
+    if (!isValidCustomAlias(customAlias)) {
       return ctx.reply(
         '⚠️ Alias must be 3–30 characters using letters, numbers, hyphens or underscores.',
         { parse_mode: 'HTML', reply_markup: getCancelKeyboard() }
