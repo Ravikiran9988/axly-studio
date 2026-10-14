@@ -21,7 +21,7 @@ export default function QrCodePage() {
   const initialUrl = searchParams.get('url') || searchParams.get('text') || '';
 
   const [inputUrl, setInputUrl] = useState(initialUrl);
-  const [activeUrl, setActiveUrl] = useState(initialUrl || 'https://url.axly.in');
+  const [activeUrl, setActiveUrl] = useState(initialUrl || 'https://studio.axly.in');
   const [fgColor, setFgColor] = useState('#0f172a');
   const [bgColor, setBgColor] = useState('#ffffff');
   const [exportSize, setExportSize] = useState(512); // 256, 512, 1024
