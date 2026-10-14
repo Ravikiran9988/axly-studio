@@ -75,7 +75,7 @@ Expected settings for the repository layout:
 
 The current Vercel configuration proxies /api/:path* to https://axly-api.onrender.com/api/:path* and rewrites other paths to /index.html. If the API host changes, update and test this rewrite in the same release.
 
-Canonical domain intent is https://studio.axly.in. The legacy https://url.axly.in domain must be a separate Vercel permanent redirect to the canonical host; frontend/vercel.json does not define that domain-level redirect. Confirm that it is saved in the dashboard and test it before calling the cutover complete.
+Canonical domain intent is https://studio.axly.in. The legacy https://url.axly.in domain must be a separate Vercel permanent redirect to the canonical host; frontend/vercel.json does not define that domain-level redirect. Confirm that it is saved in the dashboard and test it before calling the cutover complete. Also, the backend currently returns url.axly.in as the DNS target for page-type custom domains. Validate custom-domain routing before cutover, because changing the legacy host to redirect-only can affect that flow.
 
 ## Pre-release verification
 
