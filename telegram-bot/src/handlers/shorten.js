@@ -139,17 +139,8 @@ export const executeShorten = async (ctx, rawUrl, options = {}) => {
  * Reply with a copy of a forwarded message, replacing its URL but preserving its text/media.
  * Telegram does not permit a bot to edit the incoming message itself.
  */
-const replyWithShortenedForward = async (ctx, message, replacements) => {
-  const text = typeof message.text === 'string' ? message.text : message.caption;
-  if (typeof text !== 'string') {
-    const links = [...new Set(replacements.map((item) => item.shortUrl))];
-    return ctx.reply(links.join('\n'), { reply_parameters: { message_id: message.message_id } });
-  }
-
+export const replaceUrlOccurrencesInText = (text, replacements) => {
   let outputText = text;
-  // Telegram offsets are UTF-16 indices. Replace from right to left so later changes
-  // do not shift the character positions of earlier links. Hidden-link labels are
-  // replaced by their short URL too.
   const ranged = replacements
     .filter((item) => Number.isInteger(item.start) && Number.isInteger(item.end)
       && item.start >= 0 && item.end >= item.start && item.end <= text.length)
@@ -160,16 +151,23 @@ const replyWithShortenedForward = async (ctx, message, replacements) => {
     outputText = outputText.slice(0, item.start) + item.shortUrl + outputText.slice(item.end);
     lastStart = item.start;
   }
-
-  // Fallback only for URL detections without an entity/text range.
   for (const item of replacements.filter((value) => !Number.isInteger(value.start) || !Number.isInteger(value.end))) {
     const candidates = [...new Set([item.originalUrl, item.normalizedUrl, getVisibleUrlVariant(item.normalizedUrl)].filter(Boolean))];
     for (const candidate of candidates) outputText = outputText.split(candidate).join(item.shortUrl);
   }
-
   const missing = [...new Set(replacements.map((item) => item.shortUrl))]
     .filter((shortUrl) => shortUrl && !outputText.includes(shortUrl));
   if (missing.length) outputText = outputText.trimEnd() + '\n\n' + missing.join('\n');
+  return outputText;
+};
+const replyWithShortenedForward = async (ctx, message, replacements) => {
+  const text = typeof message.text === 'string' ? message.text : message.caption;
+  if (typeof text !== 'string') {
+    const links = [...new Set(replacements.map((item) => item.shortUrl))];
+    return ctx.reply(links.join('\n'), { reply_parameters: { message_id: message.message_id } });
+  }
+
+  const outputText = replaceUrlOccurrencesInText(text, replacements);
 
   if (typeof message.text === 'string') {
     return ctx.reply(outputText, {
