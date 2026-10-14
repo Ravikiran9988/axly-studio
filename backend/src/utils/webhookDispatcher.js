@@ -90,9 +90,9 @@ export const executeWebhookDelivery = async (webhook, event, payload, attemptCou
   const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s strict timeout
 
   const parsedDestination = new URL(ssrfCheck.url);
-  const validatedHostname = parsedDestination.hostname.toLowerCase().replace(/^\\[|\\]$/g, '');
+  const validatedHostname = parsedDestination.hostname.toLowerCase().replace(/^\\[|\\]$/g, '').replace(/\\.$/, '');
   const pinnedLookup = (requestedHostname, options, callback) => {
-    const normalizedHostname = String(requestedHostname).toLowerCase().replace(/^\\[|\\]$/g, '');
+    const normalizedHostname = String(requestedHostname).toLowerCase().replace(/^\\[|\\]$/g, '').replace(/\\.$/, '');
     if (normalizedHostname !== validatedHostname) {
       callback(new Error('Blocked unvalidated webhook hostname lookup.'));
       return;
@@ -137,6 +137,7 @@ export const executeWebhookDelivery = async (webhook, event, payload, attemptCou
     isSuccess = response.ok;
     responseBody = await readResponsePreview(response, 1000);
   } catch (err) {
+    isSuccess = false;
     if (err.name === 'AbortError') {
       errorReason = 'Delivery timed out after 6000ms';
     } else {
