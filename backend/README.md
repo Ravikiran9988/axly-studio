@@ -90,7 +90,7 @@ Consult src/routes/ for authoritative route definitions. docs/openapi.yaml is a 
 
 ## Custom-domain deployment caveat
 
-The current domain controller returns url.axly.in as the CNAME target for page-type custom domains and axly-api.onrender.com for short-link domains. Since url.axly.in is intended to redirect to studio.axly.in, validate the page-domain DNS and Vercel routing end to end before declaring custom page domains production-ready. The expected DNS target is implementation-specific; coordinate any change across backend code, DeveloperPage help/fallbacks, DNS validation, tests and docs.
+The current domain controller returns url.axly.in as the CNAME target for page-type custom domains and api.axly.in for short-link domains. Since url.axly.in is intended to redirect to studio.axly.in, validate the page-domain DNS and Vercel routing end to end before declaring custom page domains production-ready. The expected DNS target is implementation-specific; coordinate any change across backend code, DeveloperPage help/fallbacks, DNS validation, tests and docs.
 
 ## Authentication and permissions
 
