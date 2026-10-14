@@ -414,7 +414,7 @@ export default function PagesPage() {
                 <div className="form-group">
                   <label className="form-label">Choose your page address *</label>
                   <div className="pages-slug-field">
-                    <span>url.axly.in/p/</span>
+                    <span>studio.axly.in/p/</span>
                     <input className="form-input" value={createForm.slug} onChange={e => setCreateForm(prev => ({ ...prev, slug: e.target.value.toLowerCase().trim() }))} placeholder="ravikiran" minLength={3} maxLength={64} required />
                   </div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>
@@ -428,7 +428,7 @@ export default function PagesPage() {
                     fontSize: '0.78rem',
                     color: 'var(--text-secondary)',
                   }}>
-                    Public address preview: <strong style={{ color: 'var(--brand-primary)' }}>url.axly.in/p/{createForm.slug.trim() || 'yourname'}</strong>
+                    Public address preview: <strong style={{ color: 'var(--brand-primary)' }}>studio.axly.in/p/{createForm.slug.trim() || 'yourname'}</strong>
                   </div>
                 </div>
                 <div className="form-group">
@@ -455,7 +455,7 @@ export default function PagesPage() {
                 }}>
                   <Globe size={15} style={{ color: 'var(--brand-primary)', flexShrink: 0, marginTop: 2 }} />
                   <span>
-                    <strong>Page username vs Custom domain:</strong> The username sets your public Axly link (e.g. url.axly.in/p/username). If you own a custom domain (e.g. yourbrand.com), you can connect and verify it separately in Domains.
+                    <strong>Page username vs Custom domain:</strong> The username sets your public Axly link (e.g. studio.axly.in/p/username). If you own a custom domain (e.g. yourbrand.com), you can connect and verify it separately in Domains.
                   </span>
                 </div>
                 <div className="pages-modal-actions">
