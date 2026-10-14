@@ -22,7 +22,7 @@ export const escapeHtml = (text) => {
  */
 export const formatWelcomeMessage = (userName = '') => {
   const greeting = userName ? `Hello, <b>${escapeHtml(userName)}</b>! ` : '';
-  return `${greeting}Welcome to <b>Axly Studio</b> 🚀
+  return `${greeting}Welcome to <b>Axly Studio</b>
 
 Shorten links, generate QR codes, and manage your links — all from Telegram.
 
@@ -191,11 +191,11 @@ You can shorten links and generate QR codes freely, but connecting your Axly acc
  * Formats Help command message
  */
 export const formatHelpMessage = () => {
-  return `🚀 <b>Axly Studio Bot — Help & Commands</b>
+  return `<b>Axly Studio Bot — Help & Commands</b>
 
 <b>Available Commands:</b>
 • <code>/start</code> — Open main menu and welcome screen
-• <code>/shorten &lt;url&gt;</code> — Shorten any long web link
+• <code>/shorten &lt;url&gt;</code> — Shorten any long web link\n• <code>/shorten &lt;url&gt; &lt;alias&gt;</code> — Create a custom alias (linked accounts)
 • <code>/qr &lt;url&gt;</code> — Generate a high-resolution QR code
 • <code>/mylinks</code> — View and paginate your trackable links
 • <code>/stats</code> — View overall account click analytics

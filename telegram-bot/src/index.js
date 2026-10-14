@@ -114,6 +114,19 @@ const main = async () => {
   bot = createBot(BOT_TOKEN);
   // Validate the Telegram credential before registering the bot as healthy.
   bot.botInfo = await bot.telegram.getMe();
+  await bot.telegram.setMyCommands([
+    { command: 'start', description: 'Open welcome screen and main menu' },
+    { command: 'shorten', description: 'Shorten a URL or choose a custom alias' },
+    { command: 'qr', description: 'Generate a QR code for a URL' },
+    { command: 'mylinks', description: 'View and manage your links' },
+    { command: 'stats', description: 'View click analytics and statistics' },
+    { command: 'account', description: 'View or connect your Axly account' },
+    { command: 'link', description: 'Link your Axly account with a code' },
+    { command: 'settings', description: 'Change bot preferences' },
+    { command: 'cancel', description: 'Cancel the current action' },
+    { command: 'help', description: 'Show all commands and instructions' },
+  ]);
+  console.log('[OK] Telegram command menu registered.');
 
   if (USE_WEBHOOK) {
     const webhookUrl = `${WEBHOOK_DOMAIN.replace(/\/+$/, '')}${SECRET_PATH}`;

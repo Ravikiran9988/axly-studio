@@ -88,3 +88,11 @@ export const isValidLinkCode = (code) => {
   const cleaned = code.trim().toUpperCase();
   return /^AX-[A-Z0-9]{4,16}$/.test(cleaned) || /^axly_tlink_[a-f0-9]{16,64}$/i.test(cleaned);
 };
+
+/**
+ * Validate an optional custom short-link alias.
+ * Server-side validation remains authoritative for reserved and taken aliases.
+ */
+export const isValidCustomAlias = (alias) => (
+  typeof alias === 'string' && /^[a-zA-Z0-9_-]{3,30}$/.test(alias.trim())
+);

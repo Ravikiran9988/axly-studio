@@ -2,7 +2,7 @@ import { test, describe, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import QRCode from 'qrcode';
 
-import { validateUrl, extractUrlFromText, isValidLinkCode } from '../src/utils/validation.js';
+import { validateUrl, extractUrlFromText, isValidLinkCode, isValidCustomAlias } from '../src/utils/validation.js';
 import {
   formatWelcomeMessage,
   formatHelpMessage,
@@ -124,6 +124,15 @@ describe('1. Input Validation & Protocol Hardening', () => {
     assert.equal(extractUrlFromText('just saying hello there'), null);
   });
 
+  test('validates custom alias format for linked accounts', () => {
+    for (const alias of ['my-brand', 'axly_2026', 'ABC123']) {
+      assert.equal(isValidCustomAlias(alias), true, `${alias} should be valid`);
+    }
+    for (const alias of ['ab', 'has spaces', 'bad.alias', 'this-alias-is-far-too-long-for-the-thirty-character-limit']) {
+      assert.equal(isValidCustomAlias(alias), false, `${alias} should be invalid`);
+    }
+  });
+
   test('validates Axly account linking code format', () => {
     assert.equal(isValidLinkCode('AX-849201'), true);
     assert.equal(isValidLinkCode('AX-A1B2C3'), true);
@@ -155,7 +164,7 @@ describe('2. QR Code Generation', () => {
 describe('3. Message Formatters and Branding', () => {
   test('welcome message contains Axly Studio branding and instructions', () => {
     const msg = formatWelcomeMessage('Alice');
-    assert.ok(msg.includes('Welcome to <b>Axly Studio</b> 🚀'));
+    assert.ok(msg.includes('Welcome to <b>Axly Studio</b>'));
     assert.ok(msg.includes('Alice'));
     assert.ok(msg.includes('Shorten links, generate QR codes'));
   });
@@ -280,7 +289,7 @@ describe('5. Handlers, Account Linking & Guarded Operations', () => {
     await handleStart(ctx);
 
     assert.equal(ctx.replies.length, 1);
-    assert.ok(ctx.replies[0].text.includes('Welcome to <b>Axly Studio</b> 🚀'));
+    assert.ok(ctx.replies[0].text.includes('Welcome to <b>Axly Studio</b>'));
     assert.ok(ctx.replies[0].extra.reply_markup.inline_keyboard.length > 0);
   });
 
