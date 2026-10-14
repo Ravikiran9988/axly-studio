@@ -10,7 +10,7 @@ The API is mounted beneath /api on the website origin:
 https://studio.axly.in/api
 ```
 
-The frontend Vercel config proxies /api/* to the current direct API origin documented as https://axly-api.onrender.com/api/*. For local development, the API base is http://localhost:5000/api. Confirm the host/route rewrite after any deployment or domain change.
+The frontend Vercel config proxies /api/* to the current direct API origin documented as https://api.axly.in/api/*. For local development, the API base is http://localhost:5000/api. Confirm the host/route rewrite after any deployment or domain change.
 
 ## Authentication
 
@@ -140,7 +140,7 @@ Workspace memberships are a tenant boundary. Keep workspaceId constraints server
 
 Domain-management routes are mounted at /api/domains and accept a domainType of shortlinks or page. Current code chooses DNS target values based on that type:
 - page: url.axly.in
-- shortlinks: axly-api.onrender.com
+- shortlinks: api.axly.in
 
 This is an implementation-specific target selection, not a statement that all custom domains are live. The legacy website host is intended to redirect to studio.axly.in; therefore, test custom page-domain routing end to end before treating this DNS model as production-safe. Changing the canonical host/redirect or DNS target requires coordinated code, UI help, tests and deployment changes. DNS verification and TLS provisioning are separate: the API sets SSL status to pending after DNS verification.
 
