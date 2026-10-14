@@ -1,7 +1,33 @@
-import crypto from 'crypto';
+import crypto from 'node:crypto';
+import http from 'node:http';
+import https from 'node:https';
 import fetch from 'node-fetch';
 import { query } from '../db/pool.js';
-import { validateSafeDestinationUrl } from './ssrf.js';
+import { resolveSafeDestinationUrl } from './ssrf.js';
+
+
+// Read only a bounded response preview so webhook receivers cannot force large allocations.
+const readResponsePreview = async (response, maxBytes = 1000) => {
+  if (!response.body) return '';
+  const chunks = [];
+  let bytesRead = 0;
+
+  for await (const chunk of response.body) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    const remaining = maxBytes - bytesRead;
+    if (remaining > 0) {
+      const part = buffer.subarray(0, remaining);
+      chunks.push(part);
+      bytesRead += part.length;
+    }
+    if (bytesRead >= maxBytes) {
+      response.body.destroy();
+      break;
+    }
+  }
+
+  return Buffer.concat(chunks).toString('utf8');
+};
 
 /**
  * Generate HMAC-SHA256 signature for webhook payload
@@ -34,8 +60,9 @@ export const executeWebhookDelivery = async (webhook, event, payload, attemptCou
     createdAt: new Date().toISOString(),
   };
 
-  // SSRF Destination Validation
-  const ssrfCheck = validateSafeDestinationUrl(webhook.url);
+  // Resolve and validate the destination immediately before delivery.
+  // The HTTP agent below pins the request to these verified addresses to block DNS rebinding.
+  const ssrfCheck = await resolveSafeDestinationUrl(webhook.url);
   if (!ssrfCheck.valid) {
     const errorReason = `Blocked by SSRF Policy: ${ssrfCheck.reason}`;
     await query(`
@@ -62,8 +89,36 @@ export const executeWebhookDelivery = async (webhook, event, payload, attemptCou
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s strict timeout
 
+  const parsedDestination = new URL(ssrfCheck.url);
+  const validatedHostname = parsedDestination.hostname.toLowerCase().replace(/^\\[|\\]$/g, '');
+  const pinnedLookup = (requestedHostname, options, callback) => {
+    const normalizedHostname = String(requestedHostname).toLowerCase().replace(/^\\[|\\]$/g, '');
+    if (normalizedHostname !== validatedHostname) {
+      callback(new Error('Blocked unvalidated webhook hostname lookup.'));
+      return;
+    }
+
+    const candidates = ssrfCheck.addresses.filter(
+      entry => !options?.family || entry.family === options.family
+    );
+    if (candidates.length === 0) {
+      callback(new Error('No validated webhook address for requested IP family.'));
+      return;
+    }
+
+    if (options?.all) {
+      callback(null, candidates);
+      return;
+    }
+
+    callback(null, candidates[0].address, candidates[0].family);
+  };
+
+  const httpAgent = new http.Agent({ keepAlive: false, lookup: pinnedLookup });
+  const httpsAgent = new https.Agent({ keepAlive: false, lookup: pinnedLookup });
+
   try {
-    const response = await fetch(webhook.url, {
+    const response = await fetch(ssrfCheck.url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -74,22 +129,23 @@ export const executeWebhookDelivery = async (webhook, event, payload, attemptCou
       },
       body: JSON.stringify(enrichedPayload),
       signal: controller.signal,
-      redirect: 'error', // Do not automatically follow unvalidated redirects
+      redirect: 'error', // Never follow redirects to an unvalidated destination.
+      agent: parsedUrl => parsedUrl.protocol === 'https:' ? httpsAgent : httpAgent,
     });
 
-    clearTimeout(timeoutId);
     statusCode = response.status;
     isSuccess = response.ok;
-
-    const rawText = await response.text();
-    responseBody = rawText.slice(0, 1000); // Truncate response for storage safety
+    responseBody = await readResponsePreview(response, 1000);
   } catch (err) {
-    clearTimeout(timeoutId);
     if (err.name === 'AbortError') {
       errorReason = 'Delivery timed out after 6000ms';
     } else {
       errorReason = err.message || 'Network delivery failure';
     }
+  } finally {
+    clearTimeout(timeoutId);
+    httpAgent.destroy();
+    httpsAgent.destroy();
   }
 
   const durationMs = Date.now() - startTime;
