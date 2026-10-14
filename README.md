@@ -160,6 +160,7 @@ Use the [production runbook](./docs/OPERATIONS_RUNBOOK.md) for pre-deploy checks
 - [ ] Confirm studio.axly.in points to the production frontend and TLS is valid.
 - [ ] Save and test the Vercel 301 redirect from url.axly.in, including paths, query strings and HTTPS.
 - [ ] Confirm s.axly.in DNS and routing resolve generated short links correctly.
+- [ ] Verify the custom-page-domain CNAME target end to end: current backend code still expects url.axly.in for page domains, while that host is intended to redirect to studio.axly.in.
 - [ ] Confirm Vercel /api rewrite reaches the intended API origin.
 - [ ] Confirm production secrets are strong, unique and stored only in secret settings.
 - [ ] Confirm database backups, retention and a tested restore procedure.
