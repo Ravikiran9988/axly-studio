@@ -870,6 +870,37 @@ export const runMigrations = async () => {
       CREATE INDEX IF NOT EXISTS idx_page_revisions_page_date ON page_revisions(page_id, created_at DESC);
     `);
 
+    // 26. Telegram Account Linking (bi-directional mapping between Axly user and Telegram ID)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS telegram_links (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL UNIQUE,
+        telegram_user_id BIGINT UNIQUE NOT NULL,
+        telegram_username VARCHAR(255),
+        telegram_first_name VARCHAR(255),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_telegram_links_telegram_id ON telegram_links(telegram_user_id);
+      CREATE INDEX IF NOT EXISTS idx_telegram_links_user_id ON telegram_links(user_id);
+    `);
+
+    // 27. Telegram Single-Use Expiring Verification Tokens
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS telegram_link_tokens (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+        token VARCHAR(64) UNIQUE NOT NULL,
+        code VARCHAR(32) UNIQUE NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        used_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_telegram_tokens_code ON telegram_link_tokens(code);
+      CREATE INDEX IF NOT EXISTS idx_telegram_tokens_token ON telegram_link_tokens(token);
+      CREATE INDEX IF NOT EXISTS idx_telegram_tokens_user_id ON telegram_link_tokens(user_id);
+    `);
+
     await client.query('COMMIT');
     console.log('[OK] Phase 2, 3 & Phase 4 database schema, tables, and indexes migrated successfully');
   } catch (err) {

@@ -110,4 +110,11 @@ export const config = {
     authWindowMs: parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 mins
     authMax: parseInt(process.env.AUTH_RATE_LIMIT_MAX || '10', 10),
   },
+
+  // Telegram Bot integration
+  telegram: {
+    botToken: process.env.TELEGRAM_BOT_TOKEN || '',
+    botSecret: process.env.TELEGRAM_BOT_SECRET || 'axly_telegram_bot_internal_secret_key',
+    botUsername: process.env.TELEGRAM_BOT_USERNAME || 'AxlyStudioBot',
+  },
 };

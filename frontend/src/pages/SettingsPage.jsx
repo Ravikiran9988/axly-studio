@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, api } from '../context/AuthContext';
 import {
   User, Mail, Shield, Bell, Palette, Globe, Save,
-  Download, Trash2, ExternalLink, AlertTriangle, CheckCircle2, Sun, Moon
+  Download, Trash2, ExternalLink, AlertTriangle, CheckCircle2, Sun, Moon,
+  Bot, Copy, Check, Send
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
@@ -16,6 +17,60 @@ export default function SettingsPage() {
   const [nameForm, setNameForm] = useState({ name: user?.name || '' });
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  // Telegram integration state
+  const [telegramStatus, setTelegramStatus] = useState(null);
+  const [loadingTelegram, setLoadingTelegram] = useState(true);
+  const [generatingTelegramCode, setGeneratingTelegramCode] = useState(false);
+  const [telegramLinkData, setTelegramLinkData] = useState(null);
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  useEffect(() => {
+    fetchTelegramStatus();
+  }, []);
+
+  const fetchTelegramStatus = async () => {
+    try {
+      const res = await api.get('/telegram/status');
+      setTelegramStatus(res.data);
+    } catch (err) {
+      // Non-blocking
+    } finally {
+      setLoadingTelegram(false);
+    }
+  };
+
+  const handleGenerateTelegramCode = async () => {
+    setGeneratingTelegramCode(true);
+    try {
+      const res = await api.post('/telegram/link-code');
+      setTelegramLinkData(res.data);
+      toast.success('Linking code generated! It will expire in 10 minutes.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to generate linking code.');
+    } finally {
+      setGeneratingTelegramCode(false);
+    }
+  };
+
+  const handleUnlinkTelegram = async () => {
+    if (!window.confirm('Are you sure you want to unlink your Telegram account? You will need a new code to reconnect.')) return;
+    try {
+      await api.post('/telegram/unlink');
+      toast.success('Telegram bot unlinked successfully.');
+      setTelegramStatus({ linked: false });
+      setTelegramLinkData(null);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to unlink Telegram.');
+    }
+  };
+
+  const handleCopyCode = (code) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(true);
+    toast.success('Linking code copied to clipboard!');
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
 
   // Deletion modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -199,6 +254,107 @@ export default function SettingsPage() {
               Developer Console <ExternalLink size={14} />
             </Link>
           </div>
+        </div>
+
+        {/* Telegram Bot Integration */}
+        <div className="card" style={{ border: '1px solid rgba(124,58,237,0.25)', background: 'linear-gradient(180deg, rgba(124,58,237,0.03) 0%, rgba(124,58,237,0) 100%)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(124,58,237,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-primary)' }}>
+                <Bot size={20} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>Axly Studio Telegram Bot</h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Shorten links, generate QR codes, and manage your account in Telegram</p>
+              </div>
+            </div>
+            {telegramStatus?.linked && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 20, background: 'rgba(16,185,129,0.12)', color: '#10b981', fontSize: '0.78rem', fontWeight: 600 }}>
+                <CheckCircle2 size={13} /> Connected
+              </span>
+            )}
+          </div>
+
+          {telegramStatus?.linked ? (
+            <div>
+              <div style={{ background: 'var(--bg-input)', padding: 14, borderRadius: 8, border: '1px solid var(--border-color)', marginBottom: 16 }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: 4 }}>
+                  Linked to <b>@{telegramStatus.telegram?.username || 'Telegram User'}</b> {telegramStatus.telegram?.firstName ? `(${telegramStatus.telegram.firstName})` : ''}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  Connected on {new Date(telegramStatus.telegram?.linkedAt || Date.now()).toLocaleDateString()}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <a
+                  href="https://t.me/AxlyStudioBot"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <Send size={14} /> Open Bot Chat
+                </a>
+                <button
+                  type="button"
+                  onClick={handleUnlinkTelegram}
+                  className="btn btn-secondary btn-sm"
+                  style={{ color: 'var(--danger)', borderColor: 'rgba(239,68,68,0.3)' }}
+                >
+                  Unlink Account
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: 16 }}>
+                Connect your Telegram account to access your private links, track click analytics, and create short links with 1-click inside Telegram.
+              </p>
+
+              {telegramLinkData ? (
+                <div style={{ background: 'var(--bg-input)', padding: 16, borderRadius: 8, border: '1px solid var(--border-color)', marginBottom: 16 }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: 8 }}>Your 10-minute single-use linking code:</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+                    <code style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '0.1em', padding: '6px 14px', background: 'rgba(124,58,237,0.1)', color: 'var(--brand-primary)', borderRadius: 6 }}>
+                      {telegramLinkData.code}
+                    </code>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => handleCopyCode(telegramLinkData.code)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                      {copiedCode ? <Check size={14} /> : <Copy size={14} />}
+                      {copiedCode ? 'Copied' : 'Copy Code'}
+                    </button>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 14 }}>
+                    Click below to open the bot directly with your linking code:
+                  </div>
+                  <a
+                    href={telegramLinkData.deepLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-primary btn-sm"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <Send size={14} /> Connect in Telegram (1-Click)
+                  </a>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleGenerateTelegramCode}
+                  disabled={generatingTelegramCode}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <Send size={14} />
+                  {generatingTelegramCode ? 'Generating Code...' : 'Connect Telegram Bot'}
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Privacy Controls & Data Export */}

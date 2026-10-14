@@ -21,6 +21,7 @@ import domainRoutes from './routes/domains.js';
 import pageRoutes from './routes/pages.js';
 import privacyRoutes from './routes/privacy.js';
 import notificationRoutes from './routes/notifications.js';
+import telegramRoutes from './routes/telegram.js';
 import { redirect, unlockPasswordProtectedLink } from './controllers/redirectController.js';
 
 // Validate environment variables on startup
@@ -179,6 +180,7 @@ app.use('/api/domains', domainRoutes);
 app.use('/api/pages', pageRoutes);
 app.use('/api/user', privacyRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/telegram', telegramRoutes);
 
 // Short URL redirection & password unlock route
 app.post('/:shortCode/unlock', unlockPasswordProtectedLink);
