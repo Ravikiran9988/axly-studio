@@ -2001,6 +2001,78 @@ describe('Axly URL Shortener API Tests', () => {
     });
   });
 
+  describe('Workspace resource isolation', () => {
+    const workspaceId = '66666666-6666-6666-6666-666666666666';
+
+    test('rejects non-admins listing workspace API key metadata without owner/admin role', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('FROM users')) {
+          return { rows: [{ id: testUserId, is_active: true, role: 'user', token_version: 1 }] };
+        }
+        if (text.includes('FROM workspace_members')) {
+          return { rows: [{ role: 'viewer' }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .get('/api/keys')
+          .query({ workspaceId })
+          .set('Authorization', `Bearer ${testToken}`);
+        assert.equal(res.status, 403);
+        assert.match(res.body.message, /owner or admin/i);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('rejects workspace webhook creation by a non-member', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('FROM users')) {
+          return { rows: [{ id: testUserId, is_active: true, role: 'user', token_version: 1 }] };
+        }
+        if (text.includes('FROM workspace_members')) return { rows: [] };
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .post('/api/webhooks')
+          .set('Authorization', `Bearer ${testToken}`)
+          .send({ url: 'https://hooks.example.test/callback', workspaceId, events: ['link.created'] });
+        assert.equal(res.status, 403);
+        assert.match(res.body.message, /workspace owner or admin/i);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('rejects workspace domain registration by a non-member', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('FROM users')) {
+          return { rows: [{ id: testUserId, is_active: true, role: 'user', token_version: 1 }] };
+        }
+        if (text.includes('FROM workspace_members')) return { rows: [] };
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .post('/api/domains')
+          .set('Authorization', `Bearer ${testToken}`)
+          .send({ domain: 'links.acmecorp.com', workspaceId });
+        assert.equal(res.status, 403);
+        assert.match(res.body.message, /workspace owner or admin/i);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+  });
+
   after(async () => {
     pool.connect = originalConnect;
     await closePool();
