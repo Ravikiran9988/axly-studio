@@ -74,7 +74,7 @@ Send me any URL or use <code>/shorten &lt;url&gt;</code> to create your first tr
   links.forEach((link, idx) => {
     const num = (page - 1) * pagination.limit + (idx + 1);
     const title = link.title ? escapeHtml(link.title) : 'Untitled Link';
-    const shortUrl = link.short_url || `https://url.axly.in/${link.short_code}`;
+    const shortUrl = link.short_url || `https://studio.axly.in/${link.short_code}`;
     const clicks = link.click_count || 0;
     const dest = link.original_url.length > 45 ? `${link.original_url.substring(0, 42)}...` : link.original_url;
 
@@ -114,7 +114,7 @@ export const formatDashboardStats = (stats, user) => {
  * Formats link-specific detailed analytics
  */
 export const formatLinkAnalytics = (urlData, analytics) => {
-  const shortUrl = urlData.short_url || `https://url.axly.in/${urlData.short_code}`;
+  const shortUrl = urlData.short_url || `https://studio.axly.in/${urlData.short_code}`;
   const totalClicks = analytics.totalClicks || urlData.click_count || 0;
   const uniqueClicks = analytics.uniqueClicks || urlData.unique_clicks || 0;
 
@@ -181,7 +181,7 @@ You can shorten links and generate QR codes freely, but connecting your Axly acc
 • Custom vanity aliases and QR downloads
 
 <b>How to connect:</b>
-1. Log in to your Axly dashboard at <a href="https://url.axly.in">url.axly.in</a>
+1. Log in to your Axly dashboard at <a href="https://studio.axly.in">url.axly.in</a>
 2. Go to <b>Settings > Telegram Bot</b> and click <b>Connect Telegram Bot</b>
 3. Tap the <b>Connect in Telegram</b> button or send:
    <code>/link AX-XXXXXX</code> here!`;
