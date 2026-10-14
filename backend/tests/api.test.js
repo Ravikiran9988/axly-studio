@@ -6,7 +6,7 @@ import app from '../src/index.js';
 import { toCsvCell } from '../src/controllers/urlController.js';
 import pool, { closePool } from '../src/db/pool.js';
 import { config, validateEnv } from '../src/config/env.js';
-import { validateSafeDestinationUrl } from '../src/utils/ssrf.js';
+import { validateSafeDestinationUrl, resolveSafeDestinationUrl } from '../src/utils/ssrf.js';
 import { generateApiKey, hashApiKey } from '../src/utils/apiKey.js';
 import { signWebhookPayload } from '../src/utils/webhookDispatcher.js';
 import { validateDomainSyntax } from '../src/utils/dnsVerifier.js';
@@ -28,8 +28,33 @@ describe('Destination URL network normalization', () => {
     }
   });
 
-  test('continues to accept public IPv6 destination addresses', () => {
-    assert.equal(validateSafeDestinationUrl('https://[2606:4700:4700::1111]/').valid, true);
+  test('rejects public hostnames with private or mixed DNS answers', async () => {
+    const privateResult = await resolveSafeDestinationUrl(
+      'https://hooks.example.test/callback',
+      async () => [{ address: '127.0.0.1', family: 4 }]
+    );
+    assert.equal(privateResult.valid, false);
+
+    const mixedResult = await resolveSafeDestinationUrl(
+      'https://hooks.example.test/callback',
+      async () => [
+        { address: '8.8.8.8', family: 4 },
+        { address: '10.1.2.3', family: 4 },
+      ]
+    );
+    assert.equal(mixedResult.valid, false);
+  });
+
+  test('returns only validated public addresses for connection pinning', async () => {
+    const result = await resolveSafeDestinationUrl(
+      'https://hooks.example.test/callback',
+      async () => [
+        { address: '8.8.8.8', family: 4 },
+        { address: '2606:4700:4700::1111', family: 6 },
+      ]
+    );
+    assert.equal(result.valid, true);
+    assert.deepEqual(result.addresses.map(item => item.address), ['8.8.8.8', '2606:4700:4700::1111']);
   });
 });
 
