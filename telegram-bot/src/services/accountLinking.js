@@ -48,10 +48,8 @@ export const getSession = async (telegramUserId) => {
     return { isLinked: false, user: null, token: null };
   } catch (err) {
     console.error(`Failed to fetch session for ${telegramUserId}:`, err.message);
-    // If API error, fallback to expired cached if available, else false
-    if (cached) {
-      return { isLinked: cached.linked, user: cached.user, token: cached.token };
-    }
+    // Never keep an expired authenticated session alive when the API cannot validate it.
+    sessionCache.delete(key);
     return { isLinked: false, user: null, token: null };
   }
 };
