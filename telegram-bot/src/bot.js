@@ -8,7 +8,7 @@ import { authSessionMiddleware, setUserState } from './middleware/authSession.js
 
 import { handleStart } from './handlers/start.js';
 import { handleHelp } from './handlers/help.js';
-import { handleShortenCommand, handleDirectTextMessage, extractUrlFromTelegramMessage, executeShorten } from './handlers/shorten.js';
+import { handleShortenCommand, handleAliasCommand, handleDirectTextMessage, extractUrlFromTelegramMessage, executeShorten } from './handlers/shorten.js';
 import { handleQrCommand, handleQrCallback, executeGenerateQr } from './handlers/qr.js';
 import { handleMyLinks, handleMyLinksCallback } from './handlers/myLinks.js';
 import { handleStatsCommand, handleStatsCallback } from './handlers/stats.js';
@@ -42,6 +42,7 @@ export const createBot = (token) => {
   bot.command('start', handleStart);
   bot.command('help', handleHelp);
   bot.command('shorten', handleShortenCommand);
+  bot.command('alias', handleAliasCommand);
   bot.command('qr', handleQrCommand);
   bot.command('mylinks', (ctx) => handleMyLinks(ctx, 1));
   bot.command('stats', handleStatsCommand);

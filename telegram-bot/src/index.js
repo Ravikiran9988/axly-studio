@@ -116,7 +116,8 @@ const main = async () => {
   bot.botInfo = await bot.telegram.getMe();
   await bot.telegram.setMyCommands([
     { command: 'start', description: 'Open welcome screen and main menu' },
-    { command: 'shorten', description: 'Shorten a URL or choose a custom alias' },
+    { command: 'shorten', description: 'Shorten a URL' },
+    { command: 'alias', description: 'Create a custom short-link alias' },
     { command: 'qr', description: 'Generate a QR code for a URL' },
     { command: 'mylinks', description: 'View and manage your links' },
     { command: 'stats', description: 'View click analytics and statistics' },
