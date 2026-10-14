@@ -43,6 +43,13 @@ export default function LandingPage() {
   const [copied, setCopied] = useState(false);
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportShortCode, setReportShortCode] = useState('');
+  const [comparisonFilter, setComparisonFilter] = useState('all');
+
+  const filteredComparisonFeatures = COMPARISON_FEATURES.filter(row => {
+    if (comparisonFilter === 'guest') return row.guest;
+    if (comparisonFilter === 'member') return !row.guest;
+    return true;
+  });
 
   const handleShorten = async (e) => {
     e.preventDefault();
@@ -214,12 +221,11 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="hero-section" id="shorten">
         <div className="hero-container">
-          <div className="hero-badge">
-            <span className="hero-badge-dot"></span>
-            <span className="hero-badge-tag">LINKS MADE SIMPLE</span>
-            <span className="hero-badge-divider">/</span>
-            <span>Short links, QR codes & public pages</span>
-          </div>
+          <a href="#pages" className="hero-badge" aria-label="Explore Axly Studio public pages and link tools">
+            <span className="hero-badge-chip">LINKS MADE SIMPLE</span>
+            <span className="hero-badge-text">Short links, QR codes &amp; public pages</span>
+            <ArrowRight size={13} className="hero-badge-arrow" />
+          </a>
 
           <h1 className="hero-title">
             Shorten links. <span className="gradient-text">Share smarter.</span>
@@ -483,7 +489,7 @@ export default function LandingPage() {
 
         <div className="features-grid">
           <div className="feature-card">
-            <div className="feature-icon" style={{ background: '#eff6ff', color: '#2563eb' }}>
+            <div className="feature-icon feature-icon-blue">
               <Zap size={24} />
             </div>
             <h3 className="feature-title">High-Speed HTTP Redirects</h3>
@@ -493,7 +499,7 @@ export default function LandingPage() {
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
+            <div className="feature-icon feature-icon-purple">
               <Globe size={24} />
             </div>
             <h3 className="feature-title">Custom Branded Vanity Aliases</h3>
@@ -503,7 +509,7 @@ export default function LandingPage() {
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon" style={{ background: '#ecfdf5', color: '#059669' }}>
+            <div className="feature-icon feature-icon-emerald">
               <BarChart2 size={24} />
             </div>
             <h3 className="feature-title">Deep Visitor Analytics</h3>
@@ -513,7 +519,7 @@ export default function LandingPage() {
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon" style={{ background: '#fffbeb', color: '#d97706' }}>
+            <div className="feature-icon feature-icon-amber">
               <QrCode size={24} />
             </div>
             <h3 className="feature-title">Free QR Code Generator</h3>
@@ -526,7 +532,7 @@ export default function LandingPage() {
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon" style={{ background: '#fef2f2', color: '#dc2626' }}>
+            <div className="feature-icon feature-icon-red">
               <Lock size={24} />
             </div>
             <h3 className="feature-title">Expiration & Status Controls</h3>
@@ -536,7 +542,7 @@ export default function LandingPage() {
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon" style={{ background: '#f0f9ff', color: '#0284c7' }}>
+            <div className="feature-icon feature-icon-cyan">
               <ShieldCheck size={24} />
             </div>
             <h3 className="feature-title">Privacy-Preserving Deduplication</h3>
@@ -546,7 +552,7 @@ export default function LandingPage() {
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon" style={{ background: '#eef2ff', color: '#4f46e5' }}>
+            <div className="feature-icon feature-icon-indigo">
               <PanelsTopLeft size={24} />
             </div>
             <h3 className="feature-title">Link-in-Bio & Public Pages</h3>
@@ -559,7 +565,7 @@ export default function LandingPage() {
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon" style={{ background: '#ecfeff', color: '#0e7490' }}>
+            <div className="feature-icon feature-icon-teal">
               <Globe size={24} />
             </div>
             <h3 className="feature-title">Custom Domains</h3>
@@ -572,7 +578,7 @@ export default function LandingPage() {
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon" style={{ background: '#fff7ed', color: '#c2410c' }}>
+            <div className="feature-icon feature-icon-orange">
               <Megaphone size={24} />
             </div>
             <h3 className="feature-title">Campaigns & UTM Builder</h3>
@@ -585,7 +591,7 @@ export default function LandingPage() {
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon" style={{ background: '#fdf2f8', color: '#be185d' }}>
+            <div className="feature-icon feature-icon-pink">
               <GitCompare size={24} />
             </div>
             <h3 className="feature-title">A/B Link Experiments</h3>
@@ -598,7 +604,7 @@ export default function LandingPage() {
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon" style={{ background: '#f0fdf4', color: '#15803d' }}>
+            <div className="feature-icon feature-icon-green">
               <Users size={24} />
             </div>
             <h3 className="feature-title">Teams & Workspaces</h3>
@@ -611,7 +617,7 @@ export default function LandingPage() {
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon" style={{ background: '#eff6ff', color: '#1d4ed8' }}>
+            <div className="feature-icon feature-icon-blue">
               <Code2 size={24} />
             </div>
             <h3 className="feature-title">Developer Platform</h3>
@@ -624,7 +630,7 @@ export default function LandingPage() {
           </div>
 
           <div className="feature-card">
-            <div className="feature-icon" style={{ background: '#f5f3ff', color: '#6d28d9' }}>
+            <div className="feature-icon feature-icon-purple">
               <Mail size={24} />
             </div>
             <h3 className="feature-title">Lead Capture & Page Insights</h3>
@@ -647,13 +653,19 @@ export default function LandingPage() {
           </p>
         </div>
 
-        <div className="comparison-table-wrapper">
+        {/* Desktop Comparison Table (Visible on > 640px) */}
+        <div className="comparison-table-wrapper desktop-comparison-table">
           <table className="comparison-table">
             <thead>
               <tr>
-                <th style={{ width: '50%' }}>Capability</th>
-                <th style={{ textAlign: 'center', width: '25%' }}>Guest Visitor</th>
-                <th style={{ textAlign: 'center', width: '25%' }} className="highlight-column">Axly Studio Member</th>
+                <th style={{ width: '46%' }}>Capability</th>
+                <th style={{ textAlign: 'center', width: '27%' }}>Guest Visitor</th>
+                <th style={{ textAlign: 'center', width: '27%' }} className="highlight-column">
+                  <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <span>Axly Studio Member</span>
+                    <span className="badge badge-pro" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>100% FREE</span>
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -662,18 +674,97 @@ export default function LandingPage() {
                   <td><strong>{row.feature}</strong></td>
                   <td style={{ textAlign: 'center' }}>
                     {row.guest ? (
-                      <CheckCircle2 size={18} style={{ color: 'var(--success)', verticalAlign: 'middle' }} />
+                      <span className="comparison-status-pill pill-guest-yes">
+                        <CheckCircle2 size={16} /> Yes
+                      </span>
                     ) : (
-                      <XCircle size={18} style={{ color: 'var(--text-muted)', verticalAlign: 'middle', opacity: 0.5 }} />
+                      <span className="comparison-status-pill pill-guest-no">
+                        <XCircle size={16} /> Locked
+                      </span>
                     )}
                   </td>
                   <td style={{ textAlign: 'center' }} className="highlight-column">
-                    <CheckCircle2 size={18} style={{ color: 'var(--brand-primary)', verticalAlign: 'middle' }} />
+                    <span className="comparison-status-pill pill-member-yes">
+                      <CheckCircle2 size={16} /> Included
+                    </span>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Comparison Experience (Visible on <= 640px) */}
+        <div className="comparison-mobile-container">
+          {/* Quick Filter Switcher */}
+          <div className="comparison-mobile-filter">
+            <button
+              type="button"
+              className={`comparison-filter-btn ${comparisonFilter === 'all' ? 'active' : ''}`}
+              onClick={() => setComparisonFilter('all')}
+            >
+              All (13)
+            </button>
+            <button
+              type="button"
+              className={`comparison-filter-btn ${comparisonFilter === 'guest' ? 'active' : ''}`}
+              onClick={() => setComparisonFilter('guest')}
+            >
+              Guest (2)
+            </button>
+            <button
+              type="button"
+              className={`comparison-filter-btn ${comparisonFilter === 'member' ? 'active' : ''}`}
+              onClick={() => setComparisonFilter('member')}
+            >
+              Member Only (11)
+            </button>
+          </div>
+
+          {/* Mobile Comparison Cards */}
+          <div className="comparison-mobile-list">
+            {filteredComparisonFeatures.map((row, idx) => (
+              <div className="comparison-mobile-card" key={idx}>
+                <div className="comparison-mobile-card-title">
+                  {row.feature}
+                </div>
+                <div className="comparison-mobile-card-grid">
+                  <div className={`comparison-mobile-chip ${row.guest ? 'chip-guest-yes' : 'chip-guest-no'}`}>
+                    <span className="chip-label">Guest</span>
+                    <span className="chip-value">
+                      {row.guest ? (
+                        <>
+                          <Check size={13} /> Available
+                        </>
+                      ) : (
+                        <>
+                          <X size={13} /> Locked
+                        </>
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="comparison-mobile-chip chip-member-yes">
+                    <span className="chip-label">Studio</span>
+                    <span className="chip-value">
+                      <Check size={13} /> Included
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Mobile Conversion CTA Card */}
+          <div className="comparison-mobile-cta">
+            <div className="comparison-mobile-cta-content">
+              <h4>Ready to unlock all 13 features?</h4>
+              <p>Create your free Axly Studio workspace in seconds — no credit card needed.</p>
+            </div>
+            <Link to={user ? '/app/dashboard' : '/register'} className="btn btn-primary comparison-mobile-cta-btn">
+              {user ? 'Open Studio Dashboard' : 'Get Started Free'} <ArrowRight size={15} />
+            </Link>
+          </div>
         </div>
       </section>
 
