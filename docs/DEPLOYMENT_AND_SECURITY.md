@@ -7,7 +7,7 @@ This guide defines deployment practices for the current repository topology. Das
 | Component | Expected target | Configuration |
 |---|---|---|
 | Website | Vercel | Root directory frontend; build npm run build; output dist/ |
-| API | Render service documented as axly-api.onrender.com | Root directory backend; install npm ci; start npm start |
+| API | Render service documented as api.axly.in | Root directory backend; install npm ci; start npm start |
 | Telegram bot | Separate Node service if hosted on Render | Root directory telegram-bot; install npm ci; start npm start |
 | Database | PostgreSQL provider selected per environment | DATABASE_URL or DB_* variables; TLS per provider requirements |
 
@@ -16,7 +16,7 @@ This guide defines deployment practices for the current repository topology. Das
 - Canonical website intent: https://studio.axly.in.
 - Secondary domain: https://url.axly.in should permanently redirect to https://studio.axly.in using a Vercel domain redirect.
 - Short URLs: use the hostname configured by SHORT_DOMAIN, expected to be https://s.axly.in when DNS/routing is set up for it.
-- The frontend API rewrite is checked in at frontend/vercel.json: /api/:path* forwards to https://axly-api.onrender.com/api/:path*.
+- The frontend API rewrite is checked in at frontend/vercel.json: /api/:path* forwards to https://api.axly.in/api/:path*.
 - The domain-level redirect is configured in Vercel settings, not by frontend/vercel.json. Verify it is saved and test final Location values with an HTTP client.
 
 Do not claim production cutover is complete until DNS, certificate, redirect behavior, API proxy and short-link routing have been tested from outside the hosting dashboard. Also validate the custom-page-domain flow: the current domain controller expects page-type custom domains to point at url.axly.in. That target must be reviewed alongside the intended redirect-only behavior for the legacy host.
@@ -75,9 +75,9 @@ Never put generated values in Git, screenshots, tickets or logs.
 ### API
 
 ```bash
-curl -fsS https://axly-api.onrender.com/healthz
-curl -i https://axly-api.onrender.com/readyz
-curl -i https://axly-api.onrender.com/api/health
+curl -fsS https://api.axly.in/healthz
+curl -i https://api.axly.in/readyz
+curl -i https://api.axly.in/api/health
 ```
 
 - GET /healthz is liveness only.
