@@ -67,7 +67,7 @@ export const createBot = (token) => {
   bot.action('action:prompt_alias', async (ctx) => {
     await ctx.answerCbQuery().catch(() => {});
     return ctx.reply(
-      '✨ <b>Create a Custom Alias</b>\\n\\nSend this command with your destination URL and preferred alias:\\n<code>/alias https://example.com my-brand</code>\\n\\nCustom aliases require a linked Axly account. Use /account to connect first.',
+      '✨ <b>Create a Custom Alias</b>\n\nSend this command with your destination URL and preferred alias:\n<code>/alias https://example.com my-brand</code>\n\nCustom aliases require a linked Axly account. Use /account to connect first.',
       { parse_mode: 'HTML', reply_markup: getCancelKeyboard() }
     );
   });
@@ -101,15 +101,22 @@ export const createBot = (token) => {
 
   // 4. Text Message Processing (Conversational state & Direct URLs)
   bot.on('text', async (ctx, next) => {
-    // If user is waiting to input a QR URL
+    const message = ctx.message;
+    const isForwarded = Boolean(message.forward_origin || message.forward_from || message.forward_from_chat || message.is_automatic_forward);
+    const urls = extractAllUrlsFromTelegramMessage(message);
+
+    // Forwarded/multi-link messages must be handled before any pending QR prompt.
+    if (urls.length > 0 && (isForwarded || urls.length > 1)) {
+      return executeShorten(ctx, urls[0], { forwardedMessage: message });
+    }
+
     if (ctx.userState === 'awaiting_qr_url') {
-      const text = ctx.message.text.trim();
+      const text = message.text.trim();
       return executeGenerateQr(ctx, text);
     }
 
     return handleDirectTextMessage(ctx, next);
   });
-
   // 5. Forwarded media/posts may carry URLs in captions, including hidden text links.
   // Text updates are handled above; this handler only processes caption-only messages.
   bot.on('message', async (ctx, next) => {
