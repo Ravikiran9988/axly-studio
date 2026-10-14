@@ -21,6 +21,14 @@ const INSECURE_VISITOR_SALTS = [
   'password',
 ];
 
+const INSECURE_TELEGRAM_BOT_SECRETS = [
+  'axly_telegram_bot_internal_secret_key',
+  'replace_with_a_secure_random_32_character_bot_secret',
+  'replace_with_random_32_char_or_longer_secret',
+  'changeme',
+  'secret',
+];
+
 export const validateEnv = () => {
   const nodeEnv = process.env.NODE_ENV || 'development';
   const errors = [];
@@ -45,6 +53,14 @@ export const validateEnv = () => {
       errors.push('VISITOR_SALT must be at least 32 characters in production.');
     } else if (INSECURE_VISITOR_SALTS.includes(process.env.VISITOR_SALT.toLowerCase())) {
       errors.push('VISITOR_SALT cannot be a placeholder or well-known development value in production.');
+    }
+
+    if (!process.env.TELEGRAM_BOT_SECRET) {
+      errors.push('TELEGRAM_BOT_SECRET is missing. Configure the same strong shared secret on the backend and Telegram bot.');
+    } else if (process.env.TELEGRAM_BOT_SECRET.length < 32) {
+      errors.push('TELEGRAM_BOT_SECRET must be at least 32 characters in production.');
+    } else if (INSECURE_TELEGRAM_BOT_SECRETS.includes(process.env.TELEGRAM_BOT_SECRET.toLowerCase())) {
+      errors.push('TELEGRAM_BOT_SECRET cannot be a default or placeholder value in production.');
     }
   }
 
@@ -114,7 +130,7 @@ export const config = {
   // Telegram Bot integration
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN || '',
-    botSecret: process.env.TELEGRAM_BOT_SECRET || 'axly_telegram_bot_internal_secret_key',
+    botSecret: process.env.TELEGRAM_BOT_SECRET || (nodeEnv === 'test' ? 'test_telegram_bot_secret_32_characters_minimum' : ''),
     botUsername: process.env.TELEGRAM_BOT_USERNAME || 'AxlyStudioBot',
   },
 };
