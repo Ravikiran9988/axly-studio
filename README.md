@@ -22,7 +22,7 @@ The application is structured to support clean separation between the product da
 | `https://studio.axly.in` | Primary website and dashboard | Serves React SPA and `/api/` proxy |
 | `https://url.axly.in` | Secondary/legacy domain | Permanent 301 redirect to `https://studio.axly.in` |
 | `https://s.axly.in/<shortCode>` | Short Link Redirections | Direct 302 redirect via Node.js API |
-| `https://studio.axly.in/api` | REST API Endpoints | Node.js Backend API | *Note: These domains are production targets. They require valid DNS records (CNAME/A) and TLS certificates in your hosting environment before activation.* --- ## Quick Start (Local Development) ### Prerequisites
+| `https://studio.axly.in/api` | REST API Endpoints | Node.js Backend API | *Note: `studio.axly.in` is the canonical production domain. `url.axly.in` is the secondary domain and should redirect to the canonical domain in Vercel.* --- ## Quick Start (Local Development) ### Prerequisites
 - Node.js 20+
 - PostgreSQL 14+ (or Docker)
 - npm ### 1. Clone Repository
