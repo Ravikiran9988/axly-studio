@@ -186,4 +186,8 @@ Use the [production runbook](./docs/OPERATIONS_RUNBOOK.md) for pre-deploy checks
 
 Keep documentation and implementation changes together. A new route, environment variable, bot command, schema migration or production setting should update the relevant guide and tests. Never publish secrets in issues or logs. Report security-sensitive findings privately to the repository maintainer.
 
-Check the current repository LICENSE file before redistributing.
+## License
+
+Copyright (c) 2026 Axly Studio. All rights reserved.
+
+This source code is proprietary. Unauthorized copying, modification, distribution, or use of this software is prohibited without prior written permission from the copyright holder.
