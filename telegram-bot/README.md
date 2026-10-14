@@ -85,7 +85,7 @@ Edit `.env`:
 TELEGRAM_BOT_TOKEN=your_bot_token_from_botfather
 AXLY_API_URL=http://localhost:5000
 AXLY_FRONTEND_URL=http://localhost:5173
-TELEGRAM_BOT_SECRET=replace_with_a_secure_random_32_character_bot_secret
+TELEGRAM_BOT_SECRET=REPLACE_WITH_RANDOM_32_CHAR_OR_LONGER_SECRET
 PORT=3000
 USE_WEBHOOK=false
 ```
@@ -109,11 +109,11 @@ Deploy the bot as a **separate service** on Render so your existing website and 
 
 ### Option A: Render Web Service (Recommended)
 1. Go to your [Render Dashboard](https://dashboard.render.com/) and click **New + > Web Service**.
-2. Connect your repository: `https://github.com/Ravikiran9988/axly-url-shortener`.
+2. Connect your repository: `https://github.com/Ravikiran9988/axly-studio`.
 3. Configure the service settings:
    - **Name**: `axly-telegram-bot`
    - **Region**: Same region as your API (e.g., Oregon or Frankfurt)
-   - **Branch**: `master` (or your feature branch)
+   - **Branch**: `main`
    - **Root Directory**: `telegram-bot`
    - **Runtime**: `Node`
    - **Build Command**: `npm install`
