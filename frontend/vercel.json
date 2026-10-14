@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://axly-api.onrender.com/api/:path*"
+      "destination": "https://api.axly.in/api/:path*"
     },
     {
       "source": "/(.*)",
