@@ -42,13 +42,22 @@ export const isPrivateIPv4 = (ip) => {
 // Check if an IP (IPv4 or IPv6 or IPv4-mapped IPv6) is blocked / private
 export const isPrivateOrBlockedIp = (ip) => {
   if (!ip || typeof ip !== 'string') return true;
-  const cleanIp = ip.toLowerCase().trim();
+  const cleanIp = ip.toLowerCase().trim().replace(/^\[|\]$/g, '');
 
-  // Handle IPv4-mapped IPv6 (::ffff:127.0.0.1 or ::ffff:7f00:1)
+  // Handle IPv4-mapped IPv6 in dotted form (::ffff:127.0.0.1).
   if (cleanIp.startsWith('::ffff:')) {
     const v4Part = cleanIp.substring(7);
     if (net.isIPv4(v4Part)) {
       return isPrivateIPv4(v4Part);
+    }
+
+    // Also handle the hexadecimal form, e.g. ::ffff:7f00:1 (127.0.0.1).
+    const mappedHex = cleanIp.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+    if (mappedHex) {
+      const high = Number.parseInt(mappedHex[1], 16);
+      const low = Number.parseInt(mappedHex[2], 16);
+      const mappedV4 = `${high >> 8}.${high & 255}.${low >> 8}.${low & 255}`;
+      return isPrivateIPv4(mappedV4);
     }
   }
 
@@ -94,7 +103,7 @@ export const validateSafeDestinationUrl = (urlString) => {
     return { valid: false, error: msg, reason: msg };
   }
 
-  const hostname = parsed.hostname.toLowerCase();
+  const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
 
   // Reject local/internal domain names
   if (
