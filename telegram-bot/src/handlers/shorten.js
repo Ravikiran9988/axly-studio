@@ -239,7 +239,7 @@ export const extractAllUrlsFromTelegramMessage = (message) => {
       add(text.slice(entity.offset, entity.offset + entity.length));
     }
   }
-  const pattern = /(?:https?:\\/\\/|www\\.)[^\\s<>]+|\\b[a-zA-Z0-9-]+\\.[a-zA-Z]{2,}(?:\\/[^\\s<>]*)?/gi;
+  const pattern = /(?:https?:\/\/|www\.)[^\s<>]+|\b[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s<>]*)?/gi;
   for (const match of text.matchAll(pattern)) add(match[0]);
   return found;
 };
