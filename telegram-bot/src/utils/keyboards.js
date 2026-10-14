@@ -12,6 +12,9 @@ export const getMainMenuKeyboard = () => {
     inline_keyboard: [
       [
         { text: '⚡ Shorten Link', callback_data: 'action:prompt_shorten' },
+        { text: '✨ Custom Alias', callback_data: 'action:prompt_alias' },
+      ],
+      [
         { text: '📱 Generate QR', callback_data: 'action:prompt_qr' },
       ],
       [
