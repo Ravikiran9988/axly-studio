@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { query } from '../db/pool.js';
+import { config } from '../config/env.js';
 import { validateSafeDestinationUrl } from '../utils/ssrf.js';
 
 const RESERVED_SLUGS = new Set([
@@ -221,7 +222,7 @@ const getPublishedBySlug = async (slug) => {
 };
 
 const hashVisitor = (req, pageId) => crypto
-  .createHmac('sha256', process.env.VISITOR_SALT || 'axly-local-page-analytics-salt')
+  .createHmac('sha256', config.visitorSalt)
   .update(`${pageId}:${req.ip || req.socket?.remoteAddress || 'unknown'}:${req.headers['user-agent'] || ''}`)
   .digest('hex');
 

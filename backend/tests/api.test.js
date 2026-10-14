@@ -4,7 +4,7 @@ import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import app from '../src/index.js';
 import pool, { closePool } from '../src/db/pool.js';
-import { config } from '../src/config/env.js';
+import { config, validateEnv } from '../src/config/env.js';
 import { validateSafeDestinationUrl } from '../src/utils/ssrf.js';
 import { generateApiKey, hashApiKey } from '../src/utils/apiKey.js';
 import { signWebhookPayload } from '../src/utils/webhookDispatcher.js';
@@ -51,6 +51,35 @@ describe('Custom Page Builder validation', () => {
     assert.equal(sanitizePageBlocks(Array.from({ length: 41 }, (_, i) => ({
       id: 'text-' + i, type: 'text', text: 'Content',
     }))).valid, false);
+  });
+});
+
+
+describe('Production environment validation', () => {
+  test('requires a strong VISITOR_SALT in production', () => {
+    const keys = ['NODE_ENV', 'JWT_SECRET', 'DATABASE_URL', 'DB_PASSWORD', 'VISITOR_SALT'];
+    const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+
+    try {
+      process.env.NODE_ENV = 'production';
+      process.env.JWT_SECRET = 'ci_test_jwt_secret_that_is_long_enough_123';
+      process.env.DB_PASSWORD = 'test-db-password';
+      delete process.env.DATABASE_URL;
+      delete process.env.VISITOR_SALT;
+
+      assert.throws(() => validateEnv(), /VISITOR_SALT/);
+
+      process.env.VISITOR_SALT = 'a-unique-random-visitor-salt-for-tests-2026';
+      assert.doesNotThrow(() => validateEnv());
+
+      process.env.VISITOR_SALT = 'short';
+      assert.throws(() => validateEnv(), /VISITOR_SALT/);
+    } finally {
+      for (const key of keys) {
+        if (original[key] === undefined) delete process.env[key];
+        else process.env[key] = original[key];
+      }
+    }
   });
 });
 
