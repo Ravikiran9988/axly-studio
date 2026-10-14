@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
 import { 
   Link2, ArrowRight, Copy, Check, ExternalLink, 
   ShieldCheck, Zap, BarChart2, Globe, QrCode, Lock,
   CheckCircle2, XCircle, ShieldAlert, Shield, Database,
-  UserRound, PanelsTopLeft, Megaphone, GitCompare, Users, Code2, Mail, Menu, X, Download
+  UserRound, PanelsTopLeft, Megaphone, GitCompare, Users, Code2, Mail, Menu, X, Download,
+  Settings, LogOut, ChevronDown
 } from 'lucide-react';
 import { useAuth, api } from '../context/AuthContext';
 import BrandMark from '../components/BrandMark';
@@ -31,13 +32,42 @@ const COMPARISON_FEATURES = [
 ];
 
 export default function LandingPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const [url, setUrl] = useState('');
   const [qrInput, setQrInput] = useState('');
   const [qrValue, setQrValue] = useState('');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const profileDropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
+        setProfileDropdownOpen(false);
+      }
+    }
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setProfileDropdownOpen(false);
+      }
+    }
+    if (profileDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [profileDropdownOpen]);
+
+  const handleLogout = () => {
+    setProfileDropdownOpen(false);
+    logout();
+    toast.success('Signed out successfully.');
+  };
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -169,7 +199,20 @@ export default function LandingPage() {
             <TelegramIcon size={15} />
             <span>Telegram Bot</span>
           </a>
-          {!user && (
+          {user ? (
+            <>
+              <Link to="/app/profile" className="nav-link landing-mobile-auth-link" onClick={() => setMobileNavOpen(false)}>Profile</Link>
+              <Link to="/app/settings" className="nav-link landing-mobile-auth-link" onClick={() => setMobileNavOpen(false)}>Account Settings</Link>
+              <button
+                type="button"
+                className="nav-link landing-mobile-auth-link"
+                style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', width: '100%', padding: '12px 8px' }}
+                onClick={() => { setMobileNavOpen(false); handleLogout(); }}
+              >
+                Sign Out
+              </button>
+            </>
+          ) : (
             <>
               <Link to="/login" className="nav-link landing-mobile-auth-link" onClick={() => setMobileNavOpen(false)}>Sign in</Link>
               <Link to="/register" className="nav-link landing-mobile-auth-link landing-mobile-auth-primary" onClick={() => setMobileNavOpen(false)}>Create a free account</Link>
@@ -191,16 +234,72 @@ export default function LandingPage() {
 
           {user ? (
             <div className="landing-signed-in-actions">
-              <Link to="/app/profile" className="landing-profile-shortcut" aria-label="Open your profile">
-                <span className="landing-profile-avatar" style={{ overflow: 'hidden' }}>
-                  {user.avatar_url ? (
-                    <img src={user.avatar_url} alt={user.name || 'Profile'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    user.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || <UserRound size={16} />
-                  )}
-                </span>
-                <span className="landing-profile-label">Profile</span>
-              </Link>
+              <div className="landing-profile-dropdown-container" ref={profileDropdownRef}>
+                <button
+                  type="button"
+                  className={`landing-profile-shortcut ${profileDropdownOpen ? 'active' : ''}`}
+                  onClick={() => setProfileDropdownOpen((open) => !open)}
+                  aria-expanded={profileDropdownOpen}
+                  aria-haspopup="true"
+                  aria-label="Account menu"
+                  id="nav-profile-dropdown-btn"
+                >
+                  <span className="landing-profile-avatar" aria-hidden="true">
+                    <UserRound size={15} />
+                  </span>
+                  <span className="landing-profile-label">Profile</span>
+                  <ChevronDown size={14} className={`landing-profile-chevron ${profileDropdownOpen ? 'open' : ''}`} />
+                </button>
+
+                {profileDropdownOpen && (
+                  <div className="landing-profile-dropdown" role="menu" aria-orientation="vertical">
+                    <div className="landing-profile-dropdown-header">
+                      <div className="landing-profile-dropdown-name">{user.name || 'Account'}</div>
+                      {user.email && <div className="landing-profile-dropdown-email">{user.email}</div>}
+                    </div>
+                    <div className="landing-profile-dropdown-divider" />
+                    <Link
+                      to="/app/profile"
+                      className="landing-profile-dropdown-item"
+                      role="menuitem"
+                      onClick={() => setProfileDropdownOpen(false)}
+                    >
+                      <UserRound size={15} />
+                      <span>Profile</span>
+                    </Link>
+                    <Link
+                      to="/app/settings"
+                      className="landing-profile-dropdown-item"
+                      role="menuitem"
+                      onClick={() => setProfileDropdownOpen(false)}
+                    >
+                      <Settings size={15} />
+                      <span>Account Settings</span>
+                    </Link>
+                    {user.role === 'admin' && (
+                      <Link
+                        to="/admin"
+                        className="landing-profile-dropdown-item"
+                        role="menuitem"
+                        onClick={() => setProfileDropdownOpen(false)}
+                      >
+                        <ShieldCheck size={15} />
+                        <span>Admin Console</span>
+                      </Link>
+                    )}
+                    <div className="landing-profile-dropdown-divider" />
+                    <button
+                      type="button"
+                      className="landing-profile-dropdown-item landing-profile-dropdown-item-danger"
+                      role="menuitem"
+                      onClick={handleLogout}
+                    >
+                      <LogOut size={15} />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
               <button
                 className="btn btn-primary"
                 onClick={() => navigate(user.role === 'admin' ? '/admin' : '/app/dashboard')}
