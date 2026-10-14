@@ -87,7 +87,7 @@ const apiRequest = async (endpoint, options = {}) => {
  * @param {string|null} userToken 
  * @returns {Promise<Object>}
  */
-export const createShortUrl = async (url, userToken = null) => {
+export const createShortUrl = async (url, userToken = null, customAlias = null) => {
   const headers = {};
   if (userToken) {
     headers['Authorization'] = `Bearer ${userToken}`;
@@ -96,7 +96,7 @@ export const createShortUrl = async (url, userToken = null) => {
   return apiRequest('/api/urls', {
     method: 'POST',
     headers,
-    body: JSON.stringify({ url }),
+    body: JSON.stringify({ url, ...(customAlias ? { customAlias } : {}) }),
   });
 };
 
