@@ -1,6 +1,6 @@
 # 🤖 Axly Studio Telegram Bot (`@AxlyStudioBot`)
 
-Production-ready Telegram bot integration for the **Axly URL Shortener** ecosystem. Built with Node.js and Telegraf, seamlessly connecting with Axly's existing Express/PostgreSQL backend API and web application.
+Production-ready Telegram bot integration for the **Axly Studio** ecosystem. Built with Node.js and Telegraf, seamlessly connecting with Axly's existing Express/PostgreSQL backend API and web application.
 
 ---
 
@@ -114,7 +114,7 @@ Deploy the bot as a **separate service** on Render so your existing website and 
 3. Configure the service settings:
    - **Name**: `axly-telegram-bot`
    - **Region**: Same region as your API (e.g., Oregon or Frankfurt)
-   - **Branch**: `main`
+   - **Branch**: `master`
    - **Root Directory**: `telegram-bot`
    - **Runtime**: `Node`
    - **Build Command**: `npm install`
@@ -124,7 +124,7 @@ Deploy the bot as a **separate service** on Render so your existing website and 
    |---|---|---|
    | `TELEGRAM_BOT_TOKEN` | `123456789:ABC...` | From `@BotFather` |
    | `AXLY_API_URL` | `https://axly-api.onrender.com` | Production API URL |
-   | `AXLY_FRONTEND_URL` | `https://url.axly.in` | Production Web URL |
+   | `AXLY_FRONTEND_URL` | `https://studio.axly.in` | Primary production website URL |
    | `TELEGRAM_BOT_SECRET` | `(32-char secret)` | Must match backend `TELEGRAM_BOT_SECRET` |
    | `PORT` | `3000` | Health check port |
    | `USE_WEBHOOK` | `false` | Recommended: use automatic long-polling |
@@ -148,9 +148,9 @@ Follow these steps with [@BotFather](https://t.me/BotFather) to configure Axly S
 
 ### 2. Configure Profile & Description
 - Send `/setdescription` to `@BotFather`:
-  > Axly Studio 🚀 — Create trackable short links, generate instant QR codes, and view click analytics directly from Telegram. Powered by https://url.axly.in
+  > Axly Studio 🚀 — Create trackable short links, generate instant QR codes, and view click analytics directly from Telegram. Powered by https://studio.axly.in
 - Send `/setabouttext` to `@BotFather`:
-  > Official URL shortener, QR generator, and analytics bot for Axly Studio (https://url.axly.in).
+  > Official URL shortener, QR generator, and analytics bot for Axly Studio (https://studio.axly.in).
 - Send `/setuserpic` to upload your Axly Studio purple icon.
 
 ### 3. Configure Telegram Command Menu
