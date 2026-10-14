@@ -2,18 +2,21 @@ openapi: 3.1.0
 info:
   title: Axly Studio Developer Platform API
   description: >
-    Comprehensive programmatic REST API for Axly URL Shortener & Link Intelligence Platform.
-    Provides link management, smart routing rules, campaign tracking, A/B experiments,
-    custom branded domains, HMAC-SHA256 signed webhooks, and team workspaces with RBAC.
+    Partial OpenAPI contract for the Axly Studio REST API. Covers selected link,
+    API-key, webhook, domain, workspace and health endpoints; it is not an exhaustive
+    description of all backend routes. See backend/src/routes/ and docs/DEVELOPER_PLATFORM.md
+    for the current route index and authentication notes.
   version: 1.0.0
   contact:
     name: Axly API Engineering
     url: https://github.com/Ravikiran9988/axly-studio
 servers:
   - url: https://studio.axly.in/api
-    description: Production Cloud Edge API
+    description: Production API through the canonical website proxy
+  - url: https://axly-api.onrender.com/api
+    description: Direct API service origin (verify active deployment settings)
   - url: http://localhost:5000/api
-    description: Local Development Environment
+    description: Local development API
 
 security:
   - ApiKeyAuth: []
@@ -478,17 +481,29 @@ paths:
                 type: object
 
   /healthz:
+    servers:
+      - url: https://axly-api.onrender.com
+        description: Root-level liveness endpoint (not under /api)
+      - url: http://localhost:5000
+        description: Local root-level liveness endpoint
     get:
+      security: []
       summary: Liveness probe
-      description: Container orchestrator liveness check.
+      description: Root-level process liveness endpoint. It does not prove database readiness.
       responses:
         '200':
           description: Service alive
 
   /readyz:
+    servers:
+      - url: https://axly-api.onrender.com
+        description: Root-level readiness endpoint (not under /api)
+      - url: http://localhost:5000
+        description: Local root-level readiness endpoint
     get:
+      security: []
       summary: Readiness probe
-      description: Verifies database connection pool readiness.
+      description: Root-level endpoint that checks database connectivity.
       responses:
         '200':
           description: Service ready
