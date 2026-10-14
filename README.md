@@ -1,4 +1,4 @@
-# Axly URL Shortener > **Production-Ready URL Shortener & Analytics Platform** — Shorten long URLs, manage custom vanity aliases, generate downloadable QR codes, and track visitor engagement with privacy-first analytics. Built with React (Vite), Node.js (Express), and PostgreSQL / Supabase Cloud. [![CI Pipeline](https://github.com/Ravikiran9988/axly-url-shortener/actions/workflows/ci.yml/badge.svg)](https://github.com/Ravikiran9988/axly-url-shortener/actions/workflows/ci.yml)
+# Axly Studio > **Production-ready link management, public pages, QR codes, and analytics platform** — Shorten long URLs, manage custom vanity aliases, generate downloadable QR codes, and track visitor engagement with privacy-first analytics. Built with React (Vite), Node.js (Express), and PostgreSQL / Supabase Cloud. [![CI Pipeline](https://github.com/Ravikiran9988/axly-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/Ravikiran9988/axly-studio/actions/workflows/ci.yml)
 [![Frontend](https://img.shields.io/badge/Frontend-React%2018%20%2B%20Vite-61dafb)](./frontend)
 [![Backend](https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-339933)](./backend)
 [![Database](https://img.shields.io/badge/Database-PostgreSQL%20%2F%20Supabase-3ecf8e)](./backend/src/db)
@@ -10,19 +10,22 @@
 - [API Reference](#-api-reference)
 - [Security & Privacy Features](#-security--privacy-features)
 - [Automated Testing & CI](#-automated-testing--ci)
-- [Deployment & DNS Setup](#-deployment--dns-setup) --- ## Architecture Overview ``` ┌───────────────────────────────┐ │ Client Web Browser │ └───────────────┬───────────────┘ │ ┌──────────────────────────────┴──────────────────────────────┐ │ │ ▼ (url.axly.in) ▼ (s.axly.in/:code) ┌───────────────────────────────┐ ┌───────────────────────────────┐ │ Nginx / Frontend SPA │ │ Node.js Express API │ │ (React 18 + Vite) │───────────/api/────────────▶│ (Auth, URLs, Redirects) │ └───────────────────────────────┘ └───────────────┬───────────────┘ │ ┌────────────────────────┴────────────────────────┐ ▼ (Local Dev / Docker) ▼ (Production) ┌───────────────────────────────┐ ┌───────────────────────────────┐ │ Local PostgreSQL │ │ Supabase Cloud │ │ (Port 5432 - ACID) │ │ (PostgreSQL + SSL/TLS) │ └───────────────────────────────┘ └───────────────────────────────┘
+- [Deployment & DNS Setup](#-deployment--dns-setup) --- ## Architecture Overview ``` ┌───────────────────────────────┐ │ Client Web Browser │ └───────────────┬───────────────┘ │ ┌──────────────────────────────┴──────────────────────────────┐ │ │ ▼ (studio.axly.in) ▼ (s.axly.in/:code) ┌───────────────────────────────┐ ┌───────────────────────────────┐ │ Nginx / Frontend SPA │ │ Node.js Express API │ │ (React 18 + Vite) │───────────/api/────────────▶│ (Auth, URLs, Redirects) │ └───────────────────────────────┘ └───────────────┬───────────────┘ │ ┌────────────────────────┴────────────────────────┐ ▼ (Local Dev / Docker) ▼ (Production) ┌───────────────────────────────┐ ┌───────────────────────────────┐ │ Local PostgreSQL │ │ Supabase Cloud │ │ (Port 5432 - ACID) │ │ (PostgreSQL + SSL/TLS) │ └───────────────────────────────┘ └───────────────────────────────┘
 ``` - **Frontend**: Single-page application built with React 18, Vite, Lucide Icons, and Recharts. The design system features glassmorphic styling, full dark/light theme switching, and responsive layouts.
 - **Backend**: Express REST API with input validation, rate limiting, Helmet security headers, CORS, JWT authentication, and bcrypt password hashing.
-- **Database**: PostgreSQL accessed via the `pg` pool driver. Supports both local PostgreSQL instances and managed Supabase Cloud databases using `DATABASE_URL` with strict TLS certificate verification. --- ## Target Production Domains The application is structured to support clean separation between the product dashboard and short links: | Domain | Purpose | Routing Target |
+- **Database**: PostgreSQL accessed via the `pg` pool driver. Supports both local PostgreSQL instances and managed Supabase Cloud databases using `DATABASE_URL` with strict TLS certificate verification. --- ## Target Production Domains
+
+**Canonical primary domain:** `https://studio.axly.in`. The secondary `https://url.axly.in` domain is configured in Vercel to permanently redirect (HTTP 301) to `https://studio.axly.in`. The application is structured to support clean separation between the product dashboard and short links: | Domain | Purpose | Routing Target |
 |--------|---------|----------------|
-| `https://url.axly.in` | Main Web App & Dashboard | Serves React SPA & proxies `/api/` |
+| `https://studio.axly.in` | Primary website and dashboard | Serves React SPA and `/api/` proxy |
+| `https://url.axly.in` | Legacy/secondary domain | Permanent 301 redirect to `https://studio.axly.in` |
 | `https://s.axly.in/<shortCode>` | Short Link Redirections | Direct 302 redirect via Node.js API |
-| `https://url.axly.in/api` | REST API Endpoints | Node.js Backend API | *Note: These domains are production targets. They require valid DNS records (CNAME/A) and TLS certificates in your hosting environment before activation.* --- ## Quick Start (Local Development) ### Prerequisites
+| `https://studio.axly.in/api` | REST API Endpoints | Node.js Backend API | *Note: These domains are production targets. They require valid DNS records (CNAME/A) and TLS certificates in your hosting environment before activation.* --- ## Quick Start (Local Development) ### Prerequisites
 - Node.js 20+
 - PostgreSQL 14+ (or Docker)
 - npm ### 1. Clone Repository
 ```bash
-git clone https://github.com/Ravikiran9988/axly-url-shortener.git
+git clone https://github.com/Ravikiran9988/axly-studio.git
 cd axly-url-shortener
 ``` ### 2. Configure & Start Backend
 ```bash
@@ -96,6 +99,6 @@ npm test
 - [YES] URL creation, protocol validation, and reserved alias rejection
 - [YES] **Expiration bug regression test**: Partial updates omitting `expiresAt` preserve existing expiration dates
 - [YES] Explicit `null` expiration clearing
-- [YES] Redirection HTTP status codes (302, 404, 410) & XSS-safe error rendering GitHub Actions automatically runs backend tests and frontend production builds on every push to `master`. --- ## Deployment & DNS Setup To configure custom domains: 1. **DNS Records**: - Point `url.axly.in` (CNAME or A record) to your web server / load balancer. - Point `s.axly.in` (CNAME or A record) to your web server / load balancer.
-2. **Reverse Proxy / Nginx**: - The provided [`frontend/nginx.conf`](./frontend/nginx.conf) routes `url.axly.in` to the React SPA and proxies `s.axly.in` directly to the backend redirection service.
-3. **Environment Configuration**: - Set `APP_URL=https://url.axly.in` - Set `FRONTEND_URL=https://url.axly.in` - Set `SHORT_DOMAIN=https://s.axly.in` - Set `TRUST_PROXY=1` (or `true`) --- ## License MIT © 2026 Axly
+- [YES] Redirection HTTP status codes (302, 404, 410) & XSS-safe error rendering GitHub Actions automatically runs backend tests and frontend production builds on every push to `master`. --- ## Deployment & DNS Setup To configure custom domains: 1. **DNS Records**: - Point `studio.axly.in` (CNAME or A record) to your web server / load balancer. Configure `url.axly.in` as a Vercel 301 redirect to `studio.axly.in`. - Point `s.axly.in` (CNAME or A record) to your web server / load balancer.
+2. **Reverse Proxy / Nginx**: - The provided [`frontend/nginx.conf`](./frontend/nginx.conf) routes `studio.axly.in` to the React SPA and proxies `s.axly.in` directly to the backend redirection service.
+3. **Environment Configuration**: - Set `APP_URL=https://studio.axly.in` - Set `FRONTEND_URL=https://studio.axly.in` - Set `SHORT_DOMAIN=https://s.axly.in` - Set `TRUST_PROXY=1` (or `true`) --- ## License MIT © 2026 Axly
