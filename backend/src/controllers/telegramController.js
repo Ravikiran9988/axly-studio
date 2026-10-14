@@ -91,7 +91,7 @@ export const verifyLink = async (req, res) => {
     const parsedTgId = telegramUserId === undefined || telegramUserId === null
       ? ''
       : String(telegramUserId).trim();
-    if (!/^\\d{1,20}$/.test(parsedTgId) || /^0+$/.test(parsedTgId)) {
+    if (!/^[0-9]{1,20}$/.test(parsedTgId) || /^0+$/.test(parsedTgId)) {
       return res.status(400).json({ success: false, message: 'A valid Telegram user ID is required.' });
     }
 
