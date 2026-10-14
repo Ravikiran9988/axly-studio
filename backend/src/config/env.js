@@ -21,13 +21,7 @@ const INSECURE_VISITOR_SALTS = [
   'password',
 ];
 
-const INSECURE_TELEGRAM_BOT_SECRETS = [
-  'axly_telegram_bot_internal_secret_key',
-  'replace_with_a_secure_random_32_character_bot_secret',
-  'replace_with_random_32_char_or_longer_secret',
-  'changeme',
-  'secret',
-];
+
 
 export const validateEnv = () => {
   const nodeEnv = process.env.NODE_ENV || 'development';
@@ -55,13 +49,6 @@ export const validateEnv = () => {
       errors.push('VISITOR_SALT cannot be a placeholder or well-known development value in production.');
     }
 
-    if (!process.env.TELEGRAM_BOT_SECRET) {
-      errors.push('TELEGRAM_BOT_SECRET is missing. Configure the same strong shared secret on the backend and Telegram bot.');
-    } else if (process.env.TELEGRAM_BOT_SECRET.length < 32) {
-      errors.push('TELEGRAM_BOT_SECRET must be at least 32 characters in production.');
-    } else if (INSECURE_TELEGRAM_BOT_SECRETS.includes(process.env.TELEGRAM_BOT_SECRET.toLowerCase())) {
-      errors.push('TELEGRAM_BOT_SECRET cannot be a default or placeholder value in production.');
-    }
   }
 
   if (errors.length > 0) {
