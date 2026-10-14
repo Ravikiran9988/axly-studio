@@ -186,7 +186,7 @@ describe('Telegram Integration API Endpoints', () => {
       .set('Authorization', `Bearer ${testUserToken}`);
     assert.equal(codeRes.status, 201);
 
-    const payload = { code: codeRes.body.code, telegramUserId: '987654322' };
+    const payload = { code: codeRes.body.code, telegramUserId: testTelegramUserId };
     const results = await Promise.all([
       request(app).post('/api/telegram/verify').send(payload),
       request(app).post('/api/telegram/verify').send(payload),
