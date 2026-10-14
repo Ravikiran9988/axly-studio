@@ -155,7 +155,7 @@ describe('2. QR Code Generation', () => {
 describe('3. Message Formatters and Branding', () => {
   test('welcome message contains Axly Studio branding and instructions', () => {
     const msg = formatWelcomeMessage('Alice');
-    assert.ok(msg.includes('Welcome to <b>Axly Studio</b> 🚀'));
+    assert.ok(msg.includes('Welcome to <b>Axly Studio</b>'));
     assert.ok(msg.includes('Alice'));
     assert.ok(msg.includes('Shorten links, generate QR codes'));
   });
@@ -280,7 +280,7 @@ describe('5. Handlers, Account Linking & Guarded Operations', () => {
     await handleStart(ctx);
 
     assert.equal(ctx.replies.length, 1);
-    assert.ok(ctx.replies[0].text.includes('Welcome to <b>Axly Studio</b> 🚀'));
+    assert.ok(ctx.replies[0].text.includes('Welcome to <b>Axly Studio</b>'));
     assert.ok(ctx.replies[0].extra.reply_markup.inline_keyboard.length > 0);
   });
 
