@@ -717,6 +717,15 @@ export const bulkImportCsv = async (req, res) => {
   }
 };
 
+// Quote CSV cells and neutralize spreadsheet formula prefixes in user-controlled fields.
+export const toCsvCell = (value) => {
+  let text = String(value ?? '');
+  if (/^[\u0000-\u0020]*[=+\-@]/.test(text)) {
+    text = `'${text}`;
+  }
+  return `"${text.replace(/"/g, '""')}"`;
+};
+
 // GET /api/urls/export/csv - Export user links to CSV
 export const exportUrlsCsv = async (req, res) => {
   try {
@@ -737,18 +746,19 @@ export const exportUrlsCsv = async (req, res) => {
       rows.push([
         u.short_code,
         `${config.SHORT_DOMAIN}/${u.short_code}`,
-        `"${u.original_url.replace(/"/g, '""')}"`,
-        `"${(u.title || '').replace(/"/g, '""')}"`,
+        u.original_url,
+        u.title || '',
         u.status,
         u.click_count,
         u.unique_clicks,
-        `"${(u.tags || []).join(';')}"`,
+        (u.tags || []).join(';'),
         new Date(u.created_at).toISOString(),
         u.expires_at ? new Date(u.expires_at).toISOString() : '',
       ]);
     }
 
-    const csvContent = rows.map(r => r.join(',')).join('\n');
+    const csvContent = rows.map(row => row.map(toCsvCell).join(',')).join('\r\n');
+
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename="axly-links-export.csv"');
     res.send(csvContent);

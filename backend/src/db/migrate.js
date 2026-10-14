@@ -2,8 +2,12 @@ import pool, { closePool } from './pool.js';
 
 export const runMigrations = async () => {
   const client = await pool.connect();
-  
+  let migrationLockAcquired = false;
+
   try {
+    // Serialize schema changes across simultaneous application instances.
+    await client.query('SELECT pg_advisory_lock(71226014, 1)');
+    migrationLockAcquired = true;
     await client.query('BEGIN');
 
     // 1. Users table
@@ -873,6 +877,14 @@ export const runMigrations = async () => {
     console.error('[ERROR] Migration failed:', err.message);
     throw err;
   } finally {
+    if (migrationLockAcquired) {
+      try {
+        await client.query('SELECT pg_advisory_unlock(71226014, 1)');
+      } catch (lockErr) {
+        // Releasing the PostgreSQL connection also releases a session-level advisory lock.
+        console.error('[WARN] Could not explicitly release migration lock:', lockErr.message);
+      }
+    }
     client.release();
   }
 };

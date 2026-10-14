@@ -178,7 +178,7 @@ export const redirect = async (req, res) => {
 
     // Privacy-conscious visitor hash for tracking and A/B allocation
     const rawIp = req.ip || req.socket.remoteAddress || '127.0.0.1';
-    const salt = process.env.VISITOR_SALT || 'axly_default_visitor_salt_2026';
+    const salt = config.visitorSalt;
     const visitorHash = crypto
       .createHmac('sha256', salt)
       .update(`${url.id}:${rawIp}:${uaHeader}`)

@@ -3,13 +3,131 @@ import assert from 'node:assert/strict';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
 import app from '../src/index.js';
+import { toCsvCell } from '../src/controllers/urlController.js';
 import pool, { closePool } from '../src/db/pool.js';
-import { config } from '../src/config/env.js';
-import { validateSafeDestinationUrl } from '../src/utils/ssrf.js';
+import { config, validateEnv } from '../src/config/env.js';
+import { validateSafeDestinationUrl, resolveSafeDestinationUrl } from '../src/utils/ssrf.js';
 import { generateApiKey, hashApiKey } from '../src/utils/apiKey.js';
 import { signWebhookPayload } from '../src/utils/webhookDispatcher.js';
 import { validateDomainSyntax } from '../src/utils/dnsVerifier.js';
 import { normalizePageSlug, sanitizePageBlocks } from '../src/controllers/pageController.js';
+
+describe('Destination URL network normalization', () => {
+  test('rejects bracketed private IPv6 and IPv4-mapped IPv6 destinations', () => {
+    for (const url of [
+      'http://[::1]/',
+      'http://[::]/',
+      'http://[fd00::1]/',
+      'http://[fe80::1]/',
+      'http://[::ffff:127.0.0.1]/',
+      'http://[::ffff:7f00:1]/',
+      'http://localhost./',
+      'http://metadata.internal./',
+    ]) {
+      assert.equal(validateSafeDestinationUrl(url).valid, false, `Expected to reject ${url}`);
+    }
+  });
+
+  test('rejects public hostnames with private or mixed DNS answers', async () => {
+    const privateResult = await resolveSafeDestinationUrl(
+      'https://hooks.example.test/callback',
+      async () => [{ address: '127.0.0.1', family: 4 }]
+    );
+    assert.equal(privateResult.valid, false);
+
+    const mixedResult = await resolveSafeDestinationUrl(
+      'https://hooks.example.test/callback',
+      async () => [
+        { address: '8.8.8.8', family: 4 },
+        { address: '10.1.2.3', family: 4 },
+      ]
+    );
+    assert.equal(mixedResult.valid, false);
+  });
+
+  test('supports public IPv6 URL literals for webhook pinning', async () => {
+    const result = await resolveSafeDestinationUrl('https://[2606:4700:4700::1111]/');
+    assert.equal(result.valid, true);
+    assert.deepEqual(result.addresses, [{ address: '2606:4700:4700::1111', family: 6 }]);
+  });
+
+  test('returns only validated public addresses for connection pinning', async () => {
+    const result = await resolveSafeDestinationUrl(
+      'https://hooks.example.test/callback',
+      async () => [
+        { address: '8.8.8.8', family: 4 },
+        { address: '2606:4700:4700::1111', family: 6 },
+      ]
+    );
+    assert.equal(result.valid, true);
+    assert.deepEqual(result.addresses.map(item => item.address), ['8.8.8.8', '2606:4700:4700::1111']);
+  });
+});
+
+describe('CSV export safety', () => {
+  test('quotes CSV cells and escapes embedded quotes', () => {
+    assert.equal(toCsvCell('hello, "world"'), '"hello, ""world"""');
+  });
+
+  test('neutralizes spreadsheet formula prefixes after leading whitespace', () => {
+    for (const value of ['=1+1', '+SUM(A1:A2)', '-1+2', '@SUM(A1)', '  =HYPERLINK("https://bad.example")', String.fromCharCode(9) + '=cmd']) {
+      const cell = toCsvCell(value);
+      assert.equal(cell.charCodeAt(0), 34, 'CSV cell should start with a quote');
+      assert.equal(cell.charCodeAt(1), 39, `Expected formula-safe prefix for ${JSON.stringify(value)}`);
+    }
+  });
+
+  test('preserves ordinary values without adding a formula prefix', () => {
+    assert.equal(toCsvCell('https://example.com/path?a=1&b=2'), '"https://example.com/path?a=1&b=2"');
+  });
+});
+
+describe('Optional authentication fails closed', () => {
+  const optionalAuthTestUserId = '55555555-5555-5555-5555-555555555555';
+  const optionalAuthTestToken = jwt.sign(
+    { id: optionalAuthTestUserId, email: 'optional-auth-test@axly.in', name: 'Optional Auth Test' },
+    config.jwt.secret,
+    { expiresIn: '1h' }
+  );
+  const optionalAuthSql = 'SELECT id, is_active, role, token_version FROM users WHERE id = $1';
+
+  test('rejects a disabled account on the guest-capable create endpoint', async () => {
+    const originalQuery = pool.query;
+    pool.query = async (text) => {
+      if (text.includes(optionalAuthSql)) {
+        return { rows: [{ id: optionalAuthTestUserId, is_active: false, role: 'user', token_version: 1 }] };
+      }
+      return { rows: [] };
+    };
+
+    try {
+      const res = await request(app)
+        .post('/api/urls')
+        .set('Authorization', `Bearer ${optionalAuthTestToken}`)
+        .send({ url: 'https://example.com' });
+      assert.equal(res.status, 403);
+      assert.match(res.body.message, /disabled/i);
+    } finally {
+      pool.query = originalQuery;
+    }
+  });
+
+  test('does not downgrade an invalid API key to guest access', async () => {
+    const originalQuery = pool.query;
+    pool.query = async () => ({ rows: [] });
+
+    try {
+      const res = await request(app)
+        .post('/api/urls')
+        .set('x-api-key', 'axly_invalid_test_key')
+        .send({ url: 'https://example.com' });
+      assert.equal(res.status, 401);
+      assert.match(res.body.message, /API key/i);
+    } finally {
+      pool.query = originalQuery;
+    }
+  });
+});
 
 describe('Custom Page Builder validation', () => {
   test('accepts valid public page slugs and normalizes case', () => {
@@ -51,6 +169,35 @@ describe('Custom Page Builder validation', () => {
     assert.equal(sanitizePageBlocks(Array.from({ length: 41 }, (_, i) => ({
       id: 'text-' + i, type: 'text', text: 'Content',
     }))).valid, false);
+  });
+});
+
+
+describe('Production environment validation', () => {
+  test('requires a strong VISITOR_SALT in production', () => {
+    const keys = ['NODE_ENV', 'JWT_SECRET', 'DATABASE_URL', 'DB_PASSWORD', 'VISITOR_SALT'];
+    const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+
+    try {
+      process.env.NODE_ENV = 'production';
+      process.env.JWT_SECRET = 'ci_test_jwt_secret_that_is_long_enough_123';
+      process.env.DB_PASSWORD = 'test-db-password';
+      delete process.env.DATABASE_URL;
+      delete process.env.VISITOR_SALT;
+
+      assert.throws(() => validateEnv(), /VISITOR_SALT/);
+
+      process.env.VISITOR_SALT = 'a-unique-random-visitor-salt-for-tests-2026';
+      assert.doesNotThrow(() => validateEnv());
+
+      process.env.VISITOR_SALT = 'short';
+      assert.throws(() => validateEnv(), /VISITOR_SALT/);
+    } finally {
+      for (const key of keys) {
+        if (original[key] === undefined) delete process.env[key];
+        else process.env[key] = original[key];
+      }
+    }
   });
 });
 
@@ -1857,6 +2004,78 @@ describe('Axly URL Shortener API Tests', () => {
           pool.query = originalQuery;
         }
       });
+    });
+  });
+
+  describe('Workspace resource isolation', () => {
+    const workspaceId = '66666666-6666-6666-6666-666666666666';
+
+    test('rejects non-admins listing workspace API key metadata without owner/admin role', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('FROM users')) {
+          return { rows: [{ id: testUserId, is_active: true, role: 'user', token_version: 1 }] };
+        }
+        if (text.includes('FROM workspace_members')) {
+          return { rows: [{ role: 'viewer' }] };
+        }
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .get('/api/keys')
+          .query({ workspaceId })
+          .set('Authorization', `Bearer ${testToken}`);
+        assert.equal(res.status, 403);
+        assert.match(res.body.message, /owner or admin/i);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('rejects workspace webhook creation by a non-member', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('FROM users')) {
+          return { rows: [{ id: testUserId, is_active: true, role: 'user', token_version: 1 }] };
+        }
+        if (text.includes('FROM workspace_members')) return { rows: [] };
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .post('/api/webhooks')
+          .set('Authorization', `Bearer ${testToken}`)
+          .send({ url: 'https://hooks.example.test/callback', workspaceId, events: ['link.created'] });
+        assert.equal(res.status, 403);
+        assert.match(res.body.message, /workspace owner or admin/i);
+      } finally {
+        pool.query = originalQuery;
+      }
+    });
+
+    test('rejects workspace domain registration by a non-member', async () => {
+      const originalQuery = pool.query;
+      pool.query = async (text) => {
+        if (text.includes('FROM users')) {
+          return { rows: [{ id: testUserId, is_active: true, role: 'user', token_version: 1 }] };
+        }
+        if (text.includes('FROM workspace_members')) return { rows: [] };
+        return { rows: [] };
+      };
+
+      try {
+        const res = await request(app)
+          .post('/api/domains')
+          .set('Authorization', `Bearer ${testToken}`)
+          .send({ domain: 'links.acmecorp.com', workspaceId });
+        assert.equal(res.status, 403);
+        assert.match(res.body.message, /workspace owner or admin/i);
+      } finally {
+        pool.query = originalQuery;
+      }
     });
   });
 

@@ -58,6 +58,21 @@ export const createWebhook = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Valid webhook endpoint URL is required.' });
     }
 
+    // Workspace webhooks receive event payloads for the whole workspace.
+    // Require owner/admin membership to prevent cross-tenant event exfiltration.
+    if (workspaceId && req.user.role !== 'admin') {
+      const membership = await query(
+        'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
+        [workspaceId, req.user.id]
+      );
+      if (!membership.rows.some(row => ['owner', 'admin'].includes(row.role))) {
+        return res.status(403).json({
+          success: false,
+          message: 'Workspace owner or admin membership is required to register workspace webhooks.',
+        });
+      }
+    }
+
     // SSRF Check on Webhook Destination
     const ssrfCheck = validateSafeDestinationUrl(url);
     if (!ssrfCheck.valid) {
