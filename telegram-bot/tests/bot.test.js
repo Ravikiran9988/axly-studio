@@ -197,14 +197,14 @@ describe('3. Message Formatters and Branding', () => {
 
   test('formats link creation response for guests vs authenticated users', () => {
     const data = {
-      shortUrl: 'https://url.axly.in/abc123',
+      shortUrl: 'https://studio.axly.in/abc123',
       originalUrl: 'https://example.com/very/long/path',
       shortCode: 'abc123',
     };
 
     // Guest formatting
     const guestMsg = formatLinkCreatedMessage(data, true, null);
-    assert.ok(guestMsg.includes('<code>https://url.axly.in/abc123</code>'));
+    assert.ok(guestMsg.includes('<code>https://studio.axly.in/abc123</code>'));
     assert.ok(guestMsg.includes('Guest Link'));
 
     // Authenticated formatting
