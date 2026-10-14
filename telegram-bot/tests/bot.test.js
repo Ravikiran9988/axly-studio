@@ -326,6 +326,30 @@ describe('5. Handlers, Account Linking & Guarded Operations', () => {
     assert.ok(ctx.replies[0].extra.reply_markup.inline_keyboard.length > 0);
   });
 
+  test('/help lists all registered commands and uses /alias for custom aliases', async () => {
+    const ctx = createMockContext();
+    await handleHelp(ctx);
+    const body = ctx.replies[0].text;
+    for (const command of ['start', 'shorten', 'alias', 'qr', 'mylinks', 'stats', 'account', 'link', 'settings', 'cancel', 'help']) {
+      assert.ok(body.includes('/' + command), 'help should document /' + command);
+    }
+    assert.ok(body.includes('/alias &lt;url&gt; &lt;alias&gt;'));
+    assert.ok(!body.includes('/shorten &lt;url&gt; &lt;alias&gt;'));
+  });
+
+  test('/alias parses URL and alias instead of returning usage when arguments are valid', async () => {
+    const ctx = createMockContext({ message: { text: '/alias https://example.com my-brand' } });
+    await handleAliasCommand(ctx);
+    assert.ok(ctx.replies[0].text.includes('Custom aliases require a linked Axly account.'));
+    assert.ok(!ctx.replies[0].text.includes('Usage:'));
+  });
+
+  test('extracts multiple valid URLs from text, including naked domains', () => {
+    const urls = extractAllUrlsFromTelegramMessage({
+      text: 'Python https://python.org/docs FastAPI fastapi.tiangolo.com Python https://python.org/docs',
+    });
+    assert.deepEqual(urls, ['https://python.org/docs', 'https://fastapi.tiangolo.com/']);
+  });
   test('/help command returns complete guide', async () => {
     const ctx = createMockContext();
     await handleHelp(ctx);
