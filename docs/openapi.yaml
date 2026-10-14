@@ -8,9 +8,9 @@ info:
   version: 1.0.0
   contact:
     name: Axly API Engineering
-    url: https://github.com/Ravikiran9988/axly-url-shortener
+    url: https://github.com/Ravikiran9988/axly-studio
 servers:
-  - url: https://url.axly.in/api
+  - url: https://studio.axly.in/api
     description: Production Cloud Edge API
   - url: http://localhost:5000/api
     description: Local Development Environment
@@ -64,7 +64,7 @@ components:
         originalUrl:
           type: string
           format: uri
-          example: https://github.com/Ravikiran9988/axly-url-shortener
+          example: https://github.com/Ravikiran9988/axly-studio
         customAlias:
           type: string
           nullable: true
@@ -255,7 +255,7 @@ paths:
                 url:
                   type: string
                   format: uri
-                  example: https://github.com/Ravikiran9988/axly-url-shortener
+                  example: https://github.com/Ravikiran9988/axly-studio
                 customAlias:
                   type: string
                   example: custom-short-code
