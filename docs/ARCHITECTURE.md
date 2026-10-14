@@ -1,180 +1,101 @@
-# Axly Studio Platform Architecture & Design
+# Axly Studio architecture
 
-Axly Studio is an enterprise link intelligence and URL management platform engineered on Node.js/Express, React 18, and Neon PostgreSQL.
+This document describes the current repository structure and integration boundaries. Source code and hosting dashboards are authoritative for live behavior.
 
----
-
-## 1. High-Level System Architecture
+## System context
 
 ```mermaid
-graph TD
-    Client["Client / Browser / API Consumer"]
-    CDN["Cloud Edge / Nginx Reverse Proxy"]
-    
-    subgraph Axly Backend ["Axly Node.js / Express Core Service"]
-        Router["Express Router & Dispatcher"]
-        RateLimiter["Rate Limiters (IP & Token Based)"]
-        AuthMiddleware["Auth & Scope Guard (JWT / API Key)"]
-        
-        subgraph Subsystems ["Engine Subsystems"]
-            RedirectEngine["Redirect & Smart Rule Engine"]
-            WebhookDispatcher["Async Webhook Engine (HMAC / SSRF Shield)"]
-            DNSVerifier["DNS & Domain Verification Probe"]
-            AnalyticsCollector["Privacy-Preserving Click Aggregator"]
-            AuditLogger["Tamper-Evident Audit System"]
-        end
-    end
-    
-    subgraph DataTier ["Persistence Tier (Neon Lakebase Postgres)"]
-        DB[(PostgreSQL Primary)]
-        Pool["pg.Pool Connection Pool"]
-    end
-    
-    Client -->|HTTPS / REST / WebSocket| CDN
-    CDN --> Router
-    Router --> RateLimiter
-    RateLimiter --> AuthMiddleware
-    AuthMiddleware --> Subsystems
-    Subsystems --> Pool
-    Pool --> DB
+flowchart LR
+    Browser[Browser] --> Vercel[Vercel frontend: React/Vite]
+    Vercel -->|/api/* rewrite| API[Express API on Render]
+    API --> DB[(PostgreSQL)]
+    Telegram[Telegram user] <--> Bot[Telegraf bot service]
+    Bot -->|AXLY_API_URL| API
+    Vercel -. "domain-level redirect configured in dashboard" .-> Canonical[studio.axly.in]
 ```
 
----
+## Components
 
-## 2. Redirection & Smart Rules Pipeline
+### Frontend
 
-Short link redirection execution path prioritizes sub-millisecond response times:
-1. **Host Verification**: Checks if incoming request matches a verified `custom_domain` or the primary short domain (`s.axly.in`).
-2. **Code Lookup**: Queries `urls` table by `short_code` (indexed with B-tree).
-3. **Status Check**: Verifies link is `active` and has not expired (`expires_at > NOW()`).
-4. **Smart Rule Evaluation**: Evaluates device type (`mobile`, `tablet`, `desktop`), operating system (`ios`, `android`, `windows`, `mac`), country code, or active A/B experiment variants.
-5. **Password Protection Check**: If `password_hash` is present and unlocked cookie/session is missing, renders unlock challenge.
-6. **Async Analytics Tracking**: Dispatches click recording asynchronously (`setImmediate` or fire-and-forget worker query) so caller latency is unaffected.
-7. **HTTP 302/301 Redirect**: Emits redirect response.
+- Source: frontend/
+- Runtime/build: React + Vite; production assets are generated into dist/.
+- Routing: client-side routes are declared in src/App.jsx. Vercel must rewrite non-API paths to /index.html so direct navigation and refresh work.
+- API: frontend/vercel.json proxies /api/:path* to https://axly-api.onrender.com/api/:path*.
+- Secret boundary: VITE_ values are shipped to browser code. They must never contain private credentials.
 
----
+### Backend/API
 
-## 3. Webhook Delivery & SSRF Shield Architecture
+- Source: backend/
+- Entrypoint: src/index.js; route modules are in src/routes/ and controllers in src/controllers/.
+- Persistence: PostgreSQL via pg. Connection configuration is in src/config/env.js and src/db/.
+- On service startup, the entrypoint validates environment configuration and runs migrations before opening the port.
+- API route groups are mounted below /api: auth, urls, admin, campaigns, experiments, analytics, reports, keys, webhooks, workspaces, domains, pages, user privacy operations, notifications and Telegram account linking.
+- Root paths include liveness/readiness endpoints and the short-code redirect/unlock handlers.
 
-```mermaid
-sequenceDiagram
-    participant User as User / App
-    participant API as Axly Link API
-    participant DB as Postgres DB
-    participant Queue as Async Webhook Worker
-    participant Ext as Target Webhook Endpoint
+### Telegram bot
 
-    User->>API: POST /api/urls (create link)
-    API->>DB: INSERT into urls
-    API->>User: 201 Created (immediate response)
-    
-    API--)Queue: setImmediate(dispatchWebhookEvent)
-    Note over Queue: Non-blocking async queue
-    Queue->>DB: SELECT active webhooks for event
-    
-    loop For each subscriber
-        Queue->>Queue: SSRF Destination Check (ssrf.js)
-        alt Private / Loopback / Cloud Metadata IP
-            Queue->>DB: INSERT webhook_deliveries (Blocked by SSRF Policy)
-        else Valid External Endpoint
-            Queue->>Queue: Sign payload HMAC-SHA256 (t=..., v1=...)
-            Queue->>Ext: POST with x-axly-signature (6s timeout)
-            Ext-->>Queue: 200 OK / Response
-            Queue->>DB: INSERT webhook_deliveries (Log latency & status)
-        end
-    end
-```
+- Source: telegram-bot/
+- Runtime: Node.js + Telegraf; independently deployable from the frontend and API.
+- Startup: validates environment, checks the Telegram token through getMe, registers the command menu and starts long polling or webhook mode.
+- Health server runs on PORT (default 3000). HTTP 200 means bot startup completed; it does not prove every backend feature is healthy.
+- Per-user interaction/prompt state is stored in process memory in the current implementation. Restarting the process clears in-progress prompts. Do not assume durable sessions or multi-instance state coordination.
 
----
+### Database
 
-## 4. Database Relationship Diagram (ERD)
+- Provider-neutral PostgreSQL connection configuration is used. The environment template describes local, Supabase and Neon-style connection URI examples, but the actual production provider must be confirmed in its hosting configuration.
+- Keep credentials server-side. Use TLS where required by the provider and retain certificate verification.
+- Migration code is under backend/src/db/. Service startup invokes migrations before the API listener opens; schedule releases with database backup and rollback consequences in mind.
 
-```mermaid
-erDiagram
-    USERS ||--o{ WORKSPACES : owns
-    USERS ||--o{ WORKSPACE_MEMBERS : belongs_to
-    WORKSPACES ||--o{ WORKSPACE_MEMBERS : contains
-    WORKSPACES ||--o{ WORKSPACE_INVITATIONS : issues
-    WORKSPACES ||--o{ URLS : contains
-    WORKSPACES ||--o{ CAMPAIGNS : organizes
-    WORKSPACES ||--o{ EXPERIMENTS : conducts
-    WORKSPACES ||--o{ CUSTOM_DOMAINS : owns
-    WORKSPACES ||--o{ WEBHOOKS : registers
+## Request paths
 
-    USERS ||--o{ API_KEYS : creates
-    USERS ||--o{ NOTIFICATIONS : receives
-    USERS ||--o{ AUDIT_LOGS : generates
+### Browser API request
 
-    URLS ||--o{ SMART_RULES : evaluates
-    URLS ||--o{ EXPERIMENT_VARIANTS : distributes
-    URLS ||--o{ CLICKS : records
-    URLS ||--o{ ABUSE_REPORTS : flags
+1. The browser calls a relative /api/... endpoint.
+2. Vercel rewrites /api/:path* to the API origin configured in frontend/vercel.json.
+3. Express applies common middleware such as request parsing, CORS, request logging outside tests, and API rate limiting.
+4. The matching route applies authentication and scope/role requirements.
+5. Controllers query PostgreSQL and return the response.
 
-    WEBHOOKS ||--o{ WEBHOOK_DELIVERIES : tracks
+If the API host changes, update frontend/vercel.json and service environment values together, then run auth, link, page and analytics smoke tests.
 
-    USERS {
-        uuid id PK
-        string email UK
-        string password_hash
-        string role
-        integer token_version
-        boolean is_active
-        timestamp created_at
-    }
+### Short-link redirect
 
-    WORKSPACES {
-        uuid id PK
-        string name
-        string slug UK
-        uuid owner_id FK
-        boolean is_personal
-        timestamp created_at
-    }
+1. A request arrives at the API host/path routed for a short code.
+2. Express matches the root /:shortCode redirect handler after health and API routes.
+3. The redirect controller validates stored link state and destination and handles status, expiration and password rules implemented there.
+4. The redirect implementation records click analytics.
 
-    URLS {
-        uuid id PK
-        uuid user_id FK
-        uuid workspace_id FK
-        uuid custom_domain_id FK
-        string short_code UK
-        string original_url
-        string custom_alias UK
-        string status
-        timestamp expires_at
-        integer click_count
-    }
+The configured SHORT_DOMAIN, URLs returned by the API, DNS and hosting routing must agree. Do not infer that s.axly.in is working only because code contains that hostname.
 
-    API_KEYS {
-        uuid id PK
-        uuid user_id FK
-        uuid workspace_id FK
-        string name
-        string key_prefix
-        string key_hash UK
-        string_array scopes
-        integer rate_limit_per_minute
-        boolean is_revoked
-        timestamp expires_at
-    }
+### Telegram update
 
-    WEBHOOKS {
-        uuid id PK
-        uuid user_id FK
-        uuid workspace_id FK
-        string url
-        string secret
-        string_array events
-        boolean is_active
-    }
+1. Telegram delivers a command/message through long polling or the configured webhook.
+2. Bot middleware applies rate limiting/deduplication and adds available account/session state.
+3. A handler validates input and calls Axly through AXLY_API_URL.
+4. Guest shortening/QR flows work without a linked account where the handler allows it; account-specific link lists/analytics and custom alias behavior require a linked Axly account as enforced by the bot code.
+5. The response is sent back through Telegram.
 
-    CUSTOM_DOMAINS {
-        uuid id PK
-        uuid user_id FK
-        uuid workspace_id FK
-        string domain UK
-        string verification_token
-        string status
-        string dns_record_type
-        timestamp verified_at
-    }
-```
+Account linking relies on a short-lived code and shared backend/bot configuration. The shared secret is not a Telegram token and must stay private.
+
+## Trust boundaries
+
+- **Browser:** user input is untrusted; never store server secrets in frontend variables.
+- **API:** authoritative authentication, scope checks, validation and rate limiting. UI route guards are not an authorization mechanism.
+- **Bot:** treats messages/URLs as untrusted. Keep URL validation and private-network protections in place.
+- **Database:** private persistence boundary; credentials must not appear in source control, logs or client bundles.
+- **Hosting/domain layer:** TLS, DNS, redirect rules, rewrite routing, secret settings and access control are configured in hosting dashboards as well as source files.
+
+## Configuration sources
+
+| Concern | Source of truth |
+|---|---|
+| Frontend scripts/dependencies | frontend/package.json |
+| Frontend API rewrite and SPA fallback | frontend/vercel.json |
+| Frontend routes | frontend/src/App.jsx |
+| API runtime/env defaults | backend/src/config/env.js and backend/.env.example |
+| API route/auth behavior | backend/src/routes/ and backend/src/middleware/ |
+| Database migrations | backend/src/db/ |
+| Bot commands and startup mode | telegram-bot/src/index.js and telegram-bot/src/bot.js |
+| Bot message/help behavior | telegram-bot/src/handlers/ and telegram-bot/src/utils/ |
+| Automated CI checks | .github/workflows/ci.yml |
