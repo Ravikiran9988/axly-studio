@@ -33,10 +33,10 @@ export const FEATURE_EXPLANATIONS = {
     why: 'Replace multiple disjointed links with one polished page for your social media bios and personal branding.',
     how: [
       'Choose a starting template (Link in Bio, Creator, Developer, Business, or Business Card).',
-      'Choose your public address (e.g. url.axly.in/p/yourname).',
+      'Choose your public address (e.g. studio.axly.in/p/yourname).',
       'Add link buttons, social profiles, images, and lead capture forms, then publish.'
     ],
-    example: 'url.axly.in/p/alex — A centralized hub with your resume, portfolio links, and booking calendar.',
+    example: 'studio.axly.in/p/alex — A centralized hub with your resume, portfolio links, and booking calendar.',
     helpAnchor: 'public-pages'
   },
   domains: {
