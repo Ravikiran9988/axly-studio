@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import { query } from '../db/pool.js';
+import pool, { query } from '../db/pool.js';
 import { config } from '../config/env.js';
 
 // Generate user-friendly, high-entropy 6-character code (avoiding ambiguous chars)
@@ -14,40 +14,69 @@ const generateFriendlyCode = () => {
   return result;
 };
 
+// Reject public/default values and fail closed for every service-to-service operation.
+const INSECURE_BOT_SECRETS = new Set([
+  'axly_telegram_bot_internal_secret_key',
+  'replace_with_a_secure_random_32_character_bot_secret',
+  'replace_with_random_32_char_or_longer_secret',
+  'changeme',
+  'secret',
+]);
+const isValidBotSecret = (candidate) => {
+  const expected = config.telegram.botSecret;
+  if (typeof candidate !== 'string' || !expected || expected.length < 32 || INSECURE_BOT_SECRETS.has(expected.toLowerCase())) return false;
+  const actualBuffer = Buffer.from(candidate);
+  const expectedBuffer = Buffer.from(expected);
+  return actualBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(actualBuffer, expectedBuffer);
+};
+
 /**
  * POST /api/telegram/link-code
  * Authenticated endpoint for Axly users on the web dashboard to generate a single-use linking code.
  */
 export const generateLinkCode = async (req, res) => {
+  let client;
+  let transactionOpen = false;
+
   try {
     const userId = req.user.id;
-
-    // Check if user account is active
-    const userCheck = await query('SELECT id, is_active FROM users WHERE id = $1', [userId]);
-    if (userCheck.rows.length === 0 || !userCheck.rows[0].is_active) {
-      return res.status(403).json({ success: false, message: 'Account is inactive.' });
-    }
-
     const token = 'axly_tlink_' + crypto.randomBytes(24).toString('hex');
     const code = generateFriendlyCode();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    // Invalidate any existing unused tokens for this user to prevent clutter
-    await query(
-      "UPDATE telegram_link_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL",
+    // Serialize code generation per user so only the latest code remains active.
+    client = await pool.connect();
+    await client.query('BEGIN');
+    transactionOpen = true;
+
+    const userCheck = await client.query(
+      'SELECT id, is_active FROM users WHERE id = $1 FOR UPDATE',
       [userId]
     );
 
-    await query(
+    if (userCheck.rows.length === 0 || !userCheck.rows[0].is_active) {
+      await client.query('ROLLBACK');
+      transactionOpen = false;
+      return res.status(403).json({ success: false, message: 'Account is inactive.' });
+    }
+
+    await client.query(
+      'UPDATE telegram_link_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL',
+      [userId]
+    );
+    await client.query(
       `INSERT INTO telegram_link_tokens (user_id, token, code, expires_at)
        VALUES ($1, $2, $3, $4)`,
       [userId, token, code, expiresAt]
     );
 
+    await client.query('COMMIT');
+    transactionOpen = false;
+
     const botUsername = config.telegram.botUsername || 'AxlyStudioBot';
     const deepLink = `https://t.me/${botUsername}?start=link_${code}`;
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       code,
       token,
@@ -57,8 +86,14 @@ export const generateLinkCode = async (req, res) => {
       message: 'Linking code generated successfully. It will expire in 10 minutes.',
     });
   } catch (err) {
+    if (client && transactionOpen) {
+      await client.query('ROLLBACK').catch(() => {});
+      transactionOpen = false;
+    }
     console.error('generateLinkCode error:', err);
-    res.status(500).json({ success: false, message: 'Failed to generate linking code.' });
+    return res.status(500).json({ success: false, message: 'Failed to generate linking code.' });
+  } finally {
+    client?.release();
   }
 };
 
@@ -67,32 +102,56 @@ export const generateLinkCode = async (req, res) => {
  * Called by the Telegram Bot (or direct user submission) to verify code and link account.
  */
 export const verifyLink = async (req, res) => {
-  try {
-    const { code, token: rawToken, telegramUserId, telegramUsername, telegramFirstName } = req.body;
+  let client;
+  let transactionOpen = false;
 
-    if (!code && !rawToken) {
+  try {
+    const { code, token: rawToken, telegramUserId, telegramUsername, telegramFirstName } = req.body || {};
+    const lookupCode = typeof code === 'string' ? code.trim().toUpperCase() : '';
+    const lookupToken = typeof rawToken === 'string' ? rawToken.trim() : '';
+
+    if (!lookupCode && !lookupToken) {
       return res.status(400).json({ success: false, message: 'Linking code or token is required.' });
     }
 
-    if (!telegramUserId) {
-      return res.status(400).json({ success: false, message: 'Telegram user ID is required.' });
+    const parsedTgId = telegramUserId === undefined || telegramUserId === null
+      ? ''
+      : String(telegramUserId).trim();
+    if (!/^[0-9]{1,19}$/.test(parsedTgId) || BigInt(parsedTgId) <= 0n || BigInt(parsedTgId) > 9223372036854775807n) {
+      return res.status(400).json({ success: false, message: 'A valid Telegram user ID is required.' });
     }
 
-    const lookupCode = (code || '').trim().toUpperCase();
-    const lookupToken = (rawToken || '').trim();
+    // A single dedicated connection is required for PostgreSQL transactions.
+    client = await pool.connect();
+    await client.query('BEGIN');
+    transactionOpen = true;
 
-    // Query token record
-    const result = await query(
-      `SELECT t.id, t.user_id, t.expires_at, t.used_at,
-              u.id as user_id, u.name, u.email, u.role, u.plan, u.token_version, u.is_active
-       FROM telegram_link_tokens t
-       JOIN users u ON t.user_id = u.id
-       WHERE (UPPER(t.code) = $1 OR t.token = $2)
-       LIMIT 1`,
-      [lookupCode, lookupToken || lookupCode]
-    );
+    // Lock the selected token row. A second request cannot pass the single-use check concurrently.
+    const tokenResult = lookupToken
+      ? await client.query(
+          `SELECT t.id AS link_token_id, t.user_id AS link_owner_id, t.expires_at, t.used_at,
+                  u.id AS user_id, u.name, u.email, u.role, u.plan, u.token_version, u.is_active
+           FROM telegram_link_tokens t
+           JOIN users u ON t.user_id = u.id
+           WHERE t.token = $1
+           LIMIT 1
+           FOR UPDATE OF t`,
+          [lookupToken]
+        )
+      : await client.query(
+          `SELECT t.id AS link_token_id, t.user_id AS link_owner_id, t.expires_at, t.used_at,
+                  u.id AS user_id, u.name, u.email, u.role, u.plan, u.token_version, u.is_active
+           FROM telegram_link_tokens t
+           JOIN users u ON t.user_id = u.id
+           WHERE UPPER(t.code) = $1
+           LIMIT 1
+           FOR UPDATE OF t`,
+          [lookupCode]
+        );
 
-    if (result.rows.length === 0) {
+    if (tokenResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      transactionOpen = false;
       return res.status(404).json({
         success: false,
         code: 'INVALID_LINK_CODE',
@@ -100,9 +159,11 @@ export const verifyLink = async (req, res) => {
       });
     }
 
-    const tokenRecord = result.rows[0];
+    const tokenRecord = tokenResult.rows[0];
 
     if (tokenRecord.used_at) {
+      await client.query('ROLLBACK');
+      transactionOpen = false;
       return res.status(400).json({
         success: false,
         code: 'CODE_ALREADY_USED',
@@ -111,6 +172,8 @@ export const verifyLink = async (req, res) => {
     }
 
     if (new Date(tokenRecord.expires_at) <= new Date()) {
+      await client.query('ROLLBACK');
+      transactionOpen = false;
       return res.status(400).json({
         success: false,
         code: 'CODE_EXPIRED',
@@ -119,6 +182,8 @@ export const verifyLink = async (req, res) => {
     }
 
     if (!tokenRecord.is_active) {
+      await client.query('ROLLBACK');
+      transactionOpen = false;
       return res.status(403).json({
         success: false,
         code: 'ACCOUNT_DISABLED',
@@ -126,37 +191,49 @@ export const verifyLink = async (req, res) => {
       });
     }
 
-    const parsedTgId = String(telegramUserId).trim();
-    const cleanUsername = telegramUsername ? String(telegramUsername).replace(/^@/, '').slice(0, 255) : null;
-    const cleanFirstName = telegramFirstName ? String(telegramFirstName).slice(0, 255) : null;
+    const cleanUsername = telegramUsername
+      ? String(telegramUsername).replace(/^@/, '').slice(0, 255)
+      : null;
+    const cleanFirstName = telegramFirstName
+      ? String(telegramFirstName).slice(0, 255)
+      : null;
 
-    // Atomic update of token and upsert into telegram_links
-    await query('BEGIN');
-    try {
-      await query('UPDATE telegram_link_tokens SET used_at = NOW() WHERE id = $1', [tokenRecord.id]);
+    // Claim the code conditionally as a second guard against expiry/replay races.
+    const claim = await client.query(
+      `UPDATE telegram_link_tokens
+       SET used_at = NOW()
+       WHERE id = $1 AND used_at IS NULL AND expires_at > clock_timestamp()
+       RETURNING id`,
+      [tokenRecord.link_token_id]
+    );
 
-      // Remove any previous link for this Axly user to keep 1:1 mapping
-      await query('DELETE FROM telegram_links WHERE user_id = $1', [tokenRecord.user_id]);
-
-      // Upsert by telegram_user_id
-      await query(
-        `INSERT INTO telegram_links (user_id, telegram_user_id, telegram_username, telegram_first_name, updated_at)
-         VALUES ($1, $2, $3, $4, NOW())
-         ON CONFLICT (telegram_user_id) DO UPDATE SET
-           user_id = EXCLUDED.user_id,
-           telegram_username = EXCLUDED.telegram_username,
-           telegram_first_name = EXCLUDED.telegram_first_name,
-           updated_at = NOW()`,
-        [tokenRecord.user_id, parsedTgId, cleanUsername, cleanFirstName]
-      );
-
-      await query('COMMIT');
-    } catch (txnErr) {
-      await query('ROLLBACK');
-      throw txnErr;
+    if (claim.rowCount !== 1) {
+      await client.query('ROLLBACK');
+      transactionOpen = false;
+      return res.status(400).json({
+        success: false,
+        code: 'CODE_ALREADY_USED_OR_EXPIRED',
+        message: 'This linking code has expired or has already been used. Please generate a new code.',
+      });
     }
 
-    // Issue standard scoped JWT token for the bot session
+    // Maintain one Axly account per Telegram identity within the same transaction.
+    await client.query('DELETE FROM telegram_links WHERE user_id = $1', [tokenRecord.link_owner_id]);
+    await client.query(
+      `INSERT INTO telegram_links (user_id, telegram_user_id, telegram_username, telegram_first_name, updated_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       ON CONFLICT (telegram_user_id) DO UPDATE SET
+         user_id = EXCLUDED.user_id,
+         telegram_username = EXCLUDED.telegram_username,
+         telegram_first_name = EXCLUDED.telegram_first_name,
+         updated_at = NOW()`,
+      [tokenRecord.link_owner_id, parsedTgId, cleanUsername, cleanFirstName]
+    );
+
+    await client.query('COMMIT');
+    transactionOpen = false;
+
+    // Issue the session only after the link transaction has committed.
     const sessionToken = jwt.sign(
       {
         id: tokenRecord.user_id,
@@ -170,7 +247,7 @@ export const verifyLink = async (req, res) => {
       { expiresIn: '30d' }
     );
 
-    res.json({
+    return res.json({
       success: true,
       message: 'Account linked successfully!',
       user: {
@@ -183,8 +260,14 @@ export const verifyLink = async (req, res) => {
       token: sessionToken,
     });
   } catch (err) {
+    if (client && transactionOpen) {
+      await client.query('ROLLBACK').catch(() => {});
+      transactionOpen = false;
+    }
     console.error('verifyLink error:', err);
-    res.status(500).json({ success: false, message: 'Failed to verify linking code.' });
+    return res.status(500).json({ success: false, message: 'Failed to verify linking code.' });
+  } finally {
+    client?.release();
   }
 };
 
@@ -196,11 +279,11 @@ export const verifyLink = async (req, res) => {
 export const getTelegramSession = async (req, res) => {
   try {
     const botSecret = req.headers['x-telegram-bot-secret'];
-    if (config.telegram.botSecret && botSecret !== config.telegram.botSecret) {
+    if (!isValidBotSecret(botSecret)) {
       return res.status(403).json({ success: false, message: 'Invalid bot secret.' });
     }
 
-    const { telegramUserId } = req.body;
+    const { telegramUserId } = req.body || {};
     if (!telegramUserId) {
       return res.status(400).json({ success: false, message: 'telegramUserId is required.' });
     }
@@ -304,7 +387,7 @@ export const getStatus = async (req, res) => {
 export const unlinkTelegram = async (req, res) => {
   try {
     const botSecret = req.headers['x-telegram-bot-secret'];
-    const { telegramUserId } = req.body;
+    const { telegramUserId } = req.body || {};
 
     if (req.user && req.user.id) {
       // User requested unlink from web
@@ -312,7 +395,7 @@ export const unlinkTelegram = async (req, res) => {
       return res.json({ success: true, message: 'Telegram account unlinked successfully.' });
     }
 
-    if (config.telegram.botSecret && botSecret === config.telegram.botSecret && telegramUserId) {
+    if (isValidBotSecret(botSecret) && telegramUserId) {
       // Bot requested unlink
       await query('DELETE FROM telegram_links WHERE telegram_user_id = $1', [String(telegramUserId).trim()]);
       return res.json({ success: true, message: 'Telegram account unlinked successfully.' });

@@ -1,10 +1,12 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
-import app from '../src/index.js';
-import { query, closePool } from '../src/db/pool.js';
-import { runMigrations } from '../src/db/migrate.js';
-import { config } from '../src/config/env.js';
+process.env.TELEGRAM_BOT_SECRET = 'telegram_bot_test_secret_32_characters_minimum';
+
+const { default: app } = await import('../src/index.js');
+const { query, closePool } = await import('../src/db/pool.js');
+const { runMigrations } = await import('../src/db/migrate.js');
+const { config } = await import('../src/config/env.js');
 
 describe('Telegram Integration API Endpoints', () => {
   let testUserToken = null;
@@ -131,6 +133,66 @@ describe('Telegram Integration API Endpoints', () => {
       });
     assert.equal(secondUse.status, 400);
     assert.equal(secondUse.body.code, 'CODE_ALREADY_USED');
+  });
+
+  test('POST /api/telegram/verify rejects Telegram IDs outside PostgreSQL BIGINT range', async () => {
+    const res = await request(app)
+      .post('/api/telegram/verify')
+      .send({ code: 'AX-AB2345', telegramUserId: '9223372036854775808' });
+    assert.equal(res.status, 400);
+  });
+
+  test('POST /api/telegram/session fails closed for missing or incorrect bot secrets', async () => {
+    const missingSecret = await request(app)
+      .post('/api/telegram/session')
+      .send({ telegramUserId: testTelegramUserId });
+    assert.equal(missingSecret.status, 403);
+
+    const incorrectSecret = await request(app)
+      .post('/api/telegram/session')
+      .set('x-telegram-bot-secret', 'this-is-definitely-not-the-shared-secret');
+    assert.equal(incorrectSecret.status, 403);
+
+    const configuredSecret = config.telegram.botSecret;
+    try {
+      config.telegram.botSecret = '';
+      const unconfiguredService = await request(app)
+        .post('/api/telegram/session')
+        .set('x-telegram-bot-secret', configuredSecret)
+        .send({ telegramUserId: testTelegramUserId });
+      assert.equal(unconfiguredService.status, 403);
+
+      config.telegram.botSecret = 'axly_telegram_bot_internal_secret_key';
+      const placeholderService = await request(app)
+        .post('/api/telegram/session')
+        .set('x-telegram-bot-secret', 'axly_telegram_bot_internal_secret_key')
+        .send({ telegramUserId: testTelegramUserId });
+      assert.equal(placeholderService.status, 403);
+    } finally {
+      config.telegram.botSecret = configuredSecret;
+    }
+  });
+
+  test('POST /api/telegram/unlink rejects unauthenticated requests without the service secret', async () => {
+    const res = await request(app)
+      .post('/api/telegram/unlink')
+      .send({ telegramUserId: testTelegramUserId });
+    assert.equal(res.status, 401);
+  });
+
+  test('POST /api/telegram/verify atomically rejects concurrent reuse of the same code', async () => {
+    const codeRes = await request(app)
+      .post('/api/telegram/link-code')
+      .set('Authorization', `Bearer ${testUserToken}`);
+    assert.equal(codeRes.status, 201);
+
+    const payload = { code: codeRes.body.code, telegramUserId: '987654322' };
+    const results = await Promise.all([
+      request(app).post('/api/telegram/verify').send(payload),
+      request(app).post('/api/telegram/verify').send(payload),
+    ]);
+    assert.equal(results.filter((item) => item.status === 200).length, 1);
+    assert.equal(results.filter((item) => item.status === 400).length, 1);
   });
 
   test('POST /api/telegram/session retrieves active session with bot secret', async () => {

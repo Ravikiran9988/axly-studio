@@ -10,6 +10,20 @@ jobs:
   backend-test:
     name: Backend Test Suite
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d testdb"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -34,6 +48,30 @@ jobs:
           APP_URL: http://localhost:5000
           SHORT_DOMAIN: http://localhost:5000
           FRONTEND_URL: http://localhost:5173
+        run: npm test
+
+  telegram-bot-test:
+    name: Telegram Bot Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'telegram-bot/package-lock.json'
+
+      - name: Install Telegram Bot Dependencies
+        working-directory: ./telegram-bot
+        run: npm ci
+
+      - name: Run Telegram Bot Tests
+        working-directory: ./telegram-bot
+        env:
+          NODE_ENV: test
         run: npm test
 
   frontend-build:
