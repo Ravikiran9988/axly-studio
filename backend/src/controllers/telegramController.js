@@ -14,10 +14,17 @@ const generateFriendlyCode = () => {
   return result;
 };
 
-// Fail closed for every service-to-service operation and compare secrets in constant time.
+// Reject public/default values and fail closed for every service-to-service operation.
+const INSECURE_BOT_SECRETS = new Set([
+  'axly_telegram_bot_internal_secret_key',
+  'replace_with_a_secure_random_32_character_bot_secret',
+  'replace_with_random_32_char_or_longer_secret',
+  'changeme',
+  'secret',
+]);
 const isValidBotSecret = (candidate) => {
   const expected = config.telegram.botSecret;
-  if (typeof candidate !== 'string' || !expected || expected.length < 32) return false;
+  if (typeof candidate !== 'string' || !expected || expected.length < 32 || INSECURE_BOT_SECRETS.has(expected.toLowerCase())) return false;
   const actualBuffer = Buffer.from(candidate);
   const expectedBuffer = Buffer.from(expected);
   return actualBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(actualBuffer, expectedBuffer);
@@ -276,7 +283,7 @@ export const getTelegramSession = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Invalid bot secret.' });
     }
 
-    const { telegramUserId } = req.body;
+    const { telegramUserId } = req.body || {};
     if (!telegramUserId) {
       return res.status(400).json({ success: false, message: 'telegramUserId is required.' });
     }
