@@ -28,35 +28,48 @@ const isValidBotSecret = (candidate) => {
  * Authenticated endpoint for Axly users on the web dashboard to generate a single-use linking code.
  */
 export const generateLinkCode = async (req, res) => {
+  let client;
+  let transactionOpen = false;
+
   try {
     const userId = req.user.id;
-
-    // Check if user account is active
-    const userCheck = await query('SELECT id, is_active FROM users WHERE id = $1', [userId]);
-    if (userCheck.rows.length === 0 || !userCheck.rows[0].is_active) {
-      return res.status(403).json({ success: false, message: 'Account is inactive.' });
-    }
-
     const token = 'axly_tlink_' + crypto.randomBytes(24).toString('hex');
     const code = generateFriendlyCode();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    // Invalidate any existing unused tokens for this user to prevent clutter
-    await query(
-      "UPDATE telegram_link_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL",
+    // Serialize code generation per user so only the latest code remains active.
+    client = await pool.connect();
+    await client.query('BEGIN');
+    transactionOpen = true;
+
+    const userCheck = await client.query(
+      'SELECT id, is_active FROM users WHERE id = $1 FOR UPDATE',
       [userId]
     );
 
-    await query(
+    if (userCheck.rows.length === 0 || !userCheck.rows[0].is_active) {
+      await client.query('ROLLBACK');
+      transactionOpen = false;
+      return res.status(403).json({ success: false, message: 'Account is inactive.' });
+    }
+
+    await client.query(
+      'UPDATE telegram_link_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL',
+      [userId]
+    );
+    await client.query(
       `INSERT INTO telegram_link_tokens (user_id, token, code, expires_at)
        VALUES ($1, $2, $3, $4)`,
       [userId, token, code, expiresAt]
     );
 
+    await client.query('COMMIT');
+    transactionOpen = false;
+
     const botUsername = config.telegram.botUsername || 'AxlyStudioBot';
     const deepLink = `https://t.me/${botUsername}?start=link_${code}`;
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       code,
       token,
@@ -66,8 +79,14 @@ export const generateLinkCode = async (req, res) => {
       message: 'Linking code generated successfully. It will expire in 10 minutes.',
     });
   } catch (err) {
+    if (client && transactionOpen) {
+      await client.query('ROLLBACK').catch(() => {});
+      transactionOpen = false;
+    }
     console.error('generateLinkCode error:', err);
-    res.status(500).json({ success: false, message: 'Failed to generate linking code.' });
+    return res.status(500).json({ success: false, message: 'Failed to generate linking code.' });
+  } finally {
+    client?.release();
   }
 };
 
