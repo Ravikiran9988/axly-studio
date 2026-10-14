@@ -8,9 +8,17 @@ const getApiBaseUrl = () => {
   return url.replace(/\/+$/, '');
 };
 
+const INSECURE_BOT_SECRETS = new Set([
+  'axly_telegram_bot_internal_secret_key',
+  'replace_with_a_secure_random_32_character_bot_secret',
+  'replace_with_random_32_char_or_longer_secret',
+  'changeme',
+  'secret',
+]);
+
 const getBotSecret = () => {
   const secret = process.env.TELEGRAM_BOT_SECRET || '';
-  if (secret.length < 32) {
+  if (secret.length < 32 || INSECURE_BOT_SECRETS.has(secret.toLowerCase())) {
     throw new Error('Telegram service authentication is not configured. Set TELEGRAM_BOT_SECRET to a random value of at least 32 characters.');
   }
   return secret;
