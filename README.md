@@ -1,106 +1,188 @@
-# Axly Studio > **Production-ready link management, public pages, QR codes, and analytics platform** — Shorten long URLs, manage custom vanity aliases, generate downloadable QR codes, and track visitor engagement with privacy-first analytics. Built with React (Vite), Node.js (Express), and PostgreSQL / Supabase Cloud. [![CI Pipeline](https://github.com/Ravikiran9988/axly-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/Ravikiran9988/axly-studio/actions/workflows/ci.yml)
-[![Frontend](https://img.shields.io/badge/Frontend-React%2018%20%2B%20Vite-61dafb)](./frontend)
-[![Backend](https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-339933)](./backend)
-[![Database](https://img.shields.io/badge/Database-PostgreSQL%20%2F%20Supabase-3ecf8e)](./backend/src/db)
-[![Docker](https://img.shields.io/badge/Docker-Compose-2496ed)](./docker-compose.yml) --- ## Table of Contents - [Architecture Overview](#-architecture-overview)
-- [Target Production Domains](#-target-production-domains)
-- [Quick Start (Local Development)](#-quick-start-local-development)
-- [Database Configuration: Supabase vs Local](#-database-configuration-supabase-vs-local)
-- [Docker & Docker Compose](#-docker--docker-compose)
-- [API Reference](#-api-reference)
-- [Security & Privacy Features](#-security--privacy-features)
-- [Automated Testing & CI](#-automated-testing--ci)
-- [Deployment & DNS Setup](#-deployment--dns-setup) --- ## Architecture Overview ``` ┌───────────────────────────────┐ │ Client Web Browser │ └───────────────┬───────────────┘ │ ┌──────────────────────────────┴──────────────────────────────┐ │ │ ▼ (studio.axly.in) ▼ (s.axly.in/:code) ┌───────────────────────────────┐ ┌───────────────────────────────┐ │ Nginx / Frontend SPA │ │ Node.js Express API │ │ (React 18 + Vite) │───────────/api/────────────▶│ (Auth, URLs, Redirects) │ └───────────────────────────────┘ └───────────────┬───────────────┘ │ ┌────────────────────────┴────────────────────────┐ ▼ (Local Dev / Docker) ▼ (Production) ┌───────────────────────────────┐ ┌───────────────────────────────┐ │ Local PostgreSQL │ │ Supabase Cloud │ │ (Port 5432 - ACID) │ │ (PostgreSQL + SSL/TLS) │ └───────────────────────────────┘ └───────────────────────────────┘
-``` - **Frontend**: Single-page application built with React 18, Vite, Lucide Icons, and Recharts. The design system features glassmorphic styling, full dark/light theme switching, and responsive layouts.
-- **Backend**: Express REST API with input validation, rate limiting, Helmet security headers, CORS, JWT authentication, and bcrypt password hashing.
-- **Database**: PostgreSQL accessed via the `pg` pool driver. Supports both local PostgreSQL instances and managed Supabase Cloud databases using `DATABASE_URL` with strict TLS certificate verification. --- ## Target Production Domains
+# Axly Studio
 
-**Canonical primary domain:** `https://studio.axly.in`. The secondary `https://url.axly.in` domain is configured in Vercel to permanently redirect (HTTP 301) to `https://studio.axly.in`.
+Axly Studio is a link-management platform with a React web application, a Node.js/Express API, PostgreSQL persistence, and a separate Telegram bot. This repository contains application code, deployment configuration, tests, the API specification, and operator documentation.
 
-The application is structured to support clean separation between the product dashboard and short links: | Domain | Purpose | Routing Target |
-|--------|---------|----------------|
-| `https://studio.axly.in` | Primary website and dashboard | Serves React SPA and `/api/` proxy |
-| `https://url.axly.in` | Secondary/legacy domain | Permanent 301 redirect to `https://studio.axly.in` |
-| `https://s.axly.in/<shortCode>` | Short Link Redirections | Direct 302 redirect via Node.js API |
-| `https://studio.axly.in/api` | REST API Endpoints | Node.js Backend API | *Note: `studio.axly.in` is the canonical production domain. `url.axly.in` is the secondary domain and should redirect to the canonical domain in Vercel.* --- ## Quick Start (Local Development) ### Prerequisites
-- Node.js 20+
-- PostgreSQL 14+ (or Docker)
-- npm ### 1. Clone Repository
+> **Production note:** These guides describe the implementation and intended configuration in this repository. Confirm live environment variables, DNS and redirect behavior, database backups, and deployment health in the hosting dashboards before treating a deployment as production-ready.
+
+[![CI](https://github.com/Ravikiran9988/axly-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/Ravikiran9988/axly-studio/actions/workflows/ci.yml)
+
+## Product overview
+
+- **Website:** short-link management; QR codes; public profile/pages; click analytics; campaigns and experiments; bulk URL import/export; custom domains; API keys; webhooks; workspaces; profile/settings; admin and moderation tools.
+- **REST API:** authentication, URL management and redirects, analytics, pages, domains, campaigns, experiments, notifications, workspaces, API keys, webhooks, privacy export/deletion, and Telegram account linking.
+- **Telegram bot:** /shorten, /alias, /qr, /mylinks, /stats, /account, /link, /settings, /cancel, /help; inline menus; direct URL messages; QR generation; forwarded/multiple URL handling; optional Axly account linking.
+- **Database:** PostgreSQL through the Node pg driver. The application supports a connection URL or discrete local database settings; cloud TLS behavior depends on database configuration.
+
+## Canonical domains
+
+| Host | Intended role | Notes |
+|---|---|---|
+| https://studio.axly.in | Canonical website | Primary user-facing Axly Studio domain |
+| https://url.axly.in | Secondary/legacy website host | Configure a permanent Vercel 301 redirect to studio.axly.in; test path and query preservation after saving |
+| https://s.axly.in/<shortCode> | Short-link hostname | Configure DNS/routing and SHORT_DOMAIN consistently with the redirect service |
+| https://axly-api.onrender.com | API service hostname | Current documented Render API origin; /api/* is proxied by frontend/vercel.json |
+
+The frontend Vercel rewrite sends /api/:path* to https://axly-api.onrender.com/api/:path* and rewrites other paths to /index.html for SPA routing. Keep the API origin and custom domains synchronized when hosting changes. A valid domain status alone does not prove that redirects, application routes, or API requests work end to end.
+
+## Repository layout
+
+```text
+.
+├── frontend/                 # React/Vite application and Vercel config
+├── backend/                  # Express API, PostgreSQL migrations and tests
+├── telegram-bot/             # Telegraf bot, handlers and bot tests
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── DEPLOYMENT_AND_SECURITY.md
+│   ├── DEVELOPER_PLATFORM.md
+│   ├── OPERATIONS_RUNBOOK.md
+│   └── openapi.yaml
+├── .github/workflows/ci.yml  # Backend tests, bot tests, frontend build
+└── docker-compose.yml        # Local PostgreSQL + backend + Nginx frontend
+```
+
+## Architecture at a glance
+
+1. A visitor loads the frontend on Vercel. Public routes include landing, login/register, QR, public page views, help, contact, abuse reporting, security, terms, privacy, and acceptable-use information.
+2. The browser calls the API through /api. Vercel rewrites this path to the configured Render API origin.
+3. The API validates requests, enforces authentication/scopes and rate limits where configured, stores data in PostgreSQL, and handles short-link redirects.
+4. The Telegram bot runs as a separate Node service and calls Axly through AXLY_API_URL. Authenticated bot features use the Telegram account-linking flow and shared service secret.
+5. PostgreSQL schema changes are managed by migration code. Backend startup runs migrations before listening; npm run migrate is available for explicit operations.
+
+See [Architecture](./docs/ARCHITECTURE.md) for component flow and [Deployment, Operations & Security](./docs/DEPLOYMENT_AND_SECURITY.md) for operational guidance.
+
+## Prerequisites
+
+- Node.js 20 or newer is recommended for local development and matches CI. The bot package declares Node.js 18 or newer.
+- npm and Git.
+- PostgreSQL, either local/Docker or a managed PostgreSQL service.
+- A Telegram bot token only when running the bot.
+- Hosting accounts and permissions for the selected deployment targets (Vercel frontend; Render API and bot if those remain the active services).
+
+## Local development
+
+Use separate terminals for the API, frontend and optional bot. Never commit .env files, real tokens, API keys, database credentials or generated backups.
+
+### 1. Start PostgreSQL
+
+Use a local PostgreSQL instance, or start the repository's database container:
+
 ```bash
-git clone https://github.com/Ravikiran9988/axly-studio.git
-cd axly-studio
-``` ### 2. Configure & Start Backend
+docker compose up -d postgres
+```
+
+Default Compose credentials are for local development only. Do not use them in a public or production deployment.
+
+### 2. Configure and start the API
+
 ```bash
 cd backend
-cp .env.example .env
-# Edit .env with your local PostgreSQL credentials (or Supabase connection string)
-npm install
+npm ci
+# Copy .env.example to .env and configure DB, JWT and visitor salt values.
 npm run migrate
-# Optional: create your own administrator account; this prompts for credentials
-# npm run admin:create
-# Optional dev sample links: first register a normal account, then set SEED_USER_EMAIL
-# PowerShell: $env:SEED_USER_EMAIL="you@example.com"; npm run seed
-# macOS/Linux: SEED_USER_EMAIL="you@example.com" npm run seed
 npm run dev
-``` ### 3. Configure & Start Frontend
-In a new terminal window:
+```
+
+By default, the API listens on http://localhost:5000. For local work, use NODE_ENV=development, a local database, APP_URL=http://localhost:5000, FRONTEND_URL=http://localhost:5173, SHORT_DOMAIN=http://localhost:5000, and TRUST_PROXY=false. Generate unique local secrets instead of copying production secrets.
+
+### 3. Start the frontend
+
+In a second terminal:
+
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
-``` The frontend will run at `http://localhost:5173`. Vite automatically proxies `/api` requests to `http://localhost:5000`. --- ## Database Configuration: Supabase vs Local The connection pool in [`backend/src/db/pool.js`](./backend/src/db/pool.js) automatically selects the appropriate connection mode: ### Option A: Supabase Cloud PostgreSQL (Production)
-1. Create a project in [Supabase](https://supabase.com).
-2. Go to **Project Settings** → **Database** → **Connection String**.
-3. Select **URI** (Session mode on port 5432 or Transaction Pooler on port 6543).
-4. Set the following in `backend/.env`: ```env NODE_ENV=production DATABASE_URL=postgresql://postgres.[YOUR-REF]:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?sslmode=require DB_SSL=true JWT_SECRET=generate_a_secure_random_32_character_string_here ```
-5. Run migrations against your Supabase database: ```bash npm run migrate ``` *Security Note: TLS certificate verification is enforced when connecting to Supabase (`rejectUnauthorized: true`). Never disable certificate verification.* ### Option B: Local PostgreSQL (Development)
-When `DATABASE_URL` is omitted, the pool reads discrete variables:
-```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=axly_db
-DB_USER=postgres
-DB_PASSWORD=your_password
-DB_SSL=false
-``` --- ## Docker & Docker Compose A complete containerized stack is available in [`docker-compose.yml`](./docker-compose.yml): ```bash
-# 1. Copy Docker environment variables
-cp .env.example .env # 2. Build and start services (Postgres, Backend, Frontend with Nginx)
-docker compose up --build -d # 3. Run database migrations inside the backend container
-docker compose exec backend npm run migrate # 4. View logs
-docker compose logs -f # 5. Stop containers (preserves database volume)
-docker compose down
-``` ### Services Started:
-- **`axly_frontend`**: Nginx web server on `http://localhost:80` (handles SPA routing and proxies `/api`).
-- **`axly_backend`**: Node.js container on `http://localhost:5000`.
-- **`axly_postgres`**: PostgreSQL 16 container bound strictly to `127.0.0.1:5432` with health checks. --- ## API Reference ### Health Check
-- `GET /api/health` — Verifies API status and database connectivity latency. ### Authentication
-- `POST /api/auth/register` — Register a new user account. ```json // Request { "name": "Jane Doe", "email": "jane@example.com", "password": "securePassword123" } // Response (201 Created) { "success": true, "token": "jwt_token...", "user": { "id": "...", "name": "Jane Doe", "email": "jane@example.com" } } ```
-- `POST /api/auth/login` — Sign in with email and password.
-- `GET /api/auth/me` — Retrieve current authenticated user profile (`Authorization: Bearer <token>`). ### URL Management
-- `POST /api/urls` (Optional Auth) — Create short URL. ```json // Request { "url": "https://example.com/long-product-link", "customAlias": "summer-sale", // Optional: 3-30 chars "title": "Summer Promotion", // Optional "expiresAt": "2026-12-31T23:59:59Z" // Optional: Future ISO timestamp } ```
-- `GET /api/urls` (Auth Required) — List authenticated user's URLs with pagination (`page`, `limit`) and search (`search`).
-- `GET /api/urls/stats` (Auth Required) — Overall dashboard metrics (total links, clicks, active links, 7-day activity).
-- `GET /api/urls/:id` (Auth Required) — Details for a specific URL.
-- `PATCH /api/urls/:id` (Auth Required) — Partial update URL (`title`, `status`, `expiresAt`). - **Partial Update Behavior**: Omitting `expiresAt` preserves the existing expiration timestamp. Passing explicit `null` clears expiration.
-- `DELETE /api/urls/:id` (Auth Required) — Delete short URL and its click events.
-- `GET /api/urls/:id/qr` (Auth Required) — Generate QR code PNG data URL.
-- `GET /api/urls/:id/analytics` (Auth Required) — Detailed analytics (browsers, devices, referrers, timeline). ### Public Redirection
-- `GET /:shortCode` — Redirects (302) to original target URL. - Returns `404` if link does not exist. - Returns `410` if link is disabled or expired. --- ## Security & Privacy Features 1. **Privacy-Preserving Visitor Deduplication**: - Unique visitor counts (`unique_clicks`) are calculated using a salted HMAC-SHA256 hash of the visitor's IP and User-Agent. - Raw personal browsing profiles are not permanently retained.
-2. **Open Redirect & Protocol Prevention**: - Destination URLs must use `http:` or `https:`. Dangerous protocols (`javascript:`, `data:`, `file:`) are strictly rejected. - Redirect destinations are read solely from authenticated database records.
-3. **Collision & Custom Alias Protection**: - Reserved keywords (`api`, `auth`, `login`, `admin`, `settings`, etc.) are prohibited as custom aliases. - Concurrent insert conflicts (PostgreSQL code `23505`) are caught and handled gracefully with 409 Conflict responses.
-4. **Rate Limiting**: - Authentication limiter: 10 attempts per 15-minute window. - URL creation limiter: 50 creations per hour. - Global API limiter: 100 requests per 15-minute window.
-5. **Production Secrets Startup Enforcement**: - The server validates environment variables at boot. In production mode, startup immediately halts with a clean error if `JWT_SECRET` is missing, shorter than 32 characters, or using a well-known development fallback. - Generate a strong secret with: ```bash node -e "console.log(require('crypto').randomBytes(32).toString('hex'))" ``` --- ## Automated Testing & CI The backend includes a comprehensive automated test suite utilizing Node.js's native test runner (`node:test`) and `supertest`: ```bash
+```
+
+Vite serves the application at http://localhost:5173. The checked-in frontend environment example uses VITE_API_URL=/api. Confirm the Vite dev proxy when changing the API port.
+
+### 4. Start the Telegram bot (optional)
+
+In a third terminal:
+
+```bash
+cd telegram-bot
+npm ci
+# Copy .env.example to .env and set TELEGRAM_BOT_TOKEN.
+npm run dev
+```
+
+Set AXLY_API_URL=http://localhost:5000, AXLY_FRONTEND_URL=http://localhost:5173, and the same TELEGRAM_BOT_SECRET in the local backend and bot environments. The bot requires a valid Telegram token and API URL. In production, AXLY_API_URL must use HTTPS and the shared secret must be a strong random value.
+
+See [Frontend guide](./frontend/README.md), [Backend/API guide](./backend/README.md), and [Telegram bot guide](./telegram-bot/README.md).
+
+## Environment configuration
+
+The checked-in examples are the starting point for available variables. Copy them into ignored local .env files, then define production variables in each hosting service's secret settings.
+
+| Component | Main settings | Notes |
+|---|---|---|
+| Backend | NODE_ENV, PORT, DATABASE_URL or DB_*, JWT_SECRET, VISITOR_SALT, APP_URL, FRONTEND_URL, SHORT_DOMAIN, TRUST_PROXY | Production validation requires strong JWT secret, visitor salt and database configuration. The bot shared secret must match when Telegram service endpoints are used. |
+| Frontend | VITE_API_URL | VITE_* values are exposed to browser assets. Never put server-side secrets in them. Production /api routing is configured in frontend/vercel.json. |
+| Telegram bot | TELEGRAM_BOT_TOKEN, AXLY_API_URL, AXLY_FRONTEND_URL, TELEGRAM_BOT_SECRET, PORT, USE_WEBHOOK and webhook-only values | In webhook mode, use HTTPS and a random Telegram webhook secret token. Never commit a real bot token. |
+
+See the [backend environment reference](./backend/README.md#environment-variables) and [operations runbook](./docs/OPERATIONS_RUNBOOK.md). Generate random secrets with node -e "console.log(require('crypto').randomBytes(32).toString('hex'))" and store them only in hosting secret settings or ignored local .env files.
+
+## Tests and build checks
+
+Run the same package checks before pushing:
+
+```bash
+# Backend API tests
 cd backend
+npm ci
 npm test
-``` ### Covered Test Suites:
-- [YES] Production environment validation & insecure secret rejection
-- [YES] Email format normalization & password complexity validation
-- [YES] Registration race-condition conflict handling
-- [YES] Authentication token verification & expired/invalid token handling
-- [YES] Account-disabled access restriction
-- [YES] URL creation, protocol validation, and reserved alias rejection
-- [YES] **Expiration bug regression test**: Partial updates omitting `expiresAt` preserve existing expiration dates
-- [YES] Explicit `null` expiration clearing
-- [YES] Redirection HTTP status codes (302, 404, 410) & XSS-safe error rendering GitHub Actions automatically runs backend tests and frontend production builds on every push to `master`. --- ## Deployment & DNS Setup To configure custom domains: 1. **DNS Records**: - Point `studio.axly.in` to your Vercel production project. Configure `url.axly.in` as a Vercel 301 redirect to `studio.axly.in`. - Point `s.axly.in` (CNAME or A record) to your web server / load balancer.
-2. **Reverse Proxy / Nginx**: - The provided [`frontend/nginx.conf`](./frontend/nginx.conf) routes `studio.axly.in` to the React SPA and proxies `s.axly.in` directly to the backend redirection service.
-3. **Environment Configuration**: - Set `APP_URL=https://studio.axly.in` - Set `FRONTEND_URL=https://studio.axly.in` - Set `SHORT_DOMAIN=https://s.axly.in` - Set `TRUST_PROXY=1` (or `true`) --- ## License MIT © 2026 Axly
+
+# Bot tests (run from the repository root in another terminal)
+cd telegram-bot
+npm ci
+npm test
+
+# Frontend production build
+cd frontend
+npm ci
+npm run build
+```
+
+The workflow in .github/workflows/ci.yml runs backend tests against PostgreSQL, bot tests, and the frontend production build on pushes and pull requests to master or main. It does not currently run the frontend lint script as a CI job. The workflow status for the release commit is authoritative; passing local commands do not replace live service smoke tests.
+
+## Deployment overview
+
+- **Frontend / Vercel:** project root directory frontend; build command npm run build; output directory dist; API rewrite and SPA fallback are in frontend/vercel.json. Canonical host intent is studio.axly.in. Keep url.axly.in as a secondary redirect only after saving and testing the domain-level redirect.
+- **API / Render (documented target):** hostname https://axly-api.onrender.com; root directory backend; install with npm ci; start with npm start. Configure all required production environment values. Backend startup runs migrations before opening the port.
+- **Telegram bot / Render (if deployed there):** separate service; root directory telegram-bot; install with npm ci; start with npm start; configure token, API URL, frontend URL, shared secret and polling/webhook mode.
+
+Use the [production runbook](./docs/OPERATIONS_RUNBOOK.md) for pre-deploy checks, smoke tests, rollback, incident handling, secret rotation and database backup/restore. Hosting details above describe the intended configuration; verify the actual dashboard settings and live health endpoints for each release.
+
+## Production readiness checklist
+
+- [ ] Confirm studio.axly.in points to the production frontend and TLS is valid.
+- [ ] Save and test the Vercel 301 redirect from url.axly.in, including paths, query strings and HTTPS.
+- [ ] Confirm s.axly.in DNS and routing resolve generated short links correctly.
+- [ ] Confirm Vercel /api rewrite reaches the intended API origin.
+- [ ] Confirm production secrets are strong, unique and stored only in secret settings.
+- [ ] Confirm database backups, retention and a tested restore procedure.
+- [ ] Run CI on the release commit and inspect every required job.
+- [ ] Smoke-test authentication, link create/redirect, QR, public pages, analytics and bot commands.
+- [ ] Verify monitoring/alerts, access permissions and rollback plan.
+- [ ] Review Terms, Privacy, abuse-reporting and acceptable-use content before public launch.
+
+## Documentation index
+
+| Document | Purpose |
+|---|---|
+| [Frontend README](./frontend/README.md) | Website routes, build, routing and deployment |
+| [Backend README](./backend/README.md) | API modules, auth/scopes, environment, migrations and tests |
+| [Telegram bot README](./telegram-bot/README.md) | Commands, account linking, local setup, deployment and troubleshooting |
+| [Architecture](./docs/ARCHITECTURE.md) | Component and data flow |
+| [Deployment, Operations & Security](./docs/DEPLOYMENT_AND_SECURITY.md) | Config, security boundaries and deployment |
+| [Operations runbook](./docs/OPERATIONS_RUNBOOK.md) | Preflight, release, rollback, incident and recovery |
+| [Developer platform guide](./docs/DEVELOPER_PLATFORM.md) | API keys, scopes, webhooks and workspaces |
+| [OpenAPI specification](./docs/openapi.yaml) | Machine-readable API contract subset; check route coverage before treating it as exhaustive |
+
+## Contributing and security
+
+Keep documentation and implementation changes together. A new route, environment variable, bot command, schema migration or production setting should update the relevant guide and tests. Never publish secrets in issues or logs. Report security-sensitive findings privately to the repository maintainer.
+
+Check the current repository LICENSE file before redistributing.
