@@ -65,6 +65,9 @@ export const handleLinkCommand = async (ctx) => {
 
   try {
     const result = await verifyAndLink(ctx.from.id, code, ctx.from);
+    if (!result?.success || !result.user) {
+      throw new Error(result?.message || 'The linking code is invalid or has expired. Please generate a new code.');
+    }
     await ctx.telegram.deleteMessage(ctx.chat.id, loadingMsg.message_id).catch(() => {});
 
     return ctx.reply(
