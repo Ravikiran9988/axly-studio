@@ -21,7 +21,7 @@ flowchart LR
 - Source: frontend/
 - Runtime/build: React + Vite; production assets are generated into dist/.
 - Routing: client-side routes are declared in src/App.jsx. Vercel must rewrite non-API paths to /index.html so direct navigation and refresh work.
-- API: frontend/vercel.json proxies /api/:path* to https://axly-api.onrender.com/api/:path*.
+- API: frontend/vercel.json proxies /api/:path* to https://api.axly.in/api/:path*.
 - Secret boundary: VITE_ values are shipped to browser code. They must never contain private credentials.
 
 ### Backend/API
