@@ -52,13 +52,19 @@ describe('CSV export safety', () => {
 });
 
 describe('Optional authentication fails closed', () => {
+  const optionalAuthTestUserId = '55555555-5555-5555-5555-555555555555';
+  const optionalAuthTestToken = jwt.sign(
+    { id: optionalAuthTestUserId, email: 'optional-auth-test@axly.in', name: 'Optional Auth Test' },
+    config.jwt.secret,
+    { expiresIn: '1h' }
+  );
   const optionalAuthSql = 'SELECT id, is_active, role, token_version FROM users WHERE id = $1';
 
   test('rejects a disabled account on the guest-capable create endpoint', async () => {
     const originalQuery = pool.query;
     pool.query = async (text) => {
       if (text.includes(optionalAuthSql)) {
-        return { rows: [{ id: testUserId, is_active: false, role: 'user', token_version: 1 }] };
+        return { rows: [{ id: optionalAuthTestUserId, is_active: false, role: 'user', token_version: 1 }] };
       }
       return { rows: [] };
     };
@@ -66,7 +72,7 @@ describe('Optional authentication fails closed', () => {
     try {
       const res = await request(app)
         .post('/api/urls')
-        .set('Authorization', `Bearer ${testToken}`)
+        .set('Authorization', `Bearer ${optionalAuthTestToken}`)
         .send({ url: 'https://example.com' });
       assert.equal(res.status, 403);
       assert.match(res.body.message, /disabled/i);
