@@ -143,7 +143,7 @@ export const resolveSafeDestinationUrl = async (urlString, lookup = dns.lookup) 
   if (!validation.valid) return validation;
 
   const parsed = new URL(validation.url);
-  const hostname = parsed.hostname.toLowerCase().replace(/^\\[|\\]$/g, '').replace(/\\.$/, '');
+  const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
   const literalFamily = net.isIP(hostname);
 
   if (literalFamily) {
