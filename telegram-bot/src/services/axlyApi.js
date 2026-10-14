@@ -9,7 +9,11 @@ const getApiBaseUrl = () => {
 };
 
 const getBotSecret = () => {
-  return process.env.TELEGRAM_BOT_SECRET || 'axly_telegram_bot_internal_secret_key';
+  const secret = process.env.TELEGRAM_BOT_SECRET || '';
+  if (secret.length < 32) {
+    throw new Error('Telegram service authentication is not configured. Set TELEGRAM_BOT_SECRET to a random value of at least 32 characters.');
+  }
+  return secret;
 };
 
 const DEFAULT_TIMEOUT_MS = 10000;
