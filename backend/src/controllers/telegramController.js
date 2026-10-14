@@ -117,7 +117,7 @@ export const verifyLink = async (req, res) => {
     const parsedTgId = telegramUserId === undefined || telegramUserId === null
       ? ''
       : String(telegramUserId).trim();
-    if (!/^[0-9]{1,20}$/.test(parsedTgId) || /^0+$/.test(parsedTgId)) {
+    if (!/^[0-9]{1,19}$/.test(parsedTgId) || BigInt(parsedTgId) <= 0n || BigInt(parsedTgId) > 9223372036854775807n) {
       return res.status(400).json({ success: false, message: 'A valid Telegram user ID is required.' });
     }
 
@@ -202,7 +202,7 @@ export const verifyLink = async (req, res) => {
     const claim = await client.query(
       `UPDATE telegram_link_tokens
        SET used_at = NOW()
-       WHERE id = $1 AND used_at IS NULL AND expires_at > NOW()
+       WHERE id = $1 AND used_at IS NULL AND expires_at > clock_timestamp()
        RETURNING id`,
       [tokenRecord.link_token_id]
     );
@@ -387,7 +387,7 @@ export const getStatus = async (req, res) => {
 export const unlinkTelegram = async (req, res) => {
   try {
     const botSecret = req.headers['x-telegram-bot-secret'];
-    const { telegramUserId } = req.body;
+    const { telegramUserId } = req.body || {};
 
     if (req.user && req.user.id) {
       // User requested unlink from web
