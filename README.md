@@ -19,7 +19,7 @@ Axly Studio is a link-management platform with a React web application, a Node.j
 |---|---|---|
 | https://studio.axly.in | Canonical website | Primary user-facing Axly Studio domain |
 | https://url.axly.in | Secondary/legacy website host | Configure a permanent Vercel 301 redirect to studio.axly.in; test path and query preservation after saving |
-| https://s.axly.in/<shortCode> | Short-link hostname | Configure DNS/routing and SHORT_DOMAIN consistently with the redirect service |
+| https://s.axly.in/yourCode | Short-link hostname | Configure DNS/routing and SHORT_DOMAIN consistently with the redirect service |
 | https://axly-api.onrender.com | API service hostname | Current documented Render API origin; /api/* is proxied by frontend/vercel.json |
 
 The frontend Vercel rewrite sends /api/:path* to https://axly-api.onrender.com/api/:path* and rewrites other paths to /index.html for SPA routing. Keep the API origin and custom domains synchronized when hosting changes. A valid domain status alone does not prove that redirects, application routes, or API requests work end to end.
@@ -134,13 +134,13 @@ cd backend
 npm ci
 npm test
 
-# Bot tests (run from the repository root in another terminal)
-cd telegram-bot
+# Bot tests
+cd ../telegram-bot
 npm ci
 npm test
 
 # Frontend production build
-cd frontend
+cd ../frontend
 npm ci
 npm run build
 ```
