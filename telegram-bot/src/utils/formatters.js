@@ -194,17 +194,23 @@ export const formatHelpMessage = () => {
   return `<b>Axly Studio Bot — Help & Commands</b>
 
 <b>Available Commands:</b>
-• <code>/start</code> — Open main menu and welcome screen
-• <code>/shorten &lt;url&gt;</code> — Shorten any long web link\n• <code>/shorten &lt;url&gt; &lt;alias&gt;</code> — Create a custom alias (linked accounts)
+• <code>/start</code> — Open the welcome screen and main menu
+• <code>/shorten &lt;url&gt;</code> — Shorten one web link
+• <code>/alias &lt;url&gt; &lt;alias&gt;</code> — Create a custom alias (linked Axly account required)
 • <code>/qr &lt;url&gt;</code> — Generate a high-resolution QR code
-• <code>/mylinks</code> — View and paginate your trackable links
-• <code>/stats</code> — View overall account click analytics
-• <code>/stats &lt;code&gt;</code> — View detailed stats for a specific short link
-• <code>/account</code> — View account connection status
-• <code>/link &lt;code&gt;</code> — Connect your Axly account using a 10-minute code
-• <code>/settings</code> — Bot preferences and toggles
-• <code>/cancel</code> — Cancel active prompt or action
-• <code>/help</code> — Display this guide
+• <code>/mylinks</code> — View and paginate your saved links (linked account)
+• <code>/stats</code> — View overall click analytics (linked account)
+• <code>/stats &lt;code&gt;</code> — View analytics for one short link
+• <code>/account</code> — Check account status or get linking instructions
+• <code>/link &lt;code&gt;</code> — Link your Axly account with a 10-minute code
+• <code>/settings</code> — Open bot preferences (Auto QR toggle)
+• <code>/cancel</code> — Cancel the current prompt/action
+• <code>/help</code> — Show this command guide
 
-💡 <b>Pro Tip:</b> You can send any valid URL directly in the chat to shorten it instantly without typing <code>/shorten</code>!`;
+<b>Other features:</b>
+• Send a URL directly to shorten it.
+• Forward a message with multiple URLs to shorten each URL while preserving its text.
+• Use the main-menu buttons for Shorten Link, Custom Alias, Generate QR, My Links, Analytics, Account, Settings, Website, and Help.
+
+💡 <b>Custom alias example:</b> <code>/alias https://example.com my-brand</code>`;
 };

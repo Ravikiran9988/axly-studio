@@ -30,6 +30,15 @@ export const handleStart = async (ctx) => {
             }
           );
         }
+
+        await ctx.telegram.deleteMessage(ctx.chat.id, statusMsg.message_id).catch(() => {});
+        return ctx.reply(
+          `❌ <b>Account Linking Failed</b>\n\n${escapeHtml(result.message || 'The linking code is invalid or has expired.')}\n\nPlease generate a fresh code in your Axly dashboard (Settings > Telegram Bot).`,
+          {
+            parse_mode: 'HTML',
+            reply_markup: getMainMenuKeyboard(),
+          }
+        );
       } catch (err) {
         await ctx.telegram.deleteMessage(ctx.chat.id, statusMsg.message_id).catch(() => {});
         return ctx.reply(

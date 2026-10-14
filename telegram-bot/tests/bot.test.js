@@ -30,7 +30,7 @@ import {
 } from '../src/middleware/authSession.js';
 import { handleStart } from '../src/handlers/start.js';
 import { handleHelp } from '../src/handlers/help.js';
-import { handleShortenCommand, handleAliasCommand, handleDirectTextMessage, extractUrlFromTelegramMessage, extractAllUrlsFromTelegramMessage } from '../src/handlers/shorten.js';
+import { handleShortenCommand, handleAliasCommand, handleDirectTextMessage, extractUrlFromTelegramMessage, extractAllUrlsFromTelegramMessage, extractUrlOccurrencesFromTelegramMessage, replaceUrlOccurrencesInText } from '../src/handlers/shorten.js';
 import { handleMyLinks } from '../src/handlers/myLinks.js';
 import { handleStats } from '../src/handlers/stats.js';
 import { handleAccount, handleLinkCommand } from '../src/handlers/account.js';
@@ -326,6 +326,62 @@ describe('5. Handlers, Account Linking & Guarded Operations', () => {
     assert.ok(ctx.replies[0].extra.reply_markup.inline_keyboard.length > 0);
   });
 
+  test('/help lists all registered commands and uses /alias for custom aliases', async () => {
+    const ctx = createMockContext();
+    await handleHelp(ctx);
+    const body = ctx.replies[0].text;
+    for (const command of ['start', 'shorten', 'alias', 'qr', 'mylinks', 'stats', 'account', 'link', 'settings', 'cancel', 'help']) {
+      assert.ok(body.includes('/' + command), 'help should document /' + command);
+    }
+    assert.ok(body.includes('/alias &lt;url&gt; &lt;alias&gt;'));
+    assert.ok(!body.includes('/shorten &lt;url&gt; &lt;alias&gt;'));
+  });
+
+  test('/alias parses URL and alias instead of returning usage when arguments are valid', async () => {
+    const ctx = createMockContext({ message: { text: '/alias https://example.com my-brand' } });
+    await handleAliasCommand(ctx);
+    assert.ok(ctx.replies[0].text.includes('Custom aliases require a linked Axly account.'));
+    assert.ok(!ctx.replies[0].text.includes('Usage:'));
+  });
+
+  test('extracts URL occurrence ranges for visible and hidden Telegram links', () => {
+    const text = 'Pandas Python https://python.org/docs and fastapi.tiangolo.com';
+    const matches = extractUrlOccurrencesFromTelegramMessage({
+      text,
+      entities: [{ type: 'text_link', offset: 0, length: 6, url: 'https://pandas.pydata.org/docs' }],
+    });
+    assert.equal(matches.length, 3);
+    assert.equal(matches[0].normalizedUrl, 'https://pandas.pydata.org/docs');
+    assert.equal(matches[0].hidden, true);
+    assert.equal(matches[0].start, 0);
+    assert.equal(matches[0].end, 6);
+    assert.deepEqual(matches.map((item) => item.normalizedUrl), [
+      'https://pandas.pydata.org/docs',
+      'https://python.org/docs',
+      'https://fastapi.tiangolo.com/',
+    ]);
+  });
+  test('replaces every visible and hidden URL while preserving message text', () => {
+    const text = 'Pandas Python https://python.org/docs and fastapi.tiangolo.com, end';
+    const matches = extractUrlOccurrencesFromTelegramMessage({
+      text,
+      entities: [{ type: 'text_link', offset: 0, length: 6, url: 'https://pandas.pydata.org/docs' }],
+    });
+    const replacements = matches.map((item, index) => ({
+      ...item,
+      shortUrl: ['https://url.axly.in/pandas', 'https://url.axly.in/python', 'https://url.axly.in/fastapi'][index],
+    }));
+    assert.equal(
+      replaceUrlOccurrencesInText(text, replacements),
+      'https://url.axly.in/pandas Python https://url.axly.in/python and https://url.axly.in/fastapi, end'
+    );
+  });
+  test('extracts multiple valid URLs from text, including naked domains', () => {
+    const urls = extractAllUrlsFromTelegramMessage({
+      text: 'Python https://python.org/docs FastAPI fastapi.tiangolo.com Python https://python.org/docs',
+    });
+    assert.deepEqual(urls, ['https://python.org/docs', 'https://fastapi.tiangolo.com/']);
+  });
   test('/help command returns complete guide', async () => {
     const ctx = createMockContext();
     await handleHelp(ctx);

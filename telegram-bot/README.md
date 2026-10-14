@@ -7,6 +7,7 @@ Production-ready Telegram bot integration for the **Axly URL Shortener** ecosyst
 ## 🚀 Key Features
 
 - **⚡ Instant Link Shortening**: Send `/shorten <url>` or paste any HTTP/HTTPS web link directly into the chat to receive an immediate trackable short link.
+- **✨ Custom Aliases**: Send `/alias <url> <alias>` with a linked Axly account to choose a readable short-link alias.
 - **📱 QR Code Generation**: Send `/qr <url>` or tap the **QR Code** inline button on any link to generate high-resolution PNG QR codes directly in Telegram.
 - **📂 My Links Management**: Paginate through your links (`/mylinks`) with real-time click counters.
 - **📊 Detailed Clickstream Analytics**: View overall dashboard metrics (`/stats`) or deep-dive into single-link performance (`/stats <code>`) with top countries, devices, and referrers.
@@ -25,7 +26,7 @@ telegram-bot/
 │   ├── handlers/
 │   │   ├── start.js              # /start and deep-linking verification (/start link_<CODE>)
 │   │   ├── help.js               # /help command & usage manual
-│   │   ├── shorten.js            # /shorten command & conversational/direct URL handling
+│   │   ├── shorten.js            # /shorten, /alias, forwarded multi-link handling & URL extraction
 │   │   ├── qr.js                 # /qr command & QR code rendering
 │   │   ├── myLinks.js            # /mylinks command with interactive pagination
 │   │   ├── stats.js              # /stats command (overall & link-specific analytics)
@@ -157,7 +158,8 @@ Send `/setcommands` to `@BotFather`, select your bot, and paste this exact comma
 
 ```
 start - Open welcome screen and main menu
-shorten - Shorten a long URL
+shorten - Shorten a URL
+alias - Create a custom short-link alias
 qr - Generate a QR code for a link
 mylinks - View and manage your links
 stats - View click analytics and statistics
@@ -172,12 +174,7 @@ help - View help guide and instructions
 
 ## 🧪 Testing Summary
 
-- `backend`: `node --test tests/*.test.js`
-  - 89 core tests passed + 7 Telegram account-linking tests passed = **96 passing backend tests**.
-- `telegram-bot`: `node --test tests/*.test.js`
-  - **22 unit & integration tests passed**.
-- `frontend`: `npm run build`
-  - **Built cleanly in 10.99s with zero errors**.
+CI runs the backend integration tests (with PostgreSQL), the Telegram bot test suite, and the frontend production build on pull requests. See the repository's GitHub Actions page for current results; test counts and build timings are not pinned here so this section stays accurate as coverage grows.
 
 
 ## Forwarded links
