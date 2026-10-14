@@ -39,8 +39,10 @@ describe('CSV export safety', () => {
   });
 
   test('neutralizes spreadsheet formula prefixes after leading whitespace', () => {
-    for (const value of ['=1+1', '+SUM(A1:A2)', '-1+2', '@SUM(A1)', '  =HYPERLINK("https://bad.example")', '\\t=cmd']) {
-      assert.ok(toCsvCell(value).startsWith('"\\\''), `Expected formula-safe prefix for ${JSON.stringify(value)}`);
+    for (const value of ['=1+1', '+SUM(A1:A2)', '-1+2', '@SUM(A1)', '  =HYPERLINK("https://bad.example")', String.fromCharCode(9) + '=cmd']) {
+      const cell = toCsvCell(value);
+      assert.equal(cell.charCodeAt(0), 34, 'CSV cell should start with a quote');
+      assert.equal(cell.charCodeAt(1), 39, `Expected formula-safe prefix for ${JSON.stringify(value)}`);
     }
   });
 
