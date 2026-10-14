@@ -135,6 +135,13 @@ describe('Telegram Integration API Endpoints', () => {
     assert.equal(secondUse.body.code, 'CODE_ALREADY_USED');
   });
 
+  test('POST /api/telegram/verify rejects Telegram IDs outside PostgreSQL BIGINT range', async () => {
+    const res = await request(app)
+      .post('/api/telegram/verify')
+      .send({ code: 'AX-AB2345', telegramUserId: '9223372036854775808' });
+    assert.equal(res.status, 400);
+  });
+
   test('POST /api/telegram/session fails closed for missing or incorrect bot secrets', async () => {
     const missingSecret = await request(app)
       .post('/api/telegram/session')
@@ -145,6 +152,25 @@ describe('Telegram Integration API Endpoints', () => {
       .post('/api/telegram/session')
       .set('x-telegram-bot-secret', 'this-is-definitely-not-the-shared-secret');
     assert.equal(incorrectSecret.status, 403);
+
+    const configuredSecret = config.telegram.botSecret;
+    try {
+      config.telegram.botSecret = '';
+      const unconfiguredService = await request(app)
+        .post('/api/telegram/session')
+        .set('x-telegram-bot-secret', configuredSecret)
+        .send({ telegramUserId: testTelegramUserId });
+      assert.equal(unconfiguredService.status, 403);
+
+      config.telegram.botSecret = 'axly_telegram_bot_internal_secret_key';
+      const placeholderService = await request(app)
+        .post('/api/telegram/session')
+        .set('x-telegram-bot-secret', 'axly_telegram_bot_internal_secret_key')
+        .send({ telegramUserId: testTelegramUserId });
+      assert.equal(placeholderService.status, 403);
+    } finally {
+      config.telegram.botSecret = configuredSecret;
+    }
   });
 
   test('POST /api/telegram/unlink rejects unauthenticated requests without the service secret', async () => {
