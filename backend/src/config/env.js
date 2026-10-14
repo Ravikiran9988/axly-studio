@@ -12,6 +12,15 @@ const INSECURE_JWT_SECRETS = [
   'your_secret_here',
 ];
 
+const INSECURE_VISITOR_SALTS = [
+  'axly_local_visitor_salt_change_me_before_production',
+  'replace_with_a_secure_random_32_character_or_longer_secret',
+  'change_me',
+  'your_visitor_salt_here',
+  'secret',
+  'password',
+];
+
 export const validateEnv = () => {
   const nodeEnv = process.env.NODE_ENV || 'development';
   const errors = [];
@@ -28,6 +37,14 @@ export const validateEnv = () => {
 
     if (!process.env.DATABASE_URL && !process.env.DB_PASSWORD) {
       errors.push('Database configuration is incomplete: either DATABASE_URL or DB_PASSWORD must be provided in production.');
+    }
+
+    if (!process.env.VISITOR_SALT) {
+      errors.push('VISITOR_SALT environment variable is missing. Set a strong, random secret of at least 32 characters.');
+    } else if (process.env.VISITOR_SALT.length < 32) {
+      errors.push('VISITOR_SALT must be at least 32 characters in production.');
+    } else if (INSECURE_VISITOR_SALTS.includes(process.env.VISITOR_SALT.toLowerCase())) {
+      errors.push('VISITOR_SALT cannot be a placeholder or well-known development value in production.');
     }
   }
 
@@ -65,6 +82,11 @@ export const config = {
     idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT_MS || '30000', 10),
     connectionTimeoutMillis: parseInt(process.env.DB_CONNECT_TIMEOUT_MS || '5000', 10),
   },
+
+  // Visitor analytics: development/test fallback only; production startup requires VISITOR_SALT.
+  visitorSalt: process.env.VISITOR_SALT || (nodeEnv === 'test'
+    ? 'test_visitor_salt_32_characters_minimum'
+    : 'axly_local_visitor_salt_change_me_before_production'),
 
   // JWT
   jwt: {

@@ -38,6 +38,7 @@ services:
       DB_SSL: ${DB_SSL:-false}
       JWT_SECRET: ${JWT_SECRET:-axly_docker_local_secret_must_be_32_chars_long}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      VISITOR_SALT: ${VISITOR_SALT:-}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
       SHORT_DOMAIN: ${SHORT_DOMAIN:-http://localhost:5000}
       TRUST_PROXY: "1"
