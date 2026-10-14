@@ -64,6 +64,14 @@ export const createBot = (token) => {
     );
   });
 
+  bot.action('action:prompt_alias', async (ctx) => {
+    await ctx.answerCbQuery().catch(() => {});
+    return ctx.reply(
+      '✨ <b>Create a Custom Alias</b>\\n\\nSend this command with your destination URL and preferred alias:\\n<code>/alias https://example.com my-brand</code>\\n\\nCustom aliases require a linked Axly account. Use /account to connect first.',
+      { parse_mode: 'HTML', reply_markup: getCancelKeyboard() }
+    );
+  });
+
   bot.action('action:prompt_qr', async (ctx) => {
     await ctx.answerCbQuery().catch(() => {});
     setUserState(ctx.from.id, 'awaiting_qr_url');

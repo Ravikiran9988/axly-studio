@@ -310,6 +310,13 @@ describe('5. Handlers, Account Linking & Guarded Operations', () => {
     clearAllStates();
   });
 
+  test('main menu includes a dedicated Custom Alias button', () => {
+    const keyboard = getMainMenuKeyboard().inline_keyboard;
+    const aliasButton = keyboard.flat().find((button) => button.text.includes('Custom Alias'));
+    assert.ok(aliasButton);
+    assert.equal(aliasButton.callback_data, 'action:prompt_alias');
+  });
+
   test('/start command returns welcome message and menu keyboard', async () => {
     const ctx = createMockContext();
     await handleStart(ctx);
