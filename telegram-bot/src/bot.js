@@ -8,7 +8,7 @@ import { authSessionMiddleware, setUserState } from './middleware/authSession.js
 
 import { handleStart } from './handlers/start.js';
 import { handleHelp } from './handlers/help.js';
-import { handleShortenCommand, handleAliasCommand, handleDirectTextMessage, extractUrlFromTelegramMessage, executeShorten } from './handlers/shorten.js';
+import { handleShortenCommand, handleAliasCommand, handleDirectTextMessage, extractUrlFromTelegramMessage, extractAllUrlsFromTelegramMessage, executeShorten } from './handlers/shorten.js';
 import { handleQrCommand, handleQrCallback, executeGenerateQr } from './handlers/qr.js';
 import { handleMyLinks, handleMyLinksCallback } from './handlers/myLinks.js';
 import { handleStatsCommand, handleStatsCallback } from './handlers/stats.js';
@@ -109,8 +109,9 @@ export const createBot = (token) => {
     if (!message || typeof message.text === 'string' || typeof message.caption !== 'string') {
       return next();
     }
-    const extracted = extractUrlFromTelegramMessage(message);
-    if (!extracted) return next();
+    const urls = extractAllUrlsFromTelegramMessage(message);
+    if (!urls.length) return next();
+    const extracted = urls[0];
 
     const isForwarded = Boolean(
       message.forward_origin || message.forward_from ||
