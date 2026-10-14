@@ -83,7 +83,7 @@ const main = async () => {
   bot = createBot(BOT_TOKEN);
 
   if (USE_WEBHOOK) {
-    const webhookUrl = `${WEBHOOK_DOMAIN.replace(/\\/+$/, '')}${SECRET_PATH}`;
+    const webhookUrl = `${WEBHOOK_DOMAIN.replace(/\/+$/, '')}${SECRET_PATH}`;
     webhookCallback = bot.webhookCallback(SECRET_PATH);
     console.log('[INFO] Registering Telegram webhook.');
     await bot.telegram.setWebhook(webhookUrl);
@@ -121,8 +121,8 @@ process.on('uncaughtException', (err) => {
   shutdown('UNCAUGHT_EXCEPTION', 1);
 });
 
-const isDirectEntry = process.argv[1]?.replace(/\\\\/g, '/').endsWith('telegram-bot/src/index.js') ||
-  process.argv[1]?.replace(/\\\\/g, '/').endsWith('src/index.js');
+const entrypoint = (process.argv[1] || '').split(String.fromCharCode(92)).join('/');
+const isDirectEntry = entrypoint.endsWith('telegram-bot/src/index.js') || entrypoint.endsWith('src/index.js');
 
 if (process.env.NODE_ENV !== 'test' && isDirectEntry) {
   main().catch((err) => {
