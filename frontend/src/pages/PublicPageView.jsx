@@ -166,7 +166,7 @@ export default function PublicPageView({ customDomainHost = null }) {
     return <main className="public-page-state"><div className="public-page-loader" /><p>Loading page…</p></main>;
   }
   if (!page) {
-    return <main className="public-page-state"><div className="public-page-state-icon"><AlertCircle size={26} /></div><h1>Page unavailable</h1><p>{errorMessage || 'This page may be unpublished or the address may be incorrect.'}</p><a href="https://url.axly.in" className="public-page-powered">Create your own page with Axly Studio <ArrowUpRight size={14}/></a></main>;
+    return <main className="public-page-state"><div className="public-page-state-icon"><AlertCircle size={26} /></div><h1>Page unavailable</h1><p>{errorMessage || 'This page may be unpublished or the address may be incorrect.'}</p><a href="https://studio.axly.in" className="public-page-powered">Create your own page with Axly Studio <ArrowUpRight size={14}/></a></main>;
   }
 
   const theme = page.theme || {};
@@ -239,7 +239,7 @@ export default function PublicPageView({ customDomainHost = null }) {
 
           <footer className="public-page-footer">
             <span>Made with <strong style={{ color: accent }}>Axly Studio</strong></span>
-            <a href="https://url.axly.in" target="_blank" rel="noreferrer" style={{ color: muted }}>Create your own page <ExternalLink size={12}/></a>
+            <a href="https://studio.axly.in" target="_blank" rel="noreferrer" style={{ color: muted }}>Create your own page <ExternalLink size={12}/></a>
           </footer>
         </div>
       </article>
