@@ -30,8 +30,9 @@ export const validateUrl = (input) => {
 
   let parsed;
   try {
-    // If user forgot protocol, test with https://
-    const toParse = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    // If input already has a scheme/protocol (e.g. http:, ftp:, javascript:), parse as is
+    const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed);
+    const toParse = hasScheme ? trimmed : `https://${trimmed}`;
     parsed = new URL(toParse);
   } catch {
     return { valid: false, error: 'Invalid URL format. Please provide a valid web address (e.g., https://example.com).' };
@@ -44,14 +45,14 @@ export const validateUrl = (input) => {
 
   const hostname = parsed.hostname.toLowerCase();
 
-  // Check hostname presence
-  if (!hostname || !hostname.includes('.')) {
-    return { valid: false, error: 'Please provide a valid domain name with an extension (e.g. .com, .in, .org).' };
-  }
-
   // SSRF guard for loopback and cloud metadata
   if (BLOCKED_HOSTNAMES.has(hostname) || hostname.endsWith('.local') || hostname.endsWith('.internal')) {
     return { valid: false, error: 'Localhost and internal network addresses cannot be shortened.' };
+  }
+
+  // Check hostname presence and valid domain structure
+  if (!hostname || (!hostname.includes('.') && hostname !== 'localhost')) {
+    return { valid: false, error: 'Please provide a valid domain name with an extension (e.g. .com, .in, .org).' };
   }
 
   return { valid: true, url: parsed.href };
