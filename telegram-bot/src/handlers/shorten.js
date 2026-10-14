@@ -231,6 +231,25 @@ export const handleShortenCommand = async (ctx) => {
 };
 
 /**
+ * Dedicated custom-alias command so users can discover it from Telegram's command menu.
+ * Usage: /alias <url> <alias>
+ */
+export const handleAliasCommand = async (ctx) => {
+  const parts = (ctx.message?.text || '').trim().split(/\\s+/);
+  const candidate = parts[1] || '';
+  const customAlias = parts[2] || '';
+
+  if (!candidate || !customAlias || parts.length > 3) {
+    return ctx.reply(
+      '✨ <b>Create a Custom Alias</b>\\n\\nUsage: <code>/alias &lt;url&gt; &lt;alias&gt;</code>\\nExample: <code>/alias https://example.com my-brand</code>\\n\\nCustom aliases require a linked Axly account. Use <code>/account</code> to connect first.',
+      { parse_mode: 'HTML', reply_markup: getMainMenuKeyboard() }
+    );
+  }
+
+  return executeShorten(ctx, candidate, { customAlias });
+};
+
+/**
  * Extract a validated URL from Telegram text, captions, or hidden text links.
  */
 export const extractUrlFromTelegramMessage = (message) => {

@@ -30,7 +30,7 @@ import {
 } from '../src/middleware/authSession.js';
 import { handleStart } from '../src/handlers/start.js';
 import { handleHelp } from '../src/handlers/help.js';
-import { handleShortenCommand, handleDirectTextMessage, extractUrlFromTelegramMessage } from '../src/handlers/shorten.js';
+import { handleShortenCommand, handleAliasCommand, handleDirectTextMessage, extractUrlFromTelegramMessage } from '../src/handlers/shorten.js';
 import { handleMyLinks } from '../src/handlers/myLinks.js';
 import { handleStats } from '../src/handlers/stats.js';
 import { handleAccount, handleLinkCommand } from '../src/handlers/account.js';
@@ -323,6 +323,13 @@ describe('5. Handlers, Account Linking & Guarded Operations', () => {
     await handleCancel(ctx);
 
     assert.ok(ctx.replies[0].text.includes('Action cancelled'));
+  });
+
+  test('/alias without arguments explains custom alias syntax', async () => {
+    const ctx = createMockContext({ message: { text: '/alias' } });
+    await handleAliasCommand(ctx);
+    assert.ok(ctx.replies[0].text.includes('/alias &lt;url&gt; &lt;alias&gt;'));
+    assert.ok(ctx.replies[0].text.includes('linked Axly account'));
   });
 
   test('/shorten without arguments prompts user with cancel button', async () => {
