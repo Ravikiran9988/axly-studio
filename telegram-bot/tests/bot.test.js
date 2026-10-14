@@ -30,7 +30,7 @@ import {
 } from '../src/middleware/authSession.js';
 import { handleStart } from '../src/handlers/start.js';
 import { handleHelp } from '../src/handlers/help.js';
-import { handleShortenCommand, handleAliasCommand, handleDirectTextMessage, extractUrlFromTelegramMessage, extractAllUrlsFromTelegramMessage, extractUrlOccurrencesFromTelegramMessage } from '../src/handlers/shorten.js';
+import { handleShortenCommand, handleAliasCommand, handleDirectTextMessage, extractUrlFromTelegramMessage, extractAllUrlsFromTelegramMessage, extractUrlOccurrencesFromTelegramMessage, replaceUrlOccurrencesInText } from '../src/handlers/shorten.js';
 import { handleMyLinks } from '../src/handlers/myLinks.js';
 import { handleStats } from '../src/handlers/stats.js';
 import { handleAccount, handleLinkCommand } from '../src/handlers/account.js';
@@ -360,6 +360,21 @@ describe('5. Handlers, Account Linking & Guarded Operations', () => {
       'https://python.org/docs',
       'https://fastapi.tiangolo.com/',
     ]);
+  });
+  test('replaces every visible and hidden URL while preserving message text', () => {
+    const text = 'Pandas Python https://python.org/docs and fastapi.tiangolo.com, end';
+    const matches = extractUrlOccurrencesFromTelegramMessage({
+      text,
+      entities: [{ type: 'text_link', offset: 0, length: 6, url: 'https://pandas.pydata.org/docs' }],
+    });
+    const replacements = matches.map((item, index) => ({
+      ...item,
+      shortUrl: ['https://url.axly.in/pandas', 'https://url.axly.in/python', 'https://url.axly.in/fastapi'][index],
+    }));
+    assert.equal(
+      replaceUrlOccurrencesInText(text, replacements),
+      'https://url.axly.in/pandas Python https://url.axly.in/python and https://url.axly.in/fastapi, end'
+    );
   });
   test('extracts multiple valid URLs from text, including naked domains', () => {
     const urls = extractAllUrlsFromTelegramMessage({
