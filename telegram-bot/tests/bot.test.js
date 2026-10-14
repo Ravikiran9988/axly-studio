@@ -30,7 +30,7 @@ import {
 } from '../src/middleware/authSession.js';
 import { handleStart } from '../src/handlers/start.js';
 import { handleHelp } from '../src/handlers/help.js';
-import { handleShortenCommand, handleAliasCommand, handleDirectTextMessage, extractUrlFromTelegramMessage, extractAllUrlsFromTelegramMessage } from '../src/handlers/shorten.js';
+import { handleShortenCommand, handleAliasCommand, handleDirectTextMessage, extractUrlFromTelegramMessage, extractAllUrlsFromTelegramMessage, extractUrlOccurrencesFromTelegramMessage } from '../src/handlers/shorten.js';
 import { handleMyLinks } from '../src/handlers/myLinks.js';
 import { handleStats } from '../src/handlers/stats.js';
 import { handleAccount, handleLinkCommand } from '../src/handlers/account.js';
@@ -344,6 +344,23 @@ describe('5. Handlers, Account Linking & Guarded Operations', () => {
     assert.ok(!ctx.replies[0].text.includes('Usage:'));
   });
 
+  test('extracts URL occurrence ranges for visible and hidden Telegram links', () => {
+    const text = 'Pandas Python https://python.org/docs and fastapi.tiangolo.com';
+    const matches = extractUrlOccurrencesFromTelegramMessage({
+      text,
+      entities: [{ type: 'text_link', offset: 0, length: 6, url: 'https://pandas.pydata.org/docs' }],
+    });
+    assert.equal(matches.length, 3);
+    assert.equal(matches[0].normalizedUrl, 'https://pandas.pydata.org/docs');
+    assert.equal(matches[0].hidden, true);
+    assert.equal(matches[0].start, 0);
+    assert.equal(matches[0].end, 6);
+    assert.deepEqual(matches.map((item) => item.normalizedUrl), [
+      'https://pandas.pydata.org/docs',
+      'https://python.org/docs',
+      'https://fastapi.tiangolo.com/',
+    ]);
+  });
   test('extracts multiple valid URLs from text, including naked domains', () => {
     const urls = extractAllUrlsFromTelegramMessage({
       text: 'Python https://python.org/docs FastAPI fastapi.tiangolo.com Python https://python.org/docs',
