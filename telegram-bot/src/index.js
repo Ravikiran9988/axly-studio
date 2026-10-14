@@ -3,7 +3,7 @@
  * Standalone service for Render, Railway, VPS, or Docker.
  */
 import http from 'http';
-import { createHash } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import dotenv from 'dotenv';
 import { createBot } from './bot.js';
 
@@ -18,6 +18,13 @@ const WEBHOOK_DOMAIN = (process.env.WEBHOOK_DOMAIN || '').trim();
 const WEBHOOK_SECRET_TOKEN = process.env.WEBHOOK_SECRET_TOKEN || '';
 // A path derived from the private bot token is harder to guess than the public bot ID.
 const SECRET_PATH = `/webhook/${BOT_TOKEN ? createHash('sha256').update(BOT_TOKEN).digest('hex') : 'bot'}`;
+const INSECURE_BOT_SECRETS = new Set([
+  'axly_telegram_bot_internal_secret_key',
+  'replace_with_a_secure_random_32_character_bot_secret',
+  'replace_with_random_32_char_or_longer_secret',
+  'changeme',
+  'secret',
+]);
 
 let server;
 let bot;
@@ -39,7 +46,9 @@ const startServer = () => {
 
     if (USE_WEBHOOK && botReady && webhookCallback && req.url === SECRET_PATH && req.method === 'POST') {
       const suppliedSecret = req.headers['x-telegram-bot-api-secret-token'];
-      if (typeof suppliedSecret !== 'string' || suppliedSecret !== WEBHOOK_SECRET_TOKEN) {
+      const supplied = typeof suppliedSecret === 'string' ? Buffer.from(suppliedSecret) : Buffer.alloc(0);
+      const expected = Buffer.from(WEBHOOK_SECRET_TOKEN);
+      if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) {
         res.writeHead(403);
         return res.end();
       }
@@ -76,8 +85,8 @@ const validateBotEnvironment = () => {
   if (process.env.NODE_ENV === 'production' && parsedApiUrl.protocol !== 'https:') {
     throw new Error('AXLY_API_URL must use HTTPS in production.');
   }
-  if (process.env.NODE_ENV === 'production' && BOT_SECRET.length < 32) {
-    throw new Error('TELEGRAM_BOT_SECRET must be configured with at least 32 characters in production.');
+  if (process.env.NODE_ENV === 'production' && (BOT_SECRET.length < 32 || INSECURE_BOT_SECRETS.has(BOT_SECRET.toLowerCase()))) {
+    throw new Error('TELEGRAM_BOT_SECRET must be a non-placeholder random value of at least 32 characters in production.');
   }
   if (USE_WEBHOOK) {
     if (!WEBHOOK_DOMAIN) {
