@@ -51,6 +51,16 @@ export const validateEnv = () => {
 
   }
 
+  if (nodeEnv === 'production' && (!process.env.TELEGRAM_BOT_SECRET || process.env.TELEGRAM_BOT_SECRET.length < 32 || [
+    'axly_telegram_bot_internal_secret_key',
+    'replace_with_a_secure_random_32_character_bot_secret',
+    'replace_with_random_32_char_or_longer_secret',
+    'changeme',
+    'secret',
+  ].includes((process.env.TELEGRAM_BOT_SECRET || '').toLowerCase()))) {
+    console.warn('[WARN] Telegram service authentication is not configured with a strong secret; Telegram session and bot unlink endpoints will reject service requests.');
+  }
+
   if (errors.length > 0) {
     console.error('[FATAL] Production environment validation failed:');
     errors.forEach((err) => console.error(`  - ${err}`));
