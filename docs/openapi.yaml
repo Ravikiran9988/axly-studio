@@ -13,7 +13,7 @@ info:
 servers:
   - url: https://studio.axly.in/api
     description: Production API through the canonical website proxy
-  - url: https://axly-api.onrender.com/api
+  - url: https://api.axly.in/api
     description: Direct API service origin (verify active deployment settings)
   - url: http://localhost:5000/api
     description: Local development API
@@ -482,7 +482,7 @@ paths:
 
   /healthz:
     servers:
-      - url: https://axly-api.onrender.com
+      - url: https://api.axly.in
         description: Root-level liveness endpoint (not under /api)
       - url: http://localhost:5000
         description: Local root-level liveness endpoint
@@ -496,7 +496,7 @@ paths:
 
   /readyz:
     servers:
-      - url: https://axly-api.onrender.com
+      - url: https://api.axly.in
         description: Root-level readiness endpoint (not under /api)
       - url: http://localhost:5000
         description: Local root-level readiness endpoint
