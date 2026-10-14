@@ -23,7 +23,7 @@ const HELP_CATEGORIES = [
           'Use the URL shortener on your Dashboard or homepage to turn any long link into a concise URL.',
           'Customize your link ending (vanity alias) to make it memorable.',
           'Generate high-resolution vector and PNG QR codes for marketing material.',
-          'Build a public profile page under url.axly.in/p/username to house all your content.'
+          'Build a public profile page under studio.axly.in/p/username to house all your content.'
         ],
         example: 'Convert https://example.com/products/summer-clearance into s.axly.in/summer and track clicks in real time.',
         mistakes: [
@@ -117,12 +117,12 @@ const HELP_CATEGORIES = [
         steps: [
           'Open "My Pages" in the sidebar and click "Create Page".',
           'Choose a template (Link in Bio, Creator, Developer Portfolio, Business, or Business Card).',
-          'Pick your public address (e.g., url.axly.in/p/yourname).',
+          'Pick your public address (e.g., studio.axly.in/p/yourname).',
           'Add blocks such as links, social profiles, images, video embeds, and lead forms, then click Publish.'
         ],
-        example: 'url.axly.in/p/alex — A central destination showing Alex’s podcast, design portfolio, YouTube channel, and contact email.',
+        example: 'studio.axly.in/p/alex — A central destination showing Alex’s podcast, design portfolio, YouTube channel, and contact email.',
         mistakes: [
-          { error: 'Confusing page username with custom domain', solution: 'Page username gives you an Axly address like url.axly.in/p/username. To use your own standalone domain (yourbrand.com), connect it in Domains.' },
+          { error: 'Confusing page username with custom domain', solution: 'Page username gives you an Axly address like studio.axly.in/p/username. To use your own standalone domain (yourbrand.com), connect it in Domains.' },
           { error: 'Forgetting to publish', solution: 'Draft pages are only visible in preview mode. Click "Publish" when you are ready for visitors to access it.' }
         ],
         actionLink: '/app/pages',
