@@ -77,7 +77,7 @@ export const createDomain = async (req, res) => {
     }
 
     const verificationToken = `axly-verify-${crypto.randomBytes(12).toString('hex')}`;
-    const dnsExpectedValue = domainType === 'page' ? 'url.axly.in' : 'axly-api.onrender.com';
+    const dnsExpectedValue = domainType === 'page' ? 'url.axly.in' : 'api.axly.in';
 
     const result = await query(`
       INSERT INTO custom_domains (
