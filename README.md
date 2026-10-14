@@ -188,4 +188,6 @@ Keep documentation and implementation changes together. A new route, environment
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for the full license text.
+Copyright (c) 2026 Axly Studio. All rights reserved.
+
+This source code is proprietary. Unauthorized copying, modification, distribution, or use of this software is prohibited without prior written permission from the copyright holder.
