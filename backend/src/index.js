@@ -45,6 +45,7 @@ app.use(helmet({
 // Domain registration does not grant API permissions; authenticated routes still require a session.
 const allowedOrigins = [
   config.FRONTEND_URL,
+  'https://studio.axly.in',
   'https://url.axly.in',
   'https://axly.in',
   'http://localhost:5173',
