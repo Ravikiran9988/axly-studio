@@ -101,18 +101,25 @@ export const optionalAuth = async (req, res, next) => {
         WHERE k.key_hash = $1 AND k.is_revoked = false AND (k.expires_at IS NULL OR k.expires_at > NOW()) AND u.is_active = true
       `, [keyHash]);
 
-      if (result.rows.length > 0) {
-        const row = result.rows[0];
-        req.user = { id: row.user_id, name: row.name, email: row.email, role: row.role };
-        req.apiKey = { id: row.id, scopes: row.scopes, workspaceId: row.workspace_id };
-        req.workspaceId = row.workspace_id;
-        req.authMethod = 'api_key';
-        return next();
+      if (result.rows.length === 0) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid, expired, revoked, or disabled API key.',
+        });
       }
+
+      const row = result.rows[0];
+      req.user = { id: row.user_id, name: row.name, email: row.email, role: row.role };
+      req.apiKey = { id: row.id, scopes: row.scopes, workspaceId: row.workspace_id };
+      req.workspaceId = row.workspace_id;
+      req.authMethod = 'api_key';
+      return next();
     } catch {
-      // Continue as guest
+      return res.status(503).json({
+        success: false,
+        message: 'Could not validate API key. Please try again.',
+      });
     }
-    return next();
   }
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -123,9 +130,36 @@ export const optionalAuth = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, config.jwt.secret);
-    req.user = decoded;
-  } catch {
-    // Token invalid or expired, continue as guest
+    const userCheck = await query(
+      'SELECT id, is_active, role, token_version FROM users WHERE id = $1',
+      [decoded.id]
+    );
+
+    if (userCheck.rows.length === 0) {
+      return res.status(401).json({ success: false, message: 'User account not found.' });
+    }
+
+    const account = userCheck.rows[0];
+    if (!account.is_active) {
+      return res.status(403).json({ success: false, message: 'Account is disabled. Contact support.' });
+    }
+
+    const currentTokenVersion = account.token_version || 1;
+    const tokenVersionInJwt = decoded.token_version || 1;
+    if (tokenVersionInJwt < currentTokenVersion) {
+      return res.status(401).json({ success: false, message: 'Session invalidated. Please sign in again.' });
+    }
+
+    req.user = {
+      ...decoded,
+      role: account.role || decoded.role || 'user',
+      token_version: currentTokenVersion,
+    };
+  } catch (err) {
+    if (err?.name === 'JsonWebTokenError' || err?.name === 'TokenExpiredError' || err?.name === 'NotBeforeError') {
+      return res.status(401).json({ success: false, message: 'Invalid or expired token.' });
+    }
+    return res.status(503).json({ success: false, message: 'Could not validate session. Please try again.' });
   }
 
   next();

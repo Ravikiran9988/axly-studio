@@ -1,4 +1,5 @@
-import net from 'net';
+import net from 'node:net';
+import dns from 'node:dns/promises';
 
 // Helper to determine if an IPv4 address is in a private, loopback, or cloud-metadata range
 export const isPrivateIPv4 = (ip) => {
@@ -42,13 +43,22 @@ export const isPrivateIPv4 = (ip) => {
 // Check if an IP (IPv4 or IPv6 or IPv4-mapped IPv6) is blocked / private
 export const isPrivateOrBlockedIp = (ip) => {
   if (!ip || typeof ip !== 'string') return true;
-  const cleanIp = ip.toLowerCase().trim();
+  const cleanIp = ip.toLowerCase().trim().replace(/^\[|\]$/g, '');
 
-  // Handle IPv4-mapped IPv6 (::ffff:127.0.0.1 or ::ffff:7f00:1)
+  // Handle IPv4-mapped IPv6 in dotted form (::ffff:127.0.0.1).
   if (cleanIp.startsWith('::ffff:')) {
     const v4Part = cleanIp.substring(7);
     if (net.isIPv4(v4Part)) {
       return isPrivateIPv4(v4Part);
+    }
+
+    // Also handle the hexadecimal form, e.g. ::ffff:7f00:1 (127.0.0.1).
+    const mappedHex = cleanIp.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+    if (mappedHex) {
+      const high = Number.parseInt(mappedHex[1], 16);
+      const low = Number.parseInt(mappedHex[2], 16);
+      const mappedV4 = `${high >> 8}.${high & 255}.${low >> 8}.${low & 255}`;
+      return isPrivateIPv4(mappedV4);
     }
   }
 
@@ -94,7 +104,7 @@ export const validateSafeDestinationUrl = (urlString) => {
     return { valid: false, error: msg, reason: msg };
   }
 
-  const hostname = parsed.hostname.toLowerCase();
+  const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
 
   // Reject local/internal domain names
   if (
@@ -121,3 +131,55 @@ export const validateSafeDestinationUrl = (urlString) => {
   return { valid: true, url: parsed.toString() };
 };
 
+
+/**
+ * Resolve a webhook hostname and reject every non-public address before connecting.
+ * The returned address list is intended to be pinned by the caller so the HTTP client
+ * cannot resolve the hostname again after validation (DNS-rebinding protection).
+ * A custom lookup function can be injected by tests.
+ */
+export const resolveSafeDestinationUrl = async (urlString, lookup = dns.lookup) => {
+  const validation = validateSafeDestinationUrl(urlString);
+  if (!validation.valid) return validation;
+
+  const parsed = new URL(validation.url);
+  const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
+  const literalFamily = net.isIP(hostname);
+
+  if (literalFamily) {
+    if (isPrivateOrBlockedIp(hostname)) {
+      const msg = 'Destination addresses pointing to private or metadata IP ranges are restricted.';
+      return { valid: false, error: msg, reason: msg };
+    }
+    return {
+      ...validation,
+      addresses: [{ address: hostname, family: literalFamily }],
+    };
+  }
+
+  let resolved;
+  try {
+    resolved = await lookup(hostname, { all: true, verbatim: true });
+  } catch {
+    const msg = 'Webhook hostname could not be resolved safely.';
+    return { valid: false, error: msg, reason: msg };
+  }
+
+  if (!Array.isArray(resolved) || resolved.length === 0) {
+    const msg = 'Webhook hostname did not resolve to any IP addresses.';
+    return { valid: false, error: msg, reason: msg };
+  }
+
+  const addresses = resolved.map(({ address, family }) => ({
+    address,
+    family: family || net.isIP(address),
+  }));
+
+  // Reject mixed answer sets as well: a hostname with any private answer is unsafe.
+  if (addresses.some(({ address }) => isPrivateOrBlockedIp(address))) {
+    const msg = 'Webhook hostname resolves to a private or restricted IP address.';
+    return { valid: false, error: msg, reason: msg };
+  }
+
+  return { ...validation, addresses };
+};

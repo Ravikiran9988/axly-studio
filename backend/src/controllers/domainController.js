@@ -52,6 +52,21 @@ export const createDomain = async (req, res) => {
 
     const cleanDomain = validation.domain;
 
+    // Workspace domains can route traffic for every short link in that workspace.
+    // Restrict attachment to workspace owners/admins to prevent cross-tenant domain takeover.
+    if (workspaceId && req.user.role !== 'admin') {
+      const membership = await query(
+        'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
+        [workspaceId, req.user.id]
+      );
+      if (!membership.rows.some(row => ['owner', 'admin'].includes(row.role))) {
+        return res.status(403).json({
+          success: false,
+          message: 'Workspace owner or admin membership is required to register a workspace domain.',
+        });
+      }
+    }
+
     // Check duplicate
     const existing = await query('SELECT id, status FROM custom_domains WHERE domain = $1', [cleanDomain]);
     if (existing.rows.length > 0) {

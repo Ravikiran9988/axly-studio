@@ -205,8 +205,9 @@ let server;
 // Start server only when run directly (not when imported by tests)
 const isDirectEntry = process.argv[1]?.replace(/\\/g, '/').endsWith('src/index.js');
 if (process.env.NODE_ENV !== 'test' && isDirectEntry) {
-  runMigrations().catch(err => console.error('[WARN] Startup database migration attempt:', err.message));
-  server = app.listen(PORT, () => {
+  // Gate incoming traffic on successful schema migration.
+  runMigrations().then(() => {
+    server = app.listen(PORT, () => {
     console.log(`
 ╔══════════════════════════════════════════════════╗
 ║               Axly URL Shortener                 ║
@@ -217,6 +218,11 @@ if (process.env.NODE_ENV !== 'test' && isDirectEntry) {
 ║  -- Mode:          ${config.NODE_ENV.padEnd(29)} ║
 ╚══════════════════════════════════════════════════╝
     `);
+    });
+  }).catch(async (err) => {
+    console.error('[FATAL] Database migrations failed; refusing to start API:', err.message);
+    await closePool();
+    process.exitCode = 1;
   });
 
   // Graceful shutdown

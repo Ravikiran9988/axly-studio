@@ -11,10 +11,23 @@ export const listApiKeys = async (req, res) => {
 
     let result;
     if (workspaceId) {
+      if (req.user.role !== 'admin') {
+        const membership = await query(
+          'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
+          [workspaceId, req.user.id]
+        );
+        if (!membership.rows.some(row => ['owner', 'admin'].includes(row.role))) {
+          return res.status(403).json({
+            success: false,
+            message: 'Workspace owner or admin membership is required to manage workspace API keys.',
+          });
+        }
+      }
+
       result = await query(`
         SELECT id, name, key_prefix, scopes, rate_limit_per_minute, expires_at, last_used_at, is_revoked, created_at
         FROM api_keys
-        WHERE workspace_id = $1 AND (user_id = $2 OR is_revoked = false)
+        WHERE workspace_id = $1 AND user_id = $2
         ORDER BY created_at DESC
       `, [workspaceId, req.user.id]);
     } else {
@@ -44,6 +57,19 @@ export const listApiKeys = async (req, res) => {
 export const createApiKey = async (req, res) => {
   try {
     const { name, scopes = ['links:read', 'links:write'], expiresInDays = null, workspaceId = null } = req.body;
+
+    if (workspaceId && req.user.role !== 'admin') {
+      const membership = await query(
+        'SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2',
+        [workspaceId, req.user.id]
+      );
+      if (!membership.rows.some(row => ['owner', 'admin'].includes(row.role))) {
+        return res.status(403).json({
+          success: false,
+          message: 'Workspace owner or admin membership is required to create workspace API keys.',
+        });
+      }
+    }
 
     if (!name || typeof name !== 'string' || name.trim().length < 2) {
       return res.status(400).json({
