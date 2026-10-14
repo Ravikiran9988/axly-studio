@@ -45,6 +45,12 @@ describe('Destination URL network normalization', () => {
     assert.equal(mixedResult.valid, false);
   });
 
+  test('supports public IPv6 URL literals for webhook pinning', async () => {
+    const result = await resolveSafeDestinationUrl('https://[2606:4700:4700::1111]/');
+    assert.equal(result.valid, true);
+    assert.deepEqual(result.addresses, [{ address: '2606:4700:4700::1111', family: 6 }]);
+  });
+
   test('returns only validated public addresses for connection pinning', async () => {
     const result = await resolveSafeDestinationUrl(
       'https://hooks.example.test/callback',
