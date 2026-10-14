@@ -12,7 +12,7 @@ import { setUserState, clearUserState } from '../middleware/authSession.js';
 /**
  * Handle URL shortening operation
  */
-export const executeShorten = async (ctx, rawUrl) => {
+export const executeShorten = async (ctx, rawUrl, options = {}) => {
   const validation = validateUrl(rawUrl);
   if (!validation.valid) {
     return ctx.reply(`⚠️ ${validation.error}`, {
@@ -21,6 +21,23 @@ export const executeShorten = async (ctx, rawUrl) => {
   }
 
   const targetUrl = validation.url;
+  const customAlias = options.customAlias ? String(options.customAlias).trim().toLowerCase() : null;
+
+  if (customAlias) {
+    if (!ctx.auth?.isLinked || !ctx.auth?.token) {
+      return ctx.reply(
+        '🔐 <b>Custom aliases require a linked Axly account.</b>\n\nUse <code>/account</code> to connect your account, then try again.',
+        { parse_mode: 'HTML', reply_markup: getMainMenuKeyboard() }
+      );
+    }
+    if (!/^[a-z0-9_-]{3,30}$/.test(customAlias)) {
+      return ctx.reply(
+        '⚠️ Alias must be 3–30 characters using letters, numbers, hyphens or underscores.',
+        { parse_mode: 'HTML', reply_markup: getCancelKeyboard() }
+      );
+    }
+  }
+
   clearUserState(ctx.from.id);
 
   const loadingMsg = await ctx.reply('⚡ <i>Shortening link with Axly Studio...</i>', {
@@ -30,7 +47,7 @@ export const executeShorten = async (ctx, rawUrl) => {
   try {
     const isGuest = !ctx.auth?.isLinked;
     const userToken = ctx.auth?.isLinked ? ctx.auth.token : null;
-    const response = await createShortUrl(targetUrl, userToken);
+    const response = await createShortUrl(targetUrl, userToken, customAlias);
 
     await ctx.telegram.deleteMessage(ctx.chat.id, loadingMsg.message_id).catch(() => {});
 
@@ -40,7 +57,7 @@ export const executeShorten = async (ctx, rawUrl) => {
 
     await ctx.reply(message, {
       parse_mode: 'HTML',
-      reply_markup: getLinkActionsKeyboard(linkData.shortCode, shortUrl),
+      reply_markup: getLinkActionsKeyboard(linkData.shortCode || linkData.short_code, shortUrl),
     });
 
     // If auto-QR is enabled, also generate and send QR code
@@ -87,11 +104,19 @@ export const executeShorten = async (ctx, rawUrl) => {
  */
 export const handleShortenCommand = async (ctx) => {
   const text = ctx.message?.text || '';
-  const parts = text.split(/\s+/);
-  const candidate = parts.slice(1).join(' ').trim();
+  const parts = text.trim().split(/\s+/);
+  const candidate = parts[1] || '';
+  const customAlias = parts[2] || null;
+
+  if (parts.length > 3) {
+    return ctx.reply(
+      'Usage: <code>/shorten &lt;url&gt; [alias]</code>\nExample: <code>/shorten https://example.com my-brand</code>',
+      { parse_mode: 'HTML' }
+    );
+  }
 
   if (candidate) {
-    return executeShorten(ctx, candidate);
+    return executeShorten(ctx, candidate, { customAlias });
   }
 
   // No URL provided in command: prompt user
