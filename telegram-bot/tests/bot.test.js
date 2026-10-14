@@ -30,7 +30,7 @@ import {
 } from '../src/middleware/authSession.js';
 import { handleStart } from '../src/handlers/start.js';
 import { handleHelp } from '../src/handlers/help.js';
-import { handleShortenCommand, handleAliasCommand, handleDirectTextMessage, extractUrlFromTelegramMessage } from '../src/handlers/shorten.js';
+import { handleShortenCommand, handleAliasCommand, handleDirectTextMessage, extractUrlFromTelegramMessage, extractAllUrlsFromTelegramMessage } from '../src/handlers/shorten.js';
 import { handleMyLinks } from '../src/handlers/myLinks.js';
 import { handleStats } from '../src/handlers/stats.js';
 import { handleAccount, handleLinkCommand } from '../src/handlers/account.js';
@@ -135,6 +135,19 @@ describe('1. Input Validation & Protocol Hardening', () => {
       text: 'internal',
       entities: [{ type: 'text_link', offset: 0, length: 8, url: 'http://127.0.0.1/admin' }],
     }), null);
+  });
+
+  test('extracts every unique URL from long messages and Telegram link entities', () => {
+    assert.deepEqual(extractAllUrlsFromTelegramMessage({
+      text: 'Python https://python.org/docs FastAPI https://fastapi.tiangolo.com/ Python https://python.org/docs',
+    }), ['https://python.org/docs', 'https://fastapi.tiangolo.com/']);
+    assert.deepEqual(extractAllUrlsFromTelegramMessage({
+      text: 'Docs and project',
+      entities: [
+        { type: 'text_link', offset: 0, length: 4, url: 'https://docs.example.com/' },
+        { type: 'text_link', offset: 9, length: 7, url: 'https://project.example.org/' },
+      ],
+    }), ['https://docs.example.com/', 'https://project.example.org/']);
   });
 
   test('validates custom alias format for linked accounts', () => {
