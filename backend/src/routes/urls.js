@@ -26,13 +26,13 @@ import { config } from '../config/env.js';
 
 const router = express.Router();
 
-// Rate limiter for authenticated users (keyed by userId if present, otherwise IP)
+// Authenticated requests are keyed by stable account ID; guest requests use the IP-keyed limiter below.
 const authUserCreateLimiter = rateLimit({
   windowMs: config.rateLimits.createWindowMs,
   max: config.rateLimits.createMax,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.user?.id || req.ip,
+  keyGenerator: (req) => req.user.id,
   message: { 
     success: false, 
     message: 'Too many URLs created from this account. Please try again later.' 
