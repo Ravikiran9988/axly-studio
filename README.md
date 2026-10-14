@@ -20,9 +20,9 @@ Axly Studio is a link-management platform with a React web application, a Node.j
 | https://studio.axly.in | Canonical website | Primary user-facing Axly Studio domain |
 | https://url.axly.in | Secondary/legacy website host | Configure a permanent Vercel 301 redirect to studio.axly.in; test path and query preservation after saving |
 | https://s.axly.in/yourCode | Short-link hostname | Configure DNS/routing and SHORT_DOMAIN consistently with the redirect service |
-| https://axly-api.onrender.com | API service hostname | Current documented Render API origin; /api/* is proxied by frontend/vercel.json |
+| https://api.axly.in | Canonical API hostname | Custom domain for the Render API; verify DNS and TLS in Render before release |
 
-The frontend Vercel rewrite sends /api/:path* to https://axly-api.onrender.com/api/:path* and rewrites other paths to /index.html for SPA routing. Keep the API origin and custom domains synchronized when hosting changes. A valid domain status alone does not prove that redirects, application routes, or API requests work end to end.
+The frontend Vercel rewrite sends /api/:path* to https://api.axly.in/api/:path* and rewrites other paths to /index.html for SPA routing. The public liveness endpoint is https://api.axly.in/health (expected HTTP 200 JSON with status=ok); /healthz is a liveness probe and /readyz checks database readiness. Confirm the api.axly.in custom domain and TLS in Render, then test these URLs from an external network before release.
 
 ## Repository layout
 
@@ -150,7 +150,7 @@ The workflow in .github/workflows/ci.yml runs backend tests against PostgreSQL, 
 ## Deployment overview
 
 - **Frontend / Vercel:** project root directory frontend; build command npm run build; output directory dist; API rewrite and SPA fallback are in frontend/vercel.json. Canonical host intent is studio.axly.in. Keep url.axly.in as a secondary redirect only after saving and testing the domain-level redirect.
-- **API / Render (documented target):** hostname https://axly-api.onrender.com; root directory backend; install with npm ci; start with npm start. Configure all required production environment values. Backend startup runs migrations before opening the port.
+- **API / Render (documented target):** hostname https://api.axly.in; root directory backend; install with npm ci; start with npm start. Configure all required production environment values. Backend startup runs migrations before opening the port.
 - **Telegram bot / Render (if deployed there):** separate service; root directory telegram-bot; install with npm ci; start with npm start; configure token, API URL, frontend URL, shared secret and polling/webhook mode.
 
 Use the [production runbook](./docs/OPERATIONS_RUNBOOK.md) for pre-deploy checks, smoke tests, rollback, incident handling, secret rotation and database backup/restore. Hosting details above describe the intended configuration; verify the actual dashboard settings and live health endpoints for each release.
