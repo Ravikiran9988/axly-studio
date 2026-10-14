@@ -8,7 +8,7 @@ import { getCancelKeyboard, getMainMenuKeyboard } from '../utils/keyboards.js';
 import { setUserState, clearUserState } from '../middleware/authSession.js';
 import { escapeHtml } from '../utils/formatters.js';
 
-const FRONTEND_URL = process.env.AXLY_FRONTEND_URL || 'https://url.axly.in';
+const FRONTEND_URL = process.env.AXLY_FRONTEND_URL || 'https://studio.axly.in';
 
 /**
  * Generate and send QR code image
